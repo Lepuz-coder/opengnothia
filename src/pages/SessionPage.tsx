@@ -202,6 +202,22 @@ export default function SessionPage() {
     if (isStreaming) return;
 
     const messages = useSessionStore.getState().messages;
+    const userMessageCount = messages.filter((m) => m.role === "user").length;
+
+    // Short session: skip AI summary, save empty and redirect
+    if (userMessageCount < 2) {
+      const sessionId = useSessionStore.getState().sessionId;
+      if (sessionId) {
+        await completeSession(sessionId, {
+          mood_after: 5,
+          summary: { themes: [], defenses: [], insights: [], homework: [] },
+        });
+      }
+      session.reset();
+      setSidebarHidden(false);
+      navigate("/dashboard");
+      return;
+    }
 
     // Switch to post view with streaming state
     session.startSummaryStream();
@@ -324,7 +340,7 @@ export default function SessionPage() {
       );
       useSessionStore.getState().finishSummaryStream();
     }
-  }, [settings]);
+  }, [settings, navigate, setSidebarHidden]);
 
   const handleSaveAndClose = useCallback(async () => {
     setSaving(true);
@@ -333,6 +349,7 @@ export default function SessionPage() {
       await completeSession(state.sessionId, {
         mood_after: state.moodAfter ?? 5,
         summary: state.summary,
+        summary_narrative: state.summaryNarrative || undefined,
       });
     }
     session.reset();

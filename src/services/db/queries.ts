@@ -56,12 +56,12 @@ export async function updateSessionMessages(id: string, messages: ChatMessage[])
 
 export async function completeSession(
   id: string,
-  data: { mood_after: number; summary: SessionSummary }
+  data: { mood_after: number; summary: SessionSummary; summary_narrative?: string }
 ): Promise<void> {
   const db = await getDatabase();
   await db.execute(
-    "UPDATE sessions SET ended_at = CURRENT_TIMESTAMP, mood_after = ?, summary = ?, status = 'completed' WHERE id = ?",
-    [data.mood_after, JSON.stringify(data.summary), id]
+    "UPDATE sessions SET ended_at = CURRENT_TIMESTAMP, mood_after = ?, summary = ?, summary_narrative = ?, status = 'completed' WHERE id = ?",
+    [data.mood_after, JSON.stringify(data.summary), data.summary_narrative ?? null, id]
   );
 }
 
@@ -101,7 +101,7 @@ export async function deleteSession(id: string): Promise<void> {
 export async function getCompletedSessions(): Promise<Omit<Session, "messages">[]> {
   const db = await getDatabase();
   const rows = await db.select<Session[]>(
-    "SELECT id, started_at, ended_at, mood_before, mood_after, summary, therapist_notes, status, created_at FROM sessions WHERE status = 'completed' ORDER BY created_at DESC"
+    "SELECT id, started_at, ended_at, mood_before, mood_after, summary, summary_narrative, therapist_notes, status, created_at FROM sessions WHERE status = 'completed' ORDER BY created_at DESC"
   );
   return rows.map((r) => ({
     ...r,

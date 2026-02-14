@@ -16,7 +16,7 @@ export function Toggle({ checked, onChange, label, className }: ToggleProps) {
         onClick={() => onChange(!checked)}
         className={cn(
           "relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200",
-          checked ? "bg-primary-600" : "bg-[var(--border-color)]"
+          checked ? "bg-primary-500" : "bg-[var(--border-color)]"
         )}
       >
         <span

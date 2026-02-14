@@ -27,8 +27,8 @@ export function ChatContainer({ messages, isLoading }: ChatContainerProps) {
       ))}
       {isLoading && (
         <div className="flex gap-3">
-          <div className="w-8 h-8 rounded-full bg-accent-100 dark:bg-accent-900/30 flex items-center justify-center">
-            <Loader2 className="w-4 h-4 text-accent-600 animate-spin" />
+          <div className="w-8 h-8 rounded-full bg-accent-900/30 flex items-center justify-center">
+            <Loader2 className="w-4 h-4 text-accent-400 animate-spin" />
           </div>
           <div className="bg-[var(--bg-tertiary)] rounded-2xl rounded-bl-md px-4 py-3">
             <div className="flex gap-1">

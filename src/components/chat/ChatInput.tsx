@@ -51,7 +51,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
           className={cn(
             "w-10 h-10 rounded-xl flex items-center justify-center transition-all shrink-0",
             value.trim() && !disabled
-              ? "bg-primary-600 text-white hover:bg-primary-700"
+              ? "bg-primary-500 text-white hover:bg-primary-600"
               : "bg-[var(--bg-tertiary)] text-[var(--text-muted)]"
           )}
         >

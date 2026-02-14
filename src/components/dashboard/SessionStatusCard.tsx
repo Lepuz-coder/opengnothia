@@ -18,8 +18,8 @@ export function SessionStatusCard() {
   return (
     <Card>
       <div className="flex items-start gap-4">
-        <div className="w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center shrink-0">
-          <MessageSquare className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+        <div className="w-12 h-12 rounded-xl bg-primary-900/30 flex items-center justify-center shrink-0">
+          <MessageSquare className="w-6 h-6 text-primary-400" />
         </div>
         <div className="flex-1">
           <h3 className="font-semibold text-[var(--text-primary)]">

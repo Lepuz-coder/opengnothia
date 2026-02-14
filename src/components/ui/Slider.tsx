@@ -30,7 +30,7 @@ export function Slider({
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-[var(--text-secondary)]">{label}</span>
         {showValue && (
-          <span className="text-sm font-semibold text-primary-600 dark:text-primary-400">
+          <span className="text-sm font-semibold text-primary-400">
             {value}/{max}
           </span>
         )}
@@ -42,7 +42,7 @@ export function Slider({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full h-2 rounded-full appearance-none cursor-pointer accent-primary-600"
+        className="w-full h-2 rounded-full appearance-none cursor-pointer accent-primary-500"
         style={{
           background: `linear-gradient(to right, var(--color-primary-500) 0%, var(--color-primary-500) ${percentage}%, var(--color-surface-200) ${percentage}%, var(--color-surface-200) 100%)`,
         }}

@@ -9,7 +9,7 @@ import { useAppStore } from "@/stores/useAppStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useTheme } from "@/hooks/useTheme";
 import { providers, getProvider } from "@/constants/providers";
-import type { Theme, AIProvider } from "@/types";
+import type { AIProvider } from "@/types";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -20,12 +20,6 @@ export default function SettingsPage() {
   const currentProvider = getProvider(settings.provider);
   const providerOptions = providers.map((p) => ({ value: p.id, label: p.name }));
   const modelOptions = currentProvider?.models.map((m) => ({ value: m.id, label: m.name })) ?? [];
-
-  const themeOptions = [
-    { value: "system", label: "Sistem" },
-    { value: "light", label: "Açık" },
-    { value: "dark", label: "Koyu" },
-  ];
 
   async function handleSave() {
     const store = await loadSettings();
@@ -49,17 +43,6 @@ export default function SettingsPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold">Ayarlar</h1>
-
-      {/* Appearance */}
-      <Card>
-        <h2 className="font-semibold mb-4">Görünüm</h2>
-        <Select
-          label="Tema"
-          options={themeOptions}
-          value={theme}
-          onChange={(e) => setTheme(e.target.value as Theme)}
-        />
-      </Card>
 
       {/* AI Settings */}
       <Card>
@@ -118,7 +101,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Danger zone */}
-      <Card className="border-red-200 dark:border-red-900">
+      <Card className="border-red-900">
         <h2 className="font-semibold mb-2 text-red-600">Tehlikeli Alan</h2>
         <p className="text-sm text-[var(--text-muted)] mb-4">
           Onboarding sürecini sıfırla ve tüm ayarları yeniden yapılandır.

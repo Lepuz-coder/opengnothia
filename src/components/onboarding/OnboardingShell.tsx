@@ -9,13 +9,13 @@ interface OnboardingShellProps {
 
 export function OnboardingShell({ step, totalSteps, children }: OnboardingShellProps) {
   return (
-    <div className="h-screen flex flex-col items-center justify-center bg-gradient-to-br from-primary-50 via-white to-accent-50 dark:from-surface-950 dark:via-surface-900 dark:to-surface-950">
+    <div className="h-screen flex flex-col items-center justify-center bg-gradient-to-br from-surface-950 via-surface-900 to-surface-950">
       {/* Logo */}
       <div className="flex items-center gap-3 mb-8">
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center">
           <Brain className="w-6 h-6 text-white" />
         </div>
-        <span className="text-2xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
+        <span className="text-2xl font-bold bg-gradient-to-r from-primary-500 to-accent-500 bg-clip-text text-transparent">
           OpenGnothia
         </span>
       </div>

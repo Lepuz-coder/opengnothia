@@ -17,7 +17,7 @@ export function SidebarItem({ path, label, icon: Icon, collapsed }: SidebarItemP
         cn(
           "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
           isActive
-            ? "bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
+            ? "bg-primary-900/30 text-primary-300"
             : "text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]",
           collapsed && "justify-center px-2"
         )

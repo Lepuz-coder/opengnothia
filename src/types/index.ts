@@ -1,6 +1,7 @@
 export type Theme = "light" | "dark" | "system";
 export type Approach = "practical" | "depth" | "balanced";
 export type SessionStatus = "idle" | "pre" | "active" | "post";
+export type ThinkingLevel = "low" | "medium" | "high" | "max";
 export type AIProvider = "openai" | "anthropic" | "google" | "ollama" | "openrouter" | "custom";
 
 export interface UserProfile {
@@ -19,6 +20,8 @@ export interface ChatMessage {
   role: "user" | "assistant" | "system";
   content: string;
   timestamp: string;
+  thinking?: string;
+  isStreaming?: boolean;
 }
 
 export interface Session {
@@ -76,6 +79,7 @@ export interface AIModel {
   contextWindow: number;
   costPer1kInput?: number;
   costPer1kOutput?: number;
+  supportsThinking?: boolean;
 }
 
 export interface SettingsState {
@@ -83,4 +87,6 @@ export interface SettingsState {
   apiKey: string;
   model: string;
   customBaseUrl: string;
+  thinkingEnabled: boolean;
+  thinkingLevel: ThinkingLevel;
 }

@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { useSettingsStore } from "@/stores/useSettingsStore";
-import { cn } from "@/lib/cn";
 
 interface InterviewStepProps {
   onNext: (data: { goals: string[]; approach: string; sessionTime: string }) => void;
@@ -22,15 +21,9 @@ const goalOptions = [
   "Genel destek",
 ];
 
-const approachOptions = [
-  { id: "practical", label: "Pratik", desc: "Somut teknikler ve egzersizler" },
-  { id: "depth", label: "Derinlik", desc: "Bilinçaltı keşif ve analiz" },
-  { id: "balanced", label: "Dengeli", desc: "İkisinin dengeli karışımı" },
-];
-
 export function InterviewStep({ onNext, onBack }: InterviewStepProps) {
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
-  const { approach, setApproach, preferredSessionTime, setPreferredSessionTime } = useSettingsStore();
+  const { approach, preferredSessionTime, setPreferredSessionTime } = useSettingsStore();
 
   function toggleGoal(goal: string) {
     setSelectedGoals((prev) =>
@@ -61,30 +54,6 @@ export function InterviewStep({ onNext, onBack }: InterviewStepProps) {
             >
               {goal}
             </Badge>
-          ))}
-        </div>
-      </div>
-
-      {/* Approach */}
-      <div>
-        <p className="text-sm font-medium text-[var(--text-secondary)] mb-2">
-          Yaklaşım tercihin
-        </p>
-        <div className="grid grid-cols-3 gap-2">
-          {approachOptions.map((opt) => (
-            <button
-              key={opt.id}
-              onClick={() => setApproach(opt.id as any)}
-              className={cn(
-                "p-3 rounded-xl border text-center transition-all duration-200",
-                approach === opt.id
-                  ? "border-primary-500 bg-primary-900/20"
-                  : "border-[var(--border-color)] hover:border-primary-300"
-              )}
-            >
-              <p className="text-sm font-medium">{opt.label}</p>
-              <p className="text-xs text-[var(--text-muted)] mt-1">{opt.desc}</p>
-            </button>
           ))}
         </div>
       </div>

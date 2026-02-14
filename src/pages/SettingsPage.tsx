@@ -5,11 +5,12 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { Toggle } from "@/components/ui/Toggle";
 import { useAppStore } from "@/stores/useAppStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useTheme } from "@/hooks/useTheme";
-import { providers, getProvider } from "@/constants/providers";
-import type { AIProvider } from "@/types";
+import { providers, getProvider, modelSupportsThinking } from "@/constants/providers";
+import type { AIProvider, ThinkingLevel } from "@/types";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -20,6 +21,7 @@ export default function SettingsPage() {
   const currentProvider = getProvider(settings.provider);
   const providerOptions = providers.map((p) => ({ value: p.id, label: p.name }));
   const modelOptions = currentProvider?.models.map((m) => ({ value: m.id, label: m.name })) ?? [];
+  const showThinkingToggle = modelSupportsThinking(settings.provider, settings.model);
 
   async function handleSave() {
     const store = await loadSettings();
@@ -27,6 +29,8 @@ export default function SettingsPage() {
     await store.set("apiKey", settings.apiKey);
     await store.set("model", settings.model);
     await store.set("theme", theme);
+    await store.set("thinkingEnabled", settings.thinkingEnabled);
+    await store.set("thinkingLevel", settings.thinkingLevel);
     if (settings.customBaseUrl) await store.set("customBaseUrl", settings.customBaseUrl);
     await store.save();
     setSaved(true);
@@ -56,6 +60,7 @@ export default function SettingsPage() {
               settings.setProvider(e.target.value as AIProvider);
               const prov = getProvider(e.target.value);
               if (prov?.models[0]) settings.setModel(prov.models[0].id);
+              settings.setThinkingEnabled(false);
             }}
           />
 
@@ -81,7 +86,39 @@ export default function SettingsPage() {
               label="Model"
               options={modelOptions}
               value={settings.model}
-              onChange={(e) => settings.setModel(e.target.value)}
+              onChange={(e) => {
+                settings.setModel(e.target.value);
+                if (!modelSupportsThinking(settings.provider, e.target.value)) {
+                  settings.setThinkingEnabled(false);
+                }
+              }}
+            />
+          )}
+
+          {showThinkingToggle && (
+            <div className="pt-1">
+              <Toggle
+                checked={settings.thinkingEnabled}
+                onChange={settings.setThinkingEnabled}
+                label="Düşünce Modu"
+              />
+              <p className="text-xs text-[var(--text-muted)] mt-1 ml-14">
+                AI'ın düşünce sürecini görmeni sağlar. Daha yavaş ama daha derinlemesine yanıtlar.
+              </p>
+            </div>
+          )}
+
+          {showThinkingToggle && settings.thinkingEnabled && (
+            <Select
+              label="Düşünce Seviyesi"
+              options={[
+                { value: "low", label: "Hızlı — Kısa düşünür, çabuk yanıt verir" },
+                { value: "medium", label: "Dengeli — Yeterince düşünür, makul hızda" },
+                { value: "high", label: "Derinlemesine — Uzun düşünür, detaylı analiz" },
+                { value: "max", label: "Kapsamlı — En derin analiz, en yavaş yanıt" },
+              ]}
+              value={settings.thinkingLevel}
+              onChange={(e) => settings.setThinkingLevel(e.target.value as ThinkingLevel)}
             />
           )}
         </div>

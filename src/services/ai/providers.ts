@@ -52,8 +52,8 @@ const openaiAdapter: ProviderAdapter = {
     };
     if (!isO) {
       body.temperature = 0.7;
-      body.max_tokens = 1024;
     }
+    body.max_completion_tokens = 1024;
     return {
       url: `${baseUrl}/chat/completions`,
       init: {
@@ -84,8 +84,8 @@ const openaiAdapter: ProviderAdapter = {
     };
     if (!isO) {
       body.temperature = 0.7;
-      body.max_tokens = 1024;
     }
+    body.max_completion_tokens = 1024;
     return {
       url: `${baseUrl}/chat/completions`,
       init: {

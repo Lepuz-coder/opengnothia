@@ -56,26 +56,68 @@ export async function updateSessionMessages(id: string, messages: ChatMessage[])
 
 export async function completeSession(
   id: string,
-  data: { mood_after: number; summary: SessionSummary }
+  data: { mood_after: number; summary: SessionSummary; therapist_notes?: string[] }
 ): Promise<void> {
   const db = await getDatabase();
   await db.execute(
-    "UPDATE sessions SET ended_at = CURRENT_TIMESTAMP, mood_after = ?, summary = ?, status = 'completed' WHERE id = ?",
-    [data.mood_after, JSON.stringify(data.summary), id]
+    "UPDATE sessions SET ended_at = CURRENT_TIMESTAMP, mood_after = ?, summary = ?, therapist_notes = ?, status = 'completed' WHERE id = ?",
+    [data.mood_after, JSON.stringify(data.summary), JSON.stringify(data.therapist_notes ?? []), id]
   );
+}
+
+function parseSession(r: Session): Session {
+  return {
+    ...r,
+    messages: typeof r.messages === "string" ? JSON.parse(r.messages) : r.messages,
+    summary: r.summary ? (typeof r.summary === "string" ? JSON.parse(r.summary as unknown as string) : r.summary) : null,
+    therapist_notes: r.therapist_notes ? (typeof r.therapist_notes === "string" ? JSON.parse(r.therapist_notes as unknown as string) : r.therapist_notes) : null,
+  };
 }
 
 export async function getRecentSessions(limit = 5): Promise<Session[]> {
   const db = await getDatabase();
   const rows = await db.select<Session[]>(
-    "SELECT * FROM sessions ORDER BY created_at DESC LIMIT ?",
+    "SELECT * FROM sessions WHERE status = 'completed' ORDER BY created_at DESC LIMIT ?",
     [limit]
+  );
+  return rows.map(parseSession);
+}
+
+export async function getSessionById(id: string): Promise<Session | null> {
+  const db = await getDatabase();
+  const rows = await db.select<Session[]>(
+    "SELECT * FROM sessions WHERE id = ?",
+    [id]
+  );
+  if (rows.length === 0) return null;
+  return parseSession(rows[0]);
+}
+
+export async function getCompletedSessions(): Promise<Omit<Session, "messages">[]> {
+  const db = await getDatabase();
+  const rows = await db.select<Session[]>(
+    "SELECT id, started_at, ended_at, mood_before, mood_after, summary, therapist_notes, status, created_at FROM sessions WHERE status = 'completed' ORDER BY created_at DESC"
   );
   return rows.map((r) => ({
     ...r,
-    messages: typeof r.messages === "string" ? JSON.parse(r.messages) : r.messages,
-    summary: r.summary ? (typeof r.summary === "string" ? JSON.parse(r.summary) : r.summary) : null,
+    summary: r.summary ? (typeof r.summary === "string" ? JSON.parse(r.summary as unknown as string) : r.summary) : null,
+    therapist_notes: r.therapist_notes ? (typeof r.therapist_notes === "string" ? JSON.parse(r.therapist_notes as unknown as string) : r.therapist_notes) : null,
   }));
+}
+
+export async function getRecentTherapistNotes(limit = 5): Promise<{ session_id: string; started_at: string; notes: string[] }[]> {
+  const db = await getDatabase();
+  const rows = await db.select<{ id: string; started_at: string; therapist_notes: string }[]>(
+    "SELECT id, started_at, therapist_notes FROM sessions WHERE status = 'completed' AND therapist_notes IS NOT NULL ORDER BY created_at DESC LIMIT ?",
+    [limit]
+  );
+  return rows
+    .map((r) => ({
+      session_id: r.id,
+      started_at: r.started_at,
+      notes: typeof r.therapist_notes === "string" ? JSON.parse(r.therapist_notes) : r.therapist_notes ?? [],
+    }))
+    .filter((r) => r.notes.length > 0);
 }
 
 export async function getTodaySession(): Promise<Session | null> {
@@ -86,12 +128,7 @@ export async function getTodaySession(): Promise<Session | null> {
     [today]
   );
   if (rows.length === 0) return null;
-  const r = rows[0];
-  return {
-    ...r,
-    messages: typeof r.messages === "string" ? JSON.parse(r.messages) : r.messages,
-    summary: r.summary ? (typeof r.summary === "string" ? JSON.parse(r.summary) : r.summary) : null,
-  };
+  return parseSession(rows[0]);
 }
 
 // Check-ins

@@ -33,6 +33,7 @@ export interface Session {
   mood_after: number | null;
   messages: ChatMessage[];
   summary: SessionSummary | null;
+  therapist_notes: string[] | null;
   status: "active" | "completed" | "abandoned";
   created_at: string;
 }
@@ -42,6 +43,7 @@ export interface SessionSummary {
   defenses: string[];
   insights: string[];
   homework: string[];
+  therapist_notes: string[];
 }
 
 export interface CheckIn {

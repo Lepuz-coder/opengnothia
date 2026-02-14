@@ -2,7 +2,6 @@ import { useState, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { useSessionStore } from "@/stores/useSessionStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
-import { Card } from "@/components/ui/Card";
 import { Slider } from "@/components/ui/Slider";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -12,10 +11,11 @@ import { ChatInput } from "@/components/chat/ChatInput";
 import { SessionTimer } from "@/components/chat/SessionTimer";
 import { SessionToolbar } from "@/components/chat/SessionToolbar";
 import { SessionEndSummary } from "@/components/session/SessionEndSummary";
-import { BreathingOverlay } from "@/components/session/BreathingOverlay";
+import { PastSessionsList } from "@/components/session/PastSessionsList";
+import { PastSessionDetail } from "@/components/session/PastSessionDetail";
 import { sendMessage, streamMessage } from "@/services/ai/aiService";
 import { buildSystemPrompt, buildSummaryPrompt } from "@/services/ai/promptBuilder";
-import { createSession, updateSessionMessages, completeSession, getUserProfile, getTodayCheckIn, getRecentSessions } from "@/services/db/queries";
+import { createSession, updateSessionMessages, completeSession, getUserProfile, getTodayCheckIn, getRecentSessions, getRecentTherapistNotes } from "@/services/db/queries";
 import { therapySchools, getTherapySchool, getTherapySchoolName } from "@/constants/therapySchools";
 import type { ChatMessage, SessionSummary } from "@/types";
 
@@ -24,9 +24,10 @@ export default function SessionPage() {
   const session = useSessionStore();
   const settings = useSettingsStore();
   const [preMood, setPreMood] = useState(5);
-  const [breathingOpen, setBreathingOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [schoolModalOpen, setSchoolModalOpen] = useState(false);
+  const [startModalOpen, setStartModalOpen] = useState(false);
+  const [schoolPickerOpen, setSchoolPickerOpen] = useState(false);
+  const [viewingSessionId, setViewingSessionId] = useState<string | null>(null);
 
   const handleStartSession = useCallback(async () => {
     session.startSession(preMood);
@@ -48,9 +49,12 @@ export default function SessionPage() {
     session.addMessage(userMsg);
 
     try {
-      const profile = await getUserProfile();
-      const checkIn = await getTodayCheckIn();
-      const recentSessions = await getRecentSessions(1);
+      const [profile, checkIn, recentSessions, therapistNotes] = await Promise.all([
+        getUserProfile(),
+        getTodayCheckIn(),
+        getRecentSessions(1),
+        getRecentTherapistNotes(5),
+      ]);
       const lastSummary = recentSessions[0]?.summary ?? null;
 
       const systemPrompt = buildSystemPrompt({
@@ -58,6 +62,7 @@ export default function SessionPage() {
         todayCheckIn: checkIn,
         lastSessionSummary: lastSummary,
         therapySchool: settings.therapySchool,
+        recentTherapistNotes: therapistNotes,
       });
 
       const allMessages = useSessionStore.getState().messages;
@@ -138,12 +143,14 @@ export default function SessionPage() {
       let summary: SessionSummary;
       try {
         summary = JSON.parse(response);
+        if (!summary.therapist_notes) summary.therapist_notes = [];
       } catch {
         summary = {
           themes: ["Genel konuşma"],
           defenses: [],
           insights: ["Seans tamamlandı"],
           homework: [],
+          therapist_notes: [],
         };
       }
 
@@ -154,21 +161,12 @@ export default function SessionPage() {
         defenses: [],
         insights: [],
         homework: [],
+        therapist_notes: [],
       });
     } finally {
       session.setLoading(false);
     }
   }, [settings]);
-
-  const handleGrounding = useCallback(() => {
-    const groundingMsg: ChatMessage = {
-      id: crypto.randomUUID(),
-      role: "assistant",
-      content: "Grounding egzersizi yapalım:\n\n5 - Gördüğün 5 şeyi say\n4 - Dokunabildiğin 4 şeyi say\n3 - Duyabildiğin 3 şeyi say\n2 - Koklayabildiğin 2 şeyi say\n1 - Tadabildiğin 1 şeyi say\n\nHazır olduğunda devam edelim.",
-      timestamp: new Date().toISOString(),
-    };
-    session.addMessage(groundingMsg);
-  }, []);
 
   const handleSaveAndClose = useCallback(async () => {
     setSaving(true);
@@ -177,6 +175,7 @@ export default function SessionPage() {
       await completeSession(state.sessionId, {
         mood_after: state.moodAfter ?? 5,
         summary: state.summary,
+        therapist_notes: state.therapistNotes ?? state.summary.therapist_notes ?? [],
       });
     }
     session.reset();
@@ -184,65 +183,79 @@ export default function SessionPage() {
     navigate("/dashboard");
   }, [navigate]);
 
-  // Pre-session: mood selection + therapy school
-  if (session.status === "idle" || session.status === "pre") {
-    const currentSchool = getTherapySchool(settings.therapySchool);
+  // Viewing a past session
+  if (viewingSessionId) {
     return (
-      <div className="max-w-md mx-auto mt-20">
-        <Card>
-          <div className="text-center mb-6">
-            <h2 className="text-xl font-bold">Seansa Başla</h2>
-            <p className="text-sm text-[var(--text-muted)] mt-1">
-              Başlamadan önce şu anki ruh halini değerlendir
-            </p>
-          </div>
+      <PastSessionDetail
+        sessionId={viewingSessionId}
+        onBack={() => setViewingSessionId(null)}
+      />
+    );
+  }
 
-          {/* Therapy School Display */}
+  // Pre-session: past sessions + start button
+  if (session.status === "idle" || session.status === "pre") {
+    return (
+      <div className="max-w-2xl mx-auto">
+        {/* Header with Start button */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h2 className="text-xl font-bold">Seanslar</h2>
+            <p className="text-sm text-[var(--text-muted)]">Geçmiş seanslarını görüntüle veya yeni bir seans başlat</p>
+          </div>
+          <Button onClick={() => setStartModalOpen(true)} size="lg">
+            Seans Başlat
+          </Button>
+        </div>
+
+        {/* Past sessions */}
+        <PastSessionsList onViewSession={setViewingSessionId} />
+
+        {/* Start session modal */}
+        <Modal isOpen={startModalOpen} onClose={() => { setStartModalOpen(false); setSchoolPickerOpen(false); }} title="Seansa Başla">
+          {/* Therapy school display */}
           <div className="mb-6">
             <label className="block text-sm font-medium mb-2">Terapi Ekolü</label>
             <div className="flex items-center gap-2">
               <div className="flex-1 px-4 py-2.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)]">
-                <span className="text-sm font-medium">{currentSchool?.name ?? "BDT"}</span>
+                <span className="text-sm font-medium">{getTherapySchool(settings.therapySchool)?.name ?? "BDT"}</span>
               </div>
-              <Button variant="secondary" size="sm" onClick={() => setSchoolModalOpen(true)}>
+              <Button variant="secondary" size="sm" onClick={() => setSchoolPickerOpen(!schoolPickerOpen)}>
                 Değiştir
               </Button>
             </div>
+
+            {/* School picker grid */}
+            {schoolPickerOpen && (
+              <div className="grid grid-cols-2 gap-2 mt-3">
+                {therapySchools.map((school) => (
+                  <button
+                    key={school.id}
+                    onClick={() => {
+                      settings.setTherapySchool(school.id);
+                      setSchoolPickerOpen(false);
+                    }}
+                    className={`text-left p-3 rounded-xl border transition-all duration-200 ${
+                      settings.therapySchool === school.id
+                        ? "border-primary-500 bg-primary-500/10"
+                        : "border-[var(--border-color)] hover:border-[var(--text-muted)]"
+                    }`}
+                  >
+                    <span className="text-sm font-medium block">{school.shortName}</span>
+                    <span className="text-xs text-[var(--text-muted)]">{school.description}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          <Slider
-            label="Ruh Hali"
-            value={preMood}
-            onChange={setPreMood}
-            min={1}
-            max={10}
-          />
-          <Button onClick={handleStartSession} size="lg" className="w-full mt-6">
+          {/* Mood slider */}
+          <Slider label="Ruh Hali" value={preMood} onChange={setPreMood} min={1} max={10} />
+
+          {/* Start button */}
+          <Button onClick={() => { handleStartSession(); setStartModalOpen(false); setSchoolPickerOpen(false); }} size="lg" className="w-full mt-6">
             Seansı Başlat
           </Button>
-        </Card>
-
-        {/* School selection modal */}
-        <Modal isOpen={schoolModalOpen} onClose={() => setSchoolModalOpen(false)} title="Terapi Ekolü Seç">
-          <div className="grid grid-cols-2 gap-2">
-            {therapySchools.map((school) => (
-              <button
-                key={school.id}
-                onClick={() => {
-                  settings.setTherapySchool(school.id);
-                  setSchoolModalOpen(false);
-                }}
-                className={`text-left p-3 rounded-xl border transition-all duration-200 ${
-                  settings.therapySchool === school.id
-                    ? "border-primary-500 bg-primary-500/10"
-                    : "border-[var(--border-color)] hover:border-[var(--text-muted)]"
-                }`}
-              >
-                <span className="text-sm font-medium block">{school.shortName}</span>
-                <span className="text-xs text-[var(--text-muted)]">{school.description}</span>
-              </button>
-            ))}
-          </div>
         </Modal>
       </div>
     );
@@ -268,7 +281,7 @@ export default function SessionPage() {
       <div className="flex items-center justify-between px-6 py-3 border-b border-[var(--border-color)] bg-[var(--bg-secondary)]">
         <div className="flex items-center gap-2">
           <h2 className="font-semibold">Seans</h2>
-          <Badge variant="primary" onClick={() => setSchoolModalOpen(true)}>
+          <Badge variant="primary">
             Psikolog · {getTherapySchoolName(settings.therapySchool)}
           </Badge>
         </div>
@@ -279,41 +292,10 @@ export default function SessionPage() {
       <ChatContainer messages={session.messages} isLoading={session.isLoading} isStreaming={session.isStreaming} />
 
       {/* Toolbar */}
-      <SessionToolbar
-        onBreathing={() => setBreathingOpen(true)}
-        onGrounding={handleGrounding}
-        onSummary={() => {}}
-        onEnd={handleEndSession}
-      />
+      <SessionToolbar onEnd={handleEndSession} />
 
       {/* Input */}
       <ChatInput onSend={handleSendMessage} disabled={session.isLoading || session.isStreaming} />
-
-      {/* Breathing overlay */}
-      <BreathingOverlay isOpen={breathingOpen} onClose={() => setBreathingOpen(false)} />
-
-      {/* School change modal */}
-      <Modal isOpen={schoolModalOpen} onClose={() => setSchoolModalOpen(false)} title="Terapi Ekolü Değiştir">
-        <div className="grid grid-cols-2 gap-2">
-          {therapySchools.map((school) => (
-            <button
-              key={school.id}
-              onClick={() => {
-                settings.setTherapySchool(school.id);
-                setSchoolModalOpen(false);
-              }}
-              className={`text-left p-3 rounded-xl border transition-all duration-200 ${
-                settings.therapySchool === school.id
-                  ? "border-primary-500 bg-primary-500/10"
-                  : "border-[var(--border-color)] hover:border-[var(--text-muted)]"
-              }`}
-            >
-              <span className="text-sm font-medium block">{school.shortName}</span>
-              <span className="text-xs text-[var(--text-muted)]">{school.description}</span>
-            </button>
-          ))}
-        </div>
-      </Modal>
     </div>
   );
 }

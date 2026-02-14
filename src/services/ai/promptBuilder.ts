@@ -6,8 +6,9 @@ export function buildSystemPrompt(params: {
   todayCheckIn: CheckIn | null;
   lastSessionSummary: SessionSummary | null;
   therapySchool?: TherapySchool;
+  recentTherapistNotes?: { session_id: string; started_at: string; notes: string[] }[];
 }): string {
-  const { profile, todayCheckIn, lastSessionSummary, therapySchool } = params;
+  const { profile, todayCheckIn, lastSessionSummary, therapySchool, recentTherapistNotes } = params;
 
   let prompt = `Sen OpenGnothia'nın yapay zeka destekli psikolojik destek asistanısın. Türkçe konuşuyorsun.
 
@@ -58,16 +59,31 @@ Temel ilkeler:
     if (lastSessionSummary.homework.length > 0) prompt += `\n- Ödev: ${lastSessionSummary.homework.join(", ")}`;
   }
 
+  if (recentTherapistNotes && recentTherapistNotes.length > 0) {
+    prompt += `\n\n--- Geçmiş Seans Notların (Terapist Olarak Kendin İçin Tuttuğun Notlar) ---`;
+    prompt += `\nBu notlar önceki seanslarda senin tuttuğun klinik notlardır. Danışanla süreklilik sağlamak için bunları dikkate al:`;
+    for (const entry of recentTherapistNotes) {
+      const date = new Date(entry.started_at).toLocaleDateString("tr-TR");
+      prompt += `\n\n[${date}]:`;
+      for (const note of entry.notes) {
+        prompt += `\n- ${note}`;
+      }
+    }
+  }
+
   return prompt;
 }
 
 export function buildSummaryPrompt(): string {
   return `Yukarıdaki seans konuşmasını analiz et ve aşağıdaki JSON formatında bir özet oluştur. Sadece JSON döndür, başka bir şey yazma.
 
+"therapist_notes" alanına, bir terapist olarak gelecek seanslarda hatırlamak isteyeceğin klinik notları yaz. Bunlar danışana gösterilmeyecek, sadece senin süreklilik sağlamak için kullanacağın notlar olacak. Örnekler: danışanın direnci, transfer dinamikleri, dikkat edilmesi gereken noktalar, takip edilecek konular.
+
 {
   "themes": ["seansta işlenen ana temalar"],
   "defenses": ["gözlemlenen savunma mekanizmaları"],
   "insights": ["ortaya çıkan içgörüler"],
-  "homework": ["danışana önerilen ödevler veya düşünce egzersizleri"]
+  "homework": ["danışana önerilen ödevler veya düşünce egzersizleri"],
+  "therapist_notes": ["gelecek seanslar için terapist notları"]
 }`;
 }

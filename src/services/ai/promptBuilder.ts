@@ -74,6 +74,48 @@ Temel ilkeler:
   return prompt;
 }
 
+export function buildGreetingPrompt(params: {
+  profile: UserProfile | null;
+  todayCheckIn: CheckIn | null;
+  lastSessionSummary: SessionSummary | null;
+  therapySchool?: TherapySchool;
+  recentTherapistNotes?: { session_id: string; started_at: string; notes: string[] }[];
+}): string {
+  let prompt = buildSystemPrompt(params);
+
+  prompt += `\n\n--- Seans Açılışı ---
+Bu seansın ilk mesajını sen gönderiyorsun. Danışanı sıcak ve kısa bir şekilde selamla.
+Eğer geçmiş seans notların varsa, önceki seanslardaki konulara veya ödevlere kısaca atıfta bulunabilirsin.
+Eğer bugün check-in yapılmışsa, danışanın ruh halini göz önünde bulundur.
+Uzun olma — 2-3 cümle ile başla ve danışanı konuşmaya davet et.`;
+
+  return prompt;
+}
+
+export function buildNarrativeSummaryPrompt(): string {
+  return `Yukarıdaki seans konuşmasını deneyimli bir klinik psikolog gözüyle derinlemesine analiz et.
+
+Sen bu danışanın terapistisin. Bu seansı hem danışana geri bildirim vermek hem de kendi klinik notlarını tutmak için değerlendiriyorsun. Aşağıdaki başlıkları kullanarak kapsamlı bir seans değerlendirmesi yaz:
+
+1. **Seans Özeti**: Bu seansta işlenen ana temalar, danışanın getirdiği konular ve konuşmanın genel akışı. Hangi duygusal içerikler ön plana çıktı?
+
+2. **Klinik Gözlemler ve İçgörüler**: Danışanın duygu durumu, farkındalık düzeyi, iç görü kapasitesi ve duygusal erişilebilirliği hakkında profesyonel değerlendirme. Seans sırasında ortaya çıkan önemli içgörüler ve fark edilmemiş olabilecek örüntüler.
+
+3. **Psikodinamik Değerlendirme**: Gözlemlenen savunma mekanizmaları, transfer/karşı-transfer dinamikleri, tekrarlayan ilişki kalıpları ve bilinçdışı süreçlere dair ipuçları.
+
+4. **Öneriler ve Ödev**: Danışanın gelişimi için önerebileceğin somut egzersizler, düşünce pratikleri, günlük tutma önerileri veya davranışsal deneyler. Bunları danışanın hazır olduğu seviyeye göre ayarla.
+
+5. **Sonraki Seanslar İçin Klinik Notlar**: Bu kısım çok önemli — bir terapist olarak gelecek seanslarda hatırlaman gereken kritik bilgileri yaz:
+   - Danışanla ilgili dikkat çeken kişisel detaylar (bahsettiği isimler, olaylar, ilişkiler)
+   - Takip edilmesi gereken konular ve yarım kalan temalar
+   - Danışanın dirençli olduğu veya kaçındığı alanlar
+   - Terapötik ilişkideki dinamikler ve dikkat edilmesi gereken noktalar
+   - Verilen ödevlerin takibi için hatırlatmalar
+   - Kriz riski veya profesyonel yönlendirme gerektiren durumlar
+
+Yazıyı doğal, akıcı ve profesyonel bir dilde yaz. Klinik bir değerlendirme yazıyormuş gibi derinlikli ol ama danışanın da okuyabileceğini göz önünde bulundur (terapist notları hariç — o kısım sadece senin için). Türkçe yaz.`;
+}
+
 export function buildSummaryPrompt(): string {
   return `Yukarıdaki seans konuşmasını analiz et ve aşağıdaki JSON formatında bir özet oluştur. Sadece JSON döndür, başka bir şey yazma.
 

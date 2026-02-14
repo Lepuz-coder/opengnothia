@@ -20,9 +20,9 @@ export function ChatContainer({ messages, isLoading, isStreaming }: ChatContaine
 
   return (
     <div className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-4">
-      {messages.length === 0 && !isLoading && (
+      {messages.length === 0 && !isLoading && !isStreaming && (
         <div className="flex items-center justify-center h-full">
-          <p className="text-[var(--text-muted)] text-sm">Seansa başlamak için bir mesaj yaz...</p>
+          <p className="text-[var(--text-muted)] text-sm">Hazırlanıyor...</p>
         </div>
       )}
       {messages.map((msg) => (

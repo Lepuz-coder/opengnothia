@@ -10,7 +10,8 @@ import { useAppStore } from "@/stores/useAppStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useTheme } from "@/hooks/useTheme";
 import { providers, getProvider, modelSupportsThinking } from "@/constants/providers";
-import type { AIProvider, ThinkingLevel } from "@/types";
+import { therapySchools } from "@/constants/therapySchools";
+import type { AIProvider, TherapySchool, ThinkingLevel } from "@/types";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -31,6 +32,7 @@ export default function SettingsPage() {
     await store.set("theme", theme);
     await store.set("thinkingEnabled", settings.thinkingEnabled);
     await store.set("thinkingLevel", settings.thinkingLevel);
+    await store.set("therapySchool", settings.therapySchool);
     if (settings.customBaseUrl) await store.set("customBaseUrl", settings.customBaseUrl);
     await store.save();
     setSaved(true);
@@ -122,6 +124,17 @@ export default function SettingsPage() {
             />
           )}
         </div>
+      </Card>
+
+      {/* Therapy School */}
+      <Card>
+        <h2 className="font-semibold mb-4">Terapi Ekolü</h2>
+        <Select
+          label="Ekol"
+          options={therapySchools.map((s) => ({ value: s.id, label: s.name }))}
+          value={settings.therapySchool}
+          onChange={(e) => settings.setTherapySchool(e.target.value as TherapySchool)}
+        />
       </Card>
 
       {/* Save */}

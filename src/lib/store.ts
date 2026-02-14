@@ -7,6 +7,7 @@ const STORE_DEFAULTS = {
   model: "gpt-4o",
   customBaseUrl: "",
   theme: "system",
+  therapySchool: "cbt",
   thinkingEnabled: false,
   thinkingLevel: "medium",
 };

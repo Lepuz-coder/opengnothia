@@ -36,12 +36,14 @@ function AppContent() {
         const apiKey = await store.get<string>("apiKey");
         const model = await store.get<string>("model");
         const customBaseUrl = await store.get<string>("customBaseUrl");
+        const therapySchool = await store.get<string>("therapySchool");
 
         loadFromStore({
           ...(provider && { provider: provider as any }),
           ...(apiKey && { apiKey }),
           ...(model && { model }),
           ...(customBaseUrl && { customBaseUrl }),
+          ...(therapySchool && { therapySchool: therapySchool as any }),
         });
       } catch {
         // Store not available yet, use defaults

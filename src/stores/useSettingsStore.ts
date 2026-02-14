@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { AIProvider, Approach, ThinkingLevel } from "@/types";
+import type { AIProvider, Approach, TherapySchool, ThinkingLevel } from "@/types";
 
 interface SettingsState {
   provider: AIProvider;
@@ -9,6 +9,7 @@ interface SettingsState {
   approach: Approach;
   preferredSessionTime: string;
   sessionDurationMinutes: number;
+  therapySchool: TherapySchool;
   thinkingEnabled: boolean;
   thinkingLevel: ThinkingLevel;
   setProvider: (provider: AIProvider) => void;
@@ -19,6 +20,7 @@ interface SettingsState {
   setPreferredSessionTime: (time: string) => void;
   setSessionDurationMinutes: (minutes: number) => void;
   setThinkingEnabled: (enabled: boolean) => void;
+  setTherapySchool: (school: TherapySchool) => void;
   setThinkingLevel: (level: ThinkingLevel) => void;
   loadFromStore: (data: Partial<SettingsState>) => void;
 }
@@ -31,6 +33,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   approach: "balanced",
   preferredSessionTime: "20:00",
   sessionDurationMinutes: 50,
+  therapySchool: "cbt",
   thinkingEnabled: false,
   thinkingLevel: "medium",
   setProvider: (provider) => set({ provider }),
@@ -41,6 +44,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   setPreferredSessionTime: (preferredSessionTime) => set({ preferredSessionTime }),
   setSessionDurationMinutes: (sessionDurationMinutes) => set({ sessionDurationMinutes }),
   setThinkingEnabled: (thinkingEnabled) => set({ thinkingEnabled }),
+  setTherapySchool: (therapySchool) => set({ therapySchool }),
   setThinkingLevel: (thinkingLevel) => set({ thinkingLevel }),
   loadFromStore: (data) => set(data),
 }));

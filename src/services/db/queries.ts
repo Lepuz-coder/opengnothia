@@ -60,8 +60,8 @@ export async function completeSession(
 ): Promise<void> {
   const db = await getDatabase();
   await db.execute(
-    "UPDATE sessions SET ended_at = CURRENT_TIMESTAMP, mood_after = ?, summary = ?, summary_narrative = ?, status = 'completed' WHERE id = ?",
-    [data.mood_after, JSON.stringify(data.summary), data.summary_narrative ?? null, id]
+    "UPDATE sessions SET ended_at = ?, mood_after = ?, summary = ?, summary_narrative = ?, status = 'completed' WHERE id = ?",
+    [new Date().toISOString(), data.mood_after, JSON.stringify(data.summary), data.summary_narrative ?? null, id]
   );
 }
 

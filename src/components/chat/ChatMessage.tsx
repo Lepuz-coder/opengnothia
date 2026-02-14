@@ -1,4 +1,6 @@
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Brain, User, Sparkles, ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { ChatMessage as ChatMessageType } from "@/types";
@@ -78,12 +80,18 @@ export function ChatMessage({ message }: ChatMessageProps) {
         )}
 
         {/* Content */}
-        <p className="whitespace-pre-wrap">
-          {message.content}
-          {message.isStreaming && message.content && (
-            <span className="inline-block w-1.5 h-3.5 bg-[var(--text-primary)] ml-0.5 animate-pulse" />
-          )}
-        </p>
+        {isUser ? (
+          <p className="whitespace-pre-wrap">{message.content}</p>
+        ) : (
+          <div className="markdown-content">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {message.content}
+            </ReactMarkdown>
+            {message.isStreaming && message.content && (
+              <span className="inline-block w-1.5 h-3.5 bg-[var(--text-primary)] ml-0.5 animate-pulse" />
+            )}
+          </div>
+        )}
 
         {/* Streaming indicator when no content yet and no thinking */}
         {message.isStreaming && !message.content && !hasThinking && (

@@ -43,7 +43,7 @@ export interface SessionSummary {
   defenses: string[];
   insights: string[];
   homework: string[];
-  therapist_notes: string[];
+  therapist_notes?: string[];
 }
 
 export interface CheckIn {

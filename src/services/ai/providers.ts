@@ -40,8 +40,7 @@ function isOSeriesModel(model: string): boolean {
 
 const openaiAdapter: ProviderAdapter = {
   formatRequest({ apiKey, model, messages, systemPrompt, customBaseUrl, provider }) {
-    const baseUrl = customBaseUrl ||
-      (provider === "openrouter" ? "https://openrouter.ai/api/v1" : "https://api.openai.com/v1");
+    const baseUrl = customBaseUrl || "https://api.openai.com/v1";
     const isO = isOSeriesModel(model);
     const body: Record<string, unknown> = {
       model,
@@ -71,8 +70,7 @@ const openaiAdapter: ProviderAdapter = {
     return d.choices[0]?.message?.content ?? "";
   },
   formatStreamRequest({ apiKey, model, messages, systemPrompt, customBaseUrl, provider }) {
-    const baseUrl = customBaseUrl ||
-      (provider === "openrouter" ? "https://openrouter.ai/api/v1" : "https://api.openai.com/v1");
+    const baseUrl = customBaseUrl || "https://api.openai.com/v1";
     const isO = isOSeriesModel(model);
     const body: Record<string, unknown> = {
       model,
@@ -201,12 +199,9 @@ const anthropicAdapter: ProviderAdapter = {
   },
 };
 
-const adapters: Partial<Record<AIProvider, ProviderAdapter>> = {
+const adapters: Record<AIProvider, ProviderAdapter> = {
   openai: openaiAdapter,
   anthropic: anthropicAdapter,
-  ollama: openaiAdapter,
-  openrouter: openaiAdapter,
-  custom: openaiAdapter,
 };
 
 export function getAdapter(provider: AIProvider): ProviderAdapter {

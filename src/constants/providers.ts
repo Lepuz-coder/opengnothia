@@ -206,58 +206,6 @@ export const providers: AIProviderConfig[] = [
       },
     ],
   },
-  {
-    id: "google",
-    name: "Google AI",
-    description: "Gemini modelleri (yakında)",
-    baseUrl: "https://generativelanguage.googleapis.com/v1beta",
-    requiresKey: true,
-    models: [
-      {
-        id: "gemini-2.0-flash",
-        name: "Gemini 2.0 Flash",
-        contextWindow: 1000000,
-        costPer1kInput: 0.0001,
-        costPer1kOutput: 0.0004,
-      },
-    ],
-  },
-  {
-    id: "ollama",
-    name: "Ollama",
-    description: "Yerel modeller",
-    baseUrl: "http://localhost:11434/v1",
-    requiresKey: false,
-    models: [
-      {
-        id: "llama3.1",
-        name: "Llama 3.1",
-        contextWindow: 128000,
-      },
-    ],
-  },
-  {
-    id: "openrouter",
-    name: "OpenRouter",
-    description: "Çoklu sağlayıcı (yakında)",
-    baseUrl: "https://openrouter.ai/api/v1",
-    requiresKey: true,
-    models: [
-      {
-        id: "openai/gpt-4o",
-        name: "GPT-4o (via OpenRouter)",
-        contextWindow: 128000,
-      },
-    ],
-  },
-  {
-    id: "custom",
-    name: "Özel",
-    description: "OpenAI uyumlu API",
-    baseUrl: "",
-    requiresKey: true,
-    models: [],
-  },
 ];
 
 export function getProvider(id: string) {

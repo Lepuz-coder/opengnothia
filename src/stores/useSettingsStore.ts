@@ -12,6 +12,7 @@ interface SettingsState {
   therapySchool: TherapySchool;
   thinkingEnabled: boolean;
   thinkingLevel: ThinkingLevel;
+  providerApiKeys: Record<string, string>;
   setProvider: (provider: AIProvider) => void;
   setApiKey: (key: string) => void;
   setModel: (model: string) => void;
@@ -25,7 +26,7 @@ interface SettingsState {
   loadFromStore: (data: Partial<SettingsState>) => void;
 }
 
-export const useSettingsStore = create<SettingsState>((set) => ({
+export const useSettingsStore = create<SettingsState>((set, get) => ({
   provider: "openai",
   apiKey: "",
   model: "gpt-4o",
@@ -36,8 +37,20 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   therapySchool: "general",
   thinkingEnabled: false,
   thinkingLevel: "medium",
-  setProvider: (provider) => set({ provider }),
-  setApiKey: (apiKey) => set({ apiKey }),
+  providerApiKeys: {},
+  setProvider: (provider) => {
+    const state = get();
+    const updatedKeys = { ...state.providerApiKeys, [state.provider]: state.apiKey };
+    const newApiKey = updatedKeys[provider] ?? "";
+    set({ provider, apiKey: newApiKey, providerApiKeys: updatedKeys });
+  },
+  setApiKey: (apiKey) => {
+    const state = get();
+    set({
+      apiKey,
+      providerApiKeys: { ...state.providerApiKeys, [state.provider]: apiKey },
+    });
+  },
   setModel: (model) => set({ model }),
   setCustomBaseUrl: (customBaseUrl) => set({ customBaseUrl }),
   setApproach: (approach) => set({ approach }),

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Clock, Calendar, Trash2, MessageCircle } from "lucide-react";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { getCompletedSessions, deleteSession } from "@/services/db/queries";
@@ -78,12 +77,10 @@ export function PastSessionsList({ onViewSession }: PastSessionsListProps) {
                     </div>
                   )}
                 </div>
-                {s.summary && s.summary.themes.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {s.summary.themes.map((t) => (
-                      <Badge key={t} variant="primary">{t}</Badge>
-                    ))}
-                  </div>
+                {s.summary_narrative && (
+                  <p className="text-xs text-[var(--text-muted)] line-clamp-2">
+                    {s.summary_narrative}
+                  </p>
                 )}
               </button>
               <button

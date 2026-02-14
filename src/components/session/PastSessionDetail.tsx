@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
 import { ChatContainer } from "@/components/chat/ChatContainer";
 import { getSessionById } from "@/services/db/queries";
 import type { Session } from "@/types";
@@ -77,39 +76,13 @@ export function PastSessionDetail({ sessionId, onBack }: PastSessionDetailProps)
       {/* Messages - read only */}
       <ChatContainer messages={session.messages} isLoading={false} />
 
-      {/* Summary */}
-      {session.summary && (
-        <div className="border-t border-[var(--border-color)] bg-[var(--bg-secondary)] p-4 space-y-3 overflow-y-auto max-h-64">
-          {session.summary.themes.length > 0 && (
-            <div>
-              <span className="text-xs font-semibold text-[var(--text-muted)]">Temalar</span>
-              <div className="flex flex-wrap gap-1.5 mt-1">
-                {session.summary.themes.map((t) => (
-                  <Badge key={t} variant="primary">{t}</Badge>
-                ))}
-              </div>
-            </div>
-          )}
-          {session.summary.insights.length > 0 && (
-            <div>
-              <span className="text-xs font-semibold text-[var(--text-muted)]">İçgörüler</span>
-              <ul className="mt-1 space-y-0.5">
-                {session.summary.insights.map((i) => (
-                  <li key={i} className="text-sm text-[var(--text-secondary)]">- {i}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {session.summary.homework.length > 0 && (
-            <div>
-              <span className="text-xs font-semibold text-[var(--text-muted)]">Ödev</span>
-              <ul className="mt-1 space-y-0.5">
-                {session.summary.homework.map((h) => (
-                  <li key={h} className="text-sm text-[var(--text-secondary)]">- {h}</li>
-                ))}
-              </ul>
-            </div>
-          )}
+      {/* Summary narrative */}
+      {session.summary_narrative && (
+        <div className="border-t border-[var(--border-color)] bg-[var(--bg-secondary)] p-4 overflow-y-auto max-h-64">
+          <span className="text-xs font-semibold text-[var(--text-muted)]">Seans Özeti</span>
+          <p className="mt-2 text-sm text-[var(--text-secondary)] leading-relaxed whitespace-pre-wrap">
+            {session.summary_narrative}
+          </p>
         </div>
       )}
     </div>

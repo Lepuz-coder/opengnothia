@@ -21,6 +21,12 @@ pub fn run() {
             sql: include_str!("../migrations/003_add_patient_notes.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 4,
+            description: "add summary_narrative to sessions",
+            sql: include_str!("../migrations/004_add_summary_narrative.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

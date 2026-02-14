@@ -33,7 +33,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   approach: "balanced",
   preferredSessionTime: "20:00",
   sessionDurationMinutes: 50,
-  therapySchool: "cbt",
+  therapySchool: "general",
   thinkingEnabled: false,
   thinkingLevel: "medium",
   setProvider: (provider) => set({ provider }),

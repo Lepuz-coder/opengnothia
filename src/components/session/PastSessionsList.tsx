@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Clock, Calendar, Trash2 } from "lucide-react";
+import { Clock, Calendar, Trash2, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -28,7 +28,19 @@ export function PastSessionsList({ onViewSession }: PastSessionsListProps) {
     setDeleting(false);
   };
 
-  if (sessions.length === 0) return null;
+  if (sessions.length === 0) {
+    return (
+      <div className="mt-6 flex flex-col items-center justify-center py-16 px-4">
+        <div className="w-16 h-16 rounded-2xl bg-[var(--bg-tertiary)] flex items-center justify-center mb-4">
+          <MessageCircle className="w-8 h-8 text-[var(--text-muted)]" />
+        </div>
+        <h3 className="text-lg font-semibold mb-1">Henüz hiç seansın yok</h3>
+        <p className="text-sm text-[var(--text-muted)] text-center max-w-xs">
+          İlk seansını başlatarak kendini keşfetmeye adım at. Seansların burada listelenecek.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-6">

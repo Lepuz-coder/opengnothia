@@ -93,6 +93,11 @@ export async function getSessionById(id: string): Promise<Session | null> {
   return parseSession(rows[0]);
 }
 
+export async function deleteSession(id: string): Promise<void> {
+  const db = await getDatabase();
+  await db.execute("DELETE FROM sessions WHERE id = ?", [id]);
+}
+
 export async function getCompletedSessions(): Promise<Omit<Session, "messages">[]> {
   const db = await getDatabase();
   const rows = await db.select<Session[]>(

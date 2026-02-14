@@ -1,11 +1,13 @@
-import type { UserProfile, CheckIn, SessionSummary } from "@/types";
+import type { UserProfile, CheckIn, SessionSummary, TherapySchool } from "@/types";
+import { getTherapySchool } from "@/constants/therapySchools";
 
 export function buildSystemPrompt(params: {
   profile: UserProfile | null;
   todayCheckIn: CheckIn | null;
   lastSessionSummary: SessionSummary | null;
+  therapySchool?: TherapySchool;
 }): string {
-  const { profile, todayCheckIn, lastSessionSummary } = params;
+  const { profile, todayCheckIn, lastSessionSummary, therapySchool } = params;
 
   let prompt = `Sen OpenGnothia'nın yapay zeka destekli psikolojik destek asistanısın. Türkçe konuşuyorsun.
 
@@ -17,6 +19,13 @@ Temel ilkeler:
 - Profesyonel sınırları koru — sen bir terapist değilsin, bir destek aracısın
 - Kriz durumlarında profesyonel yardım almayı öner
 - Yanıtlarını kısa ve öz tut, paragraflar halinde konuş`;
+
+  if (therapySchool) {
+    const school = getTherapySchool(therapySchool);
+    if (school) {
+      prompt += `\n\n--- Terapi Ekolü ---\n${school.promptInstructions}`;
+    }
+  }
 
   if (profile) {
     prompt += `\n\nDanışan bilgileri:`;

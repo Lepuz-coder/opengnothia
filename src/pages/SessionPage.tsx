@@ -5,6 +5,8 @@ import { useSettingsStore } from "@/stores/useSettingsStore";
 import { Card } from "@/components/ui/Card";
 import { Slider } from "@/components/ui/Slider";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Modal } from "@/components/ui/Modal";
 import { ChatContainer } from "@/components/chat/ChatContainer";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { SessionTimer } from "@/components/chat/SessionTimer";
@@ -14,6 +16,7 @@ import { BreathingOverlay } from "@/components/session/BreathingOverlay";
 import { sendMessage, streamMessage } from "@/services/ai/aiService";
 import { buildSystemPrompt, buildSummaryPrompt } from "@/services/ai/promptBuilder";
 import { createSession, updateSessionMessages, completeSession, getUserProfile, getTodayCheckIn, getRecentSessions } from "@/services/db/queries";
+import { therapySchools, getTherapySchool, getTherapySchoolName } from "@/constants/therapySchools";
 import type { ChatMessage, SessionSummary } from "@/types";
 
 export default function SessionPage() {
@@ -23,6 +26,7 @@ export default function SessionPage() {
   const [preMood, setPreMood] = useState(5);
   const [breathingOpen, setBreathingOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [schoolModalOpen, setSchoolModalOpen] = useState(false);
 
   const handleStartSession = useCallback(async () => {
     session.startSession(preMood);
@@ -53,6 +57,7 @@ export default function SessionPage() {
         profile,
         todayCheckIn: checkIn,
         lastSessionSummary: lastSummary,
+        therapySchool: settings.therapySchool,
       });
 
       const allMessages = useSessionStore.getState().messages;
@@ -179,8 +184,9 @@ export default function SessionPage() {
     navigate("/dashboard");
   }, [navigate]);
 
-  // Pre-session: mood selection
+  // Pre-session: mood selection + therapy school
   if (session.status === "idle" || session.status === "pre") {
+    const currentSchool = getTherapySchool(settings.therapySchool);
     return (
       <div className="max-w-md mx-auto mt-20">
         <Card>
@@ -190,6 +196,20 @@ export default function SessionPage() {
               Başlamadan önce şu anki ruh halini değerlendir
             </p>
           </div>
+
+          {/* Therapy School Display */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-2">Terapi Ekolü</label>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 px-4 py-2.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)]">
+                <span className="text-sm font-medium">{currentSchool?.name ?? "BDT"}</span>
+              </div>
+              <Button variant="secondary" size="sm" onClick={() => setSchoolModalOpen(true)}>
+                Değiştir
+              </Button>
+            </div>
+          </div>
+
           <Slider
             label="Ruh Hali"
             value={preMood}
@@ -201,6 +221,29 @@ export default function SessionPage() {
             Seansı Başlat
           </Button>
         </Card>
+
+        {/* School selection modal */}
+        <Modal isOpen={schoolModalOpen} onClose={() => setSchoolModalOpen(false)} title="Terapi Ekolü Seç">
+          <div className="grid grid-cols-2 gap-2">
+            {therapySchools.map((school) => (
+              <button
+                key={school.id}
+                onClick={() => {
+                  settings.setTherapySchool(school.id);
+                  setSchoolModalOpen(false);
+                }}
+                className={`text-left p-3 rounded-xl border transition-all duration-200 ${
+                  settings.therapySchool === school.id
+                    ? "border-primary-500 bg-primary-500/10"
+                    : "border-[var(--border-color)] hover:border-[var(--text-muted)]"
+                }`}
+              >
+                <span className="text-sm font-medium block">{school.shortName}</span>
+                <span className="text-xs text-[var(--text-muted)]">{school.description}</span>
+              </button>
+            ))}
+          </div>
+        </Modal>
       </div>
     );
   }
@@ -223,7 +266,12 @@ export default function SessionPage() {
     <div className="flex flex-col h-[calc(100vh-4rem)] -m-8">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-3 border-b border-[var(--border-color)] bg-[var(--bg-secondary)]">
-        <h2 className="font-semibold">Seans</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="font-semibold">Seans</h2>
+          <Badge variant="primary" onClick={() => setSchoolModalOpen(true)}>
+            Psikolog · {getTherapySchoolName(settings.therapySchool)}
+          </Badge>
+        </div>
         {session.startedAt && <SessionTimer startedAt={session.startedAt} />}
       </div>
 
@@ -243,6 +291,29 @@ export default function SessionPage() {
 
       {/* Breathing overlay */}
       <BreathingOverlay isOpen={breathingOpen} onClose={() => setBreathingOpen(false)} />
+
+      {/* School change modal */}
+      <Modal isOpen={schoolModalOpen} onClose={() => setSchoolModalOpen(false)} title="Terapi Ekolü Değiştir">
+        <div className="grid grid-cols-2 gap-2">
+          {therapySchools.map((school) => (
+            <button
+              key={school.id}
+              onClick={() => {
+                settings.setTherapySchool(school.id);
+                setSchoolModalOpen(false);
+              }}
+              className={`text-left p-3 rounded-xl border transition-all duration-200 ${
+                settings.therapySchool === school.id
+                  ? "border-primary-500 bg-primary-500/10"
+                  : "border-[var(--border-color)] hover:border-[var(--text-muted)]"
+              }`}
+            >
+              <span className="text-sm font-medium block">{school.shortName}</span>
+              <span className="text-xs text-[var(--text-muted)]">{school.description}</span>
+            </button>
+          ))}
+        </div>
+      </Modal>
     </div>
   );
 }

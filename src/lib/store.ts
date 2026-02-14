@@ -7,6 +7,8 @@ const STORE_DEFAULTS = {
   model: "gpt-4o",
   customBaseUrl: "",
   theme: "system",
+  thinkingEnabled: false,
+  thinkingLevel: "medium",
 };
 
 export function loadSettings() {

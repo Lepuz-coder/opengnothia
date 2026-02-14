@@ -11,7 +11,7 @@ import { SessionTimer } from "@/components/chat/SessionTimer";
 import { SessionToolbar } from "@/components/chat/SessionToolbar";
 import { SessionEndSummary } from "@/components/session/SessionEndSummary";
 import { BreathingOverlay } from "@/components/session/BreathingOverlay";
-import { sendMessage } from "@/services/ai/aiService";
+import { sendMessage, streamMessage } from "@/services/ai/aiService";
 import { buildSystemPrompt, buildSummaryPrompt } from "@/services/ai/promptBuilder";
 import { createSession, updateSessionMessages, completeSession, getUserProfile, getTodayCheckIn, getRecentSessions } from "@/services/db/queries";
 import type { ChatMessage, SessionSummary } from "@/types";
@@ -32,6 +32,9 @@ export default function SessionPage() {
   }, [preMood]);
 
   const handleSendMessage = useCallback(async (content: string) => {
+    const { isStreaming } = useSessionStore.getState();
+    if (isStreaming) return;
+
     const userMsg: ChatMessage = {
       id: crypto.randomUUID(),
       role: "user",
@@ -39,7 +42,6 @@ export default function SessionPage() {
       timestamp: new Date().toISOString(),
     };
     session.addMessage(userMsg);
-    session.setLoading(true);
 
     try {
       const profile = await getUserProfile();
@@ -54,27 +56,44 @@ export default function SessionPage() {
       });
 
       const allMessages = useSessionStore.getState().messages;
-      const response = await sendMessage({
+      const abortController = new AbortController();
+      session.setAbortController(abortController);
+      session.startStreaming();
+
+      await streamMessage({
         provider: settings.provider,
         apiKey: settings.apiKey,
         model: settings.model,
-        messages: allMessages,
+        messages: allMessages.filter((m) => !m.isStreaming),
         systemPrompt,
         customBaseUrl: settings.customBaseUrl || undefined,
+        thinkingEnabled: settings.thinkingEnabled,
+        thinkingLevel: settings.thinkingLevel,
+        abortSignal: abortController.signal,
+        onThinking: (chunk) => {
+          useSessionStore.getState().appendStreamThinking(chunk);
+        },
+        onContent: (chunk) => {
+          useSessionStore.getState().appendStreamContent(chunk);
+        },
+        onDone: () => {
+          useSessionStore.getState().finishStreaming();
+          const sessionId = useSessionStore.getState().sessionId;
+          if (sessionId) {
+            updateSessionMessages(sessionId, useSessionStore.getState().messages);
+          }
+        },
+        onError: (error) => {
+          const store = useSessionStore.getState();
+          if (store.streamingMessageId) {
+            store.updateMessage(store.streamingMessageId, {
+              content: `Bir hata oluştu: ${error.message}. Lütfen ayarlarından API bağlantını kontrol et.`,
+              isStreaming: false,
+            });
+          }
+          store.finishStreaming();
+        },
       });
-
-      const assistantMsg: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: response,
-        timestamp: new Date().toISOString(),
-      };
-      session.addMessage(assistantMsg);
-
-      const sessionId = useSessionStore.getState().sessionId;
-      if (sessionId) {
-        await updateSessionMessages(sessionId, useSessionStore.getState().messages);
-      }
     } catch (err) {
       const errorMsg: ChatMessage = {
         id: crypto.randomUUID(),
@@ -83,8 +102,7 @@ export default function SessionPage() {
         timestamp: new Date().toISOString(),
       };
       session.addMessage(errorMsg);
-    } finally {
-      session.setLoading(false);
+      session.finishStreaming();
     }
   }, [settings]);
 
@@ -210,7 +228,7 @@ export default function SessionPage() {
       </div>
 
       {/* Chat */}
-      <ChatContainer messages={session.messages} isLoading={session.isLoading} />
+      <ChatContainer messages={session.messages} isLoading={session.isLoading} isStreaming={session.isStreaming} />
 
       {/* Toolbar */}
       <SessionToolbar
@@ -221,7 +239,7 @@ export default function SessionPage() {
       />
 
       {/* Input */}
-      <ChatInput onSend={handleSendMessage} disabled={session.isLoading} />
+      <ChatInput onSend={handleSendMessage} disabled={session.isLoading || session.isStreaming} />
 
       {/* Breathing overlay */}
       <BreathingOverlay isOpen={breathingOpen} onClose={() => setBreathingOpen(false)} />

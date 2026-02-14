@@ -95,6 +95,7 @@ export const providers: AIProviderConfig[] = [
         contextWindow: 200000,
         costPer1kInput: 0.002,
         costPer1kOutput: 0.008,
+        supportsThinking: true,
       },
       {
         id: "o3-pro",
@@ -102,6 +103,7 @@ export const providers: AIProviderConfig[] = [
         contextWindow: 200000,
         costPer1kInput: 0.02,
         costPer1kOutput: 0.08,
+        supportsThinking: true,
       },
       {
         id: "o3-mini",
@@ -109,6 +111,7 @@ export const providers: AIProviderConfig[] = [
         contextWindow: 200000,
         costPer1kInput: 0.0011,
         costPer1kOutput: 0.0044,
+        supportsThinking: true,
       },
       {
         id: "o4-mini",
@@ -116,6 +119,7 @@ export const providers: AIProviderConfig[] = [
         contextWindow: 200000,
         costPer1kInput: 0.0011,
         costPer1kOutput: 0.0044,
+        supportsThinking: true,
       },
     ],
   },
@@ -133,6 +137,7 @@ export const providers: AIProviderConfig[] = [
         contextWindow: 200000,
         costPer1kInput: 0.005,
         costPer1kOutput: 0.025,
+        supportsThinking: true,
       },
       {
         id: "claude-opus-4-5-20251101",
@@ -140,6 +145,7 @@ export const providers: AIProviderConfig[] = [
         contextWindow: 200000,
         costPer1kInput: 0.005,
         costPer1kOutput: 0.025,
+        supportsThinking: true,
       },
       {
         id: "claude-opus-4-1-20250805",
@@ -147,6 +153,7 @@ export const providers: AIProviderConfig[] = [
         contextWindow: 200000,
         costPer1kInput: 0.015,
         costPer1kOutput: 0.075,
+        supportsThinking: true,
       },
       {
         id: "claude-opus-4-20250514",
@@ -154,6 +161,7 @@ export const providers: AIProviderConfig[] = [
         contextWindow: 200000,
         costPer1kInput: 0.015,
         costPer1kOutput: 0.075,
+        supportsThinking: true,
       },
       // Claude Sonnet
       {
@@ -162,6 +170,7 @@ export const providers: AIProviderConfig[] = [
         contextWindow: 200000,
         costPer1kInput: 0.003,
         costPer1kOutput: 0.015,
+        supportsThinking: true,
       },
       {
         id: "claude-sonnet-4-20250514",
@@ -169,6 +178,7 @@ export const providers: AIProviderConfig[] = [
         contextWindow: 200000,
         costPer1kInput: 0.003,
         costPer1kOutput: 0.015,
+        supportsThinking: true,
       },
       // Claude Haiku
       {
@@ -177,6 +187,7 @@ export const providers: AIProviderConfig[] = [
         contextWindow: 200000,
         costPer1kInput: 0.001,
         costPer1kOutput: 0.005,
+        supportsThinking: true,
       },
       {
         id: "claude-3-5-haiku-20241022",
@@ -184,6 +195,7 @@ export const providers: AIProviderConfig[] = [
         contextWindow: 200000,
         costPer1kInput: 0.0008,
         costPer1kOutput: 0.004,
+        supportsThinking: true,
       },
       {
         id: "claude-3-haiku-20240307",
@@ -250,4 +262,11 @@ export const providers: AIProviderConfig[] = [
 
 export function getProvider(id: string) {
   return providers.find((p) => p.id === id);
+}
+
+export function modelSupportsThinking(providerId: string, modelId: string): boolean {
+  const provider = getProvider(providerId);
+  if (!provider) return false;
+  const model = provider.models.find((m) => m.id === modelId);
+  return model?.supportsThinking ?? false;
 }

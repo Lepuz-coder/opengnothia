@@ -3,9 +3,11 @@ import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { Toggle } from "@/components/ui/Toggle";
 import { useSettingsStore } from "@/stores/useSettingsStore";
-import { providers, getProvider } from "@/constants/providers";
+import { providers, getProvider, modelSupportsThinking } from "@/constants/providers";
 import { testApiKey } from "@/services/ai/aiService";
+import type { ThinkingLevel } from "@/types";
 
 interface ApiSetupStepProps {
   onNext: () => void;
@@ -13,13 +15,14 @@ interface ApiSetupStepProps {
 }
 
 export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
-  const { provider, setProvider, apiKey, setApiKey, model, setModel, customBaseUrl, setCustomBaseUrl } = useSettingsStore();
+  const { provider, setProvider, apiKey, setApiKey, model, setModel, customBaseUrl, setCustomBaseUrl, thinkingEnabled, setThinkingEnabled, thinkingLevel, setThinkingLevel } = useSettingsStore();
   const [testStatus, setTestStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [testError, setTestError] = useState("");
 
   const currentProvider = getProvider(provider);
   const providerOptions = providers.map((p) => ({ value: p.id, label: p.name }));
   const modelOptions = currentProvider?.models.map((m) => ({ value: m.id, label: m.name })) ?? [];
+  const showThinkingToggle = modelSupportsThinking(provider, model);
 
   async function handleTest() {
     setTestStatus("loading");
@@ -58,6 +61,7 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
           setTestStatus("idle");
           const prov = getProvider(e.target.value);
           if (prov?.models[0]) setModel(prov.models[0].id);
+          setThinkingEnabled(false);
         }}
       />
 
@@ -85,7 +89,39 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
           label="Model"
           options={modelOptions}
           value={model}
-          onChange={(e) => setModel(e.target.value)}
+          onChange={(e) => {
+            setModel(e.target.value);
+            if (!modelSupportsThinking(provider, e.target.value)) {
+              setThinkingEnabled(false);
+            }
+          }}
+        />
+      )}
+
+      {showThinkingToggle && (
+        <div>
+          <Toggle
+            checked={thinkingEnabled}
+            onChange={setThinkingEnabled}
+            label="Düşünce Modu"
+          />
+          <p className="text-xs text-[var(--text-muted)] mt-1 ml-14">
+            AI'ın düşünce sürecini görmeni sağlar. Daha yavaş ama daha derinlemesine yanıtlar.
+          </p>
+        </div>
+      )}
+
+      {showThinkingToggle && thinkingEnabled && (
+        <Select
+          label="Düşünce Seviyesi"
+          options={[
+            { value: "low", label: "Hızlı — Kısa düşünür, çabuk yanıt verir" },
+            { value: "medium", label: "Dengeli — Yeterince düşünür, makul hızda" },
+            { value: "high", label: "Derinlemesine — Uzun düşünür, detaylı analiz" },
+            { value: "max", label: "Kapsamlı — En derin analiz, en yavaş yanıt" },
+          ]}
+          value={thinkingLevel}
+          onChange={(e) => setThinkingLevel(e.target.value as ThinkingLevel)}
         />
       )}
 

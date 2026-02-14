@@ -6,14 +6,17 @@ import type { ChatMessage as ChatMessageType } from "@/types";
 interface ChatContainerProps {
   messages: ChatMessageType[];
   isLoading: boolean;
+  isStreaming?: boolean;
 }
 
-export function ChatContainer({ messages, isLoading }: ChatContainerProps) {
+export function ChatContainer({ messages, isLoading, isStreaming }: ChatContainerProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
+
+  const showLoadingDots = isLoading && !isStreaming;
 
   return (
     <div className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-4">
@@ -25,7 +28,7 @@ export function ChatContainer({ messages, isLoading }: ChatContainerProps) {
       {messages.map((msg) => (
         <ChatMessage key={msg.id} message={msg} />
       ))}
-      {isLoading && (
+      {showLoadingDots && (
         <div className="flex gap-3">
           <div className="w-8 h-8 rounded-full bg-accent-900/30 flex items-center justify-center">
             <Loader2 className="w-4 h-4 text-accent-400 animate-spin" />

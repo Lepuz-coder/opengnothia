@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary-50: #eef2ff;
+  --color-primary-100: #e0e7ff;
+  --color-primary-200: #c7d2fe;
+  --color-primary-300: #a5b4fc;
+  --color-primary-400: #818cf8;
+  --color-primary-500: #6366f1;
+  --color-primary-600: #4f46e5;
+  --color-primary-700: #4338ca;
+  --color-primary-800: #3730a3;
+  --color-primary-900: #312e81;
+  --color-primary-950: #1e1b4b;
+
+  --color-accent-50: #f5f3ff;
+  --color-accent-100: #ede9fe;
+  --color-accent-200: #ddd6fe;
+  --color-accent-300: #c4b5fd;
+  --color-accent-400: #a78bfa;
+  --color-accent-500: #8b5cf6;
+  --color-accent-600: #7c3aed;
+  --color-accent-700: #6d28d9;
+  --color-accent-800: #5b21b6;
+  --color-accent-900: #4c1d95;
+
+  --color-surface-50: #faf9f7;
+  --color-surface-100: #f5f3f0;
+  --color-surface-200: #e8e5e0;
+  --color-surface-300: #d6d1c9;
+  --color-surface-400: #b8b0a4;
+  --color-surface-500: #9a907f;
+  --color-surface-600: #7d7366;
+  --color-surface-700: #635b50;
+  --color-surface-800: #4a4439;
+  --color-surface-900: #302d24;
+  --color-surface-950: #1a1814;
+}
+
+@layer base {
+  :root {
+    --bg-primary: var(--color-surface-50);
+    --bg-secondary: white;
+    --bg-tertiary: var(--color-surface-100);
+    --text-primary: var(--color-surface-900);
+    --text-secondary: var(--color-surface-600);
+    --text-muted: var(--color-surface-400);
+    --border-color: var(--color-surface-200);
+  }
+
+  .dark {
+    --bg-primary: var(--color-surface-950);
+    --bg-secondary: var(--color-surface-900);
+    --bg-tertiary: var(--color-surface-800);
+    --text-primary: var(--color-surface-50);
+    --text-secondary: var(--color-surface-400);
+    --text-muted: var(--color-surface-600);
+    --border-color: var(--color-surface-800);
+  }
+
+  body {
+    @apply bg-[var(--bg-primary)] text-[var(--text-primary)] antialiased;
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+  }
+
+  * {
+    @apply border-[var(--border-color)];
+  }
+}
+
+@layer components {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-surface-300) transparent;
+  }
+
+  .dark .scrollbar-thin {
+    scrollbar-color: var(--color-surface-700) transparent;
+  }
+}

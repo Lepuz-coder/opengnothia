@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
 import { ChatContainer } from "@/components/chat/ChatContainer";
-import { getSessionById } from "@/services/db/queries";
+import { getSessionById, deleteSession } from "@/services/db/queries";
 import type { Session } from "@/types";
 
 interface PastSessionDetailProps {
@@ -13,6 +14,8 @@ interface PastSessionDetailProps {
 export function PastSessionDetail({ sessionId, onBack }: PastSessionDetailProps) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -21,6 +24,14 @@ export function PastSessionDetail({ sessionId, onBack }: PastSessionDetailProps)
       setLoading(false);
     });
   }, [sessionId]);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    await deleteSession(sessionId);
+    setDeleting(false);
+    setDeleteConfirmOpen(false);
+    onBack();
+  };
 
   if (loading) {
     return (
@@ -71,6 +82,13 @@ export function PastSessionDetail({ sessionId, onBack }: PastSessionDetailProps)
             {session.mood_after != null && <span>→ {session.mood_after}/10</span>}
           </div>
         </div>
+        <button
+          onClick={() => setDeleteConfirmOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          Seansı Sil
+        </button>
       </div>
 
       {/* Messages - read only */}
@@ -85,6 +103,21 @@ export function PastSessionDetail({ sessionId, onBack }: PastSessionDetailProps)
           </p>
         </div>
       )}
+
+      {/* Delete confirmation modal */}
+      <Modal isOpen={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} title="Seansı Sil">
+        <p className="text-sm text-[var(--text-secondary)] mb-6">
+          Bu seansı silmek istediğine emin misin? Bu işlem geri alınamaz.
+        </p>
+        <div className="flex gap-3 justify-end">
+          <Button variant="secondary" onClick={() => setDeleteConfirmOpen(false)} disabled={deleting}>
+            Vazgeç
+          </Button>
+          <Button onClick={handleDelete} disabled={deleting} className="!bg-red-500 hover:!bg-red-600 !border-red-500">
+            {deleting ? "Siliniyor..." : "Sil"}
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

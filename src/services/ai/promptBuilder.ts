@@ -80,17 +80,17 @@ export function buildGreetingPrompt(params: {
   prompt += `\n\n--- Seans Açılışı ---
 Bu seansın ilk mesajını sen gönderiyorsun. Danışanı sıcak ve kısa bir şekilde selamla.
 Eğer hasta notların varsa, önceki seanslardaki konulara veya ödevlere kısaca atıfta bulunabilirsin.
-Eğer bugün check-in yapılmışsa, danışanın ruh halini göz önünde bulundur.
+ÖNEMLİ: Check-in verilerini (ruh hali puanı, enerji puanı, uyku puanı gibi sayısal değerleri) danışana söyleme. Bu veriler sadece senin arka plan bilgin olarak kullan — konuşmanın tonunu ve yaklaşımını buna göre ayarla ama skorları açıkça belirtme.
 Uzun olma — 2-3 cümle ile başla ve danışanı konuşmaya davet et.`;
 
   return prompt;
 }
 
 export function buildRecommendationPrompt(): string {
-  return `Yukarıdaki seans konuşmasını değerlendir ve danışana yönelik sıcak, destekleyici bir öneri paragrafı yaz.
+  return `Yukarıdaki seans konuşmasını değerlendir ve danışana yönelik sıcak, destekleyici bir öneri yaz.
 
 Kurallar:
-- Tek paragraf ol, 4-6 cümle yeterli
+- Markdown formatında yaz (başlıklar, kalın metin, listeler vb. kullanabilirsin)
 - Danışana doğrudan hitap et ("sen" dili kullan)
 - Seansın ana temasına atıfta bulun
 - Somut ve uygulanabilir bir öneri veya düşünce pratiği öner

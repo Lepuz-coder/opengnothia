@@ -8,7 +8,6 @@ interface SessionState {
   moodBefore: number | null;
   moodAfter: number | null;
   summary: SessionSummary | null;
-  therapistNotes: string[] | null;
   startedAt: string | null;
   isLoading: boolean;
   isStreaming: boolean;
@@ -22,7 +21,7 @@ interface SessionState {
   startSession: (moodBefore: number) => void;
   addMessage: (message: ChatMessage) => void;
   setLoading: (loading: boolean) => void;
-  setSummary: (summary: SessionSummary, therapistNotes?: string[]) => void;
+  setSummary: (summary: SessionSummary) => void;
   setMoodAfter: (mood: number) => void;
   endSession: () => void;
   reset: () => void;
@@ -52,7 +51,6 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   moodBefore: null,
   moodAfter: null,
   summary: null,
-  therapistNotes: null,
   startedAt: null,
   isLoading: false,
   isStreaming: false,
@@ -72,7 +70,6 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       moodBefore,
       moodAfter: null,
       summary: null,
-      therapistNotes: null,
       startedAt: new Date().toISOString(),
       isLoading: false,
       isStreaming: false,
@@ -85,7 +82,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
   setLoading: (isLoading) => set({ isLoading }),
 
-  setSummary: (summary, therapistNotes) => set({ summary, therapistNotes: therapistNotes ?? summary.therapist_notes ?? null, status: "post" }),
+  setSummary: (summary) => set({ summary, status: "post" }),
 
   setMoodAfter: (moodAfter) => set({ moodAfter }),
 
@@ -99,7 +96,6 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       moodBefore: null,
       moodAfter: null,
       summary: null,
-      therapistNotes: null,
       startedAt: null,
       isLoading: false,
       isStreaming: false,

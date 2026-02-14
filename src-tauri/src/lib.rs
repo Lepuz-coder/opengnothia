@@ -15,6 +15,12 @@ pub fn run() {
             sql: include_str!("../migrations/002_add_therapist_notes.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 3,
+            description: "add patient_notes table",
+            sql: include_str!("../migrations/003_add_patient_notes.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

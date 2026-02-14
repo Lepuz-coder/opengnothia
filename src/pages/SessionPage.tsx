@@ -1,7 +1,8 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useSessionStore } from "@/stores/useSessionStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
+import { useAppStore } from "@/stores/useAppStore";
 import { Slider } from "@/components/ui/Slider";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -9,41 +10,52 @@ import { Modal } from "@/components/ui/Modal";
 import { ChatContainer } from "@/components/chat/ChatContainer";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { SessionTimer } from "@/components/chat/SessionTimer";
-import { SessionToolbar } from "@/components/chat/SessionToolbar";
 import { SessionEndSummary } from "@/components/session/SessionEndSummary";
 import { PastSessionsList } from "@/components/session/PastSessionsList";
 import { PastSessionDetail } from "@/components/session/PastSessionDetail";
-import { sendMessage, streamMessage } from "@/services/ai/aiService";
-import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildNarrativeSummaryPrompt } from "@/services/ai/promptBuilder";
-import { createSession, updateSessionMessages, completeSession, getUserProfile, getTodayCheckIn, getRecentSessions, getRecentTherapistNotes } from "@/services/db/queries";
+import { sendMessage, streamMessage, testApiKey } from "@/services/ai/aiService";
+import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildRecommendationPrompt, buildPatientNotesUpdatePrompt } from "@/services/ai/promptBuilder";
+import { createSession, updateSessionMessages, completeSession, getUserProfile, getTodayCheckIn, getRecentSessions, getPatientNotes, upsertPatientNotes } from "@/services/db/queries";
 import { therapySchools, getTherapySchool, getTherapySchoolName } from "@/constants/therapySchools";
+import { Square, Loader2 } from "lucide-react";
 import type { ChatMessage, SessionSummary } from "@/types";
 
 export default function SessionPage() {
   const navigate = useNavigate();
   const session = useSessionStore();
   const settings = useSettingsStore();
+  const setSidebarHidden = useAppStore((s) => s.setSidebarHidden);
   const [preMood, setPreMood] = useState(5);
   const [saving, setSaving] = useState(false);
   const [startModalOpen, setStartModalOpen] = useState(false);
   const [schoolPickerOpen, setSchoolPickerOpen] = useState(false);
   const [viewingSessionId, setViewingSessionId] = useState<string | null>(null);
   const [endConfirmOpen, setEndConfirmOpen] = useState(false);
+  const [apiTesting, setApiTesting] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  // Restore sidebar when leaving session page
+  useEffect(() => {
+    return () => {
+      useAppStore.getState().setSidebarHidden(false);
+    };
+  }, []);
 
   const handleStartSession = useCallback(async () => {
+    setSidebarHidden(true);
     session.startSession(preMood);
     const id = useSessionStore.getState().sessionId!;
     const startedAt = useSessionStore.getState().startedAt!;
     await createSession({ id, started_at: startedAt, mood_before: preMood });
-  }, [preMood]);
+  }, [preMood, setSidebarHidden]);
 
   const handleGreeting = useCallback(async () => {
     try {
-      const [profile, checkIn, recentSessions, therapistNotes] = await Promise.all([
+      const [profile, checkIn, recentSessions, patientNotes] = await Promise.all([
         getUserProfile(),
         getTodayCheckIn(),
         getRecentSessions(1),
-        getRecentTherapistNotes(5),
+        getPatientNotes(),
       ]);
       const lastSummary = recentSessions[0]?.summary ?? null;
 
@@ -52,7 +64,7 @@ export default function SessionPage() {
         todayCheckIn: checkIn,
         lastSessionSummary: lastSummary,
         therapySchool: settings.therapySchool,
-        recentTherapistNotes: therapistNotes,
+        patientNotes,
       });
 
       const abortController = new AbortController();
@@ -118,11 +130,11 @@ export default function SessionPage() {
     session.addMessage(userMsg);
 
     try {
-      const [profile, checkIn, recentSessions, therapistNotes] = await Promise.all([
+      const [profile, checkIn, recentSessions, patientNotes] = await Promise.all([
         getUserProfile(),
         getTodayCheckIn(),
         getRecentSessions(1),
-        getRecentTherapistNotes(5),
+        getPatientNotes(),
       ]);
       const lastSummary = recentSessions[0]?.summary ?? null;
 
@@ -131,7 +143,7 @@ export default function SessionPage() {
         todayCheckIn: checkIn,
         lastSessionSummary: lastSummary,
         therapySchool: settings.therapySchool,
-        recentTherapistNotes: therapistNotes,
+        patientNotes,
       });
 
       const allMessages = useSessionStore.getState().messages;
@@ -191,17 +203,17 @@ export default function SessionPage() {
 
     const messages = useSessionStore.getState().messages;
 
-    // Immediately switch to post view with streaming state
+    // Switch to post view with streaming state
     session.startSummaryStream();
 
-    // Stream narrative summary
-    const narrativePrompt = buildNarrativeSummaryPrompt();
-    const conversationForNarrative: ChatMessage[] = [
+    // 1. Stream recommendation paragraph (user sees this)
+    const recommendationPrompt = buildRecommendationPrompt();
+    const conversationForRecommendation: ChatMessage[] = [
       ...messages,
       {
-        id: "narrative-request",
+        id: "recommendation-request",
         role: "user",
-        content: narrativePrompt,
+        content: recommendationPrompt,
         timestamp: new Date().toISOString(),
       },
     ];
@@ -211,8 +223,8 @@ export default function SessionPage() {
         provider: settings.provider,
         apiKey: settings.apiKey,
         model: settings.model,
-        messages: conversationForNarrative,
-        systemPrompt: "Sen deneyimli bir klinik psikologsun ve bu danışanın terapistisin. Seansı hem danışana geri bildirim vermek hem de kendi klinik notlarını tutmak için profesyonelce değerlendiriyorsun. Gelecek seanslarda süreklilik sağlamak için danışanla ilgili önemli detayları, örüntüleri ve takip edilmesi gereken konuları titizlikle not et.",
+        messages: conversationForRecommendation,
+        systemPrompt: "Sen deneyimli bir klinik psikologsun ve bu danışanın terapistisin. Danışana sıcak ve destekleyici bir öneri yaz.",
         customBaseUrl: settings.customBaseUrl || undefined,
         thinkingEnabled: false,
         abortSignal: new AbortController().signal,
@@ -231,9 +243,11 @@ export default function SessionPage() {
         },
       });
 
-      // After narrative is done, request structured JSON in background
+      // 2. Background: structured JSON summary + patient notes update (parallel)
       session.setSummaryParsing(true);
       try {
+        const [existingNotes] = await Promise.all([getPatientNotes()]);
+
         const summaryPrompt = buildSummaryPrompt();
         const conversationForSummary: ChatMessage[] = [
           ...messages,
@@ -245,36 +259,61 @@ export default function SessionPage() {
           },
         ];
 
-        const response = await sendMessage({
-          provider: settings.provider,
-          apiKey: settings.apiKey,
-          model: settings.model,
-          messages: conversationForSummary,
-          systemPrompt: "Sen bir seans analisti. Verilen konuşmayı analiz et.",
-          customBaseUrl: settings.customBaseUrl || undefined,
-        });
+        const patientNotesPrompt = buildPatientNotesUpdatePrompt(existingNotes);
+        const conversationForNotes: ChatMessage[] = [
+          ...messages,
+          {
+            id: "notes-request",
+            role: "user",
+            content: patientNotesPrompt,
+            timestamp: new Date().toISOString(),
+          },
+        ];
 
+        // Run both in parallel
+        const [summaryResponse, notesResponse] = await Promise.all([
+          sendMessage({
+            provider: settings.provider,
+            apiKey: settings.apiKey,
+            model: settings.model,
+            messages: conversationForSummary,
+            systemPrompt: "Sen bir seans analisti. Verilen konuşmayı analiz et.",
+            customBaseUrl: settings.customBaseUrl || undefined,
+          }),
+          sendMessage({
+            provider: settings.provider,
+            apiKey: settings.apiKey,
+            model: settings.model,
+            messages: conversationForNotes,
+            systemPrompt: "Sen deneyimli bir klinik psikolog. Hasta notlarını güncelle.",
+            customBaseUrl: settings.customBaseUrl || undefined,
+          }),
+        ]);
+
+        // Parse and save structured summary
         let summary: SessionSummary;
         try {
-          summary = JSON.parse(response);
-          if (!summary.therapist_notes) summary.therapist_notes = [];
+          summary = JSON.parse(summaryResponse);
         } catch {
           summary = {
             themes: [],
             defenses: [],
             insights: [],
             homework: [],
-            therapist_notes: [],
           };
         }
         session.setSummary(summary);
+
+        // Save updated patient notes
+        if (notesResponse && notesResponse.trim().length > 0) {
+          await upsertPatientNotes(notesResponse.trim());
+        }
       } catch {
         session.setSummary({
           themes: [],
           defenses: [],
           insights: [],
           homework: [],
-          therapist_notes: [],
         });
       } finally {
         session.setSummaryParsing(false);
@@ -294,13 +333,13 @@ export default function SessionPage() {
       await completeSession(state.sessionId, {
         mood_after: state.moodAfter ?? 5,
         summary: state.summary,
-        therapist_notes: state.therapistNotes ?? state.summary.therapist_notes ?? [],
       });
     }
     session.reset();
+    setSidebarHidden(false);
     setSaving(false);
     navigate("/dashboard");
-  }, [navigate]);
+  }, [navigate, setSidebarHidden]);
 
   // Viewing a past session
   if (viewingSessionId) {
@@ -322,7 +361,7 @@ export default function SessionPage() {
             <h2 className="text-xl font-bold">Seanslar</h2>
             <p className="text-sm text-[var(--text-muted)]">Geçmiş seanslarını görüntüle veya yeni bir seans başlat</p>
           </div>
-          <Button onClick={() => setStartModalOpen(true)} size="lg">
+          <Button onClick={() => { setApiError(null); setStartModalOpen(true); }} size="lg">
             Seans Başlat
           </Button>
         </div>
@@ -373,14 +412,52 @@ export default function SessionPage() {
           {/* Mood slider */}
           <Slider label="Ruh Hali" value={preMood} onChange={setPreMood} min={1} max={10} />
 
+          {/* API error message */}
+          {apiError && (
+            <div className="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+              <p className="text-sm text-red-400 mb-2">{apiError}</p>
+              <button
+                onClick={() => { setStartModalOpen(false); setApiError(null); navigate("/settings"); }}
+                className="text-sm text-primary-400 hover:text-primary-300 underline"
+              >
+                Ayarlara Git
+              </button>
+            </div>
+          )}
+
           {/* Start button */}
-          <Button onClick={async () => {
-            setStartModalOpen(false);
-            setSchoolPickerOpen(false);
-            await handleStartSession();
-            handleGreeting();
-          }} size="lg" className="w-full mt-6">
-            Seansı Başlat
+          <Button
+            disabled={apiTesting}
+            onClick={async () => {
+              setApiError(null);
+              setApiTesting(true);
+              const result = await testApiKey({
+                provider: settings.provider,
+                apiKey: settings.apiKey,
+                model: settings.model,
+                customBaseUrl: settings.customBaseUrl || undefined,
+              });
+              setApiTesting(false);
+              if (!result.success) {
+                setApiError(result.error ?? "API bağlantısı başarısız. Lütfen ayarlarını kontrol et.");
+                return;
+              }
+              setStartModalOpen(false);
+              setSchoolPickerOpen(false);
+              await handleStartSession();
+              handleGreeting();
+            }}
+            size="lg"
+            className="w-full mt-6"
+          >
+            {apiTesting ? (
+              <span className="flex items-center justify-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Bağlantı kontrol ediliyor...
+              </span>
+            ) : (
+              "Seansı Başlat"
+            )}
           </Button>
         </Modal>
       </div>
@@ -394,7 +471,6 @@ export default function SessionPage() {
         summaryNarrative={session.summaryNarrative}
         isSummaryStreaming={session.isSummaryStreaming}
         isSummaryParsing={session.isSummaryParsing}
-        summary={session.summary}
         moodAfter={session.moodAfter ?? 5}
         onMoodChange={session.setMoodAfter}
         onSave={handleSaveAndClose}
@@ -405,7 +481,7 @@ export default function SessionPage() {
 
   // Active session: chat
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] -m-8">
+    <div className="flex flex-col h-screen">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-3 border-b border-[var(--border-color)] bg-[var(--bg-secondary)]">
         <div className="flex items-center gap-2">
@@ -414,14 +490,20 @@ export default function SessionPage() {
             Psikolog · {getTherapySchoolName(settings.therapySchool)}
           </Badge>
         </div>
-        {session.startedAt && <SessionTimer startedAt={session.startedAt} />}
+        <div className="flex items-center gap-3">
+          {session.startedAt && <SessionTimer startedAt={session.startedAt} />}
+          <button
+            onClick={() => setEndConfirmOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+          >
+            <Square className="w-3.5 h-3.5" />
+            Seansı Bitir
+          </button>
+        </div>
       </div>
 
       {/* Chat */}
       <ChatContainer messages={session.messages} isLoading={session.isLoading} isStreaming={session.isStreaming} />
-
-      {/* Toolbar */}
-      <SessionToolbar onEnd={() => setEndConfirmOpen(true)} />
 
       {/* Input */}
       <ChatInput onSend={handleSendMessage} disabled={session.isLoading || session.isStreaming} />

@@ -56,12 +56,12 @@ export async function updateSessionMessages(id: string, messages: ChatMessage[])
 
 export async function completeSession(
   id: string,
-  data: { mood_after: number; summary: SessionSummary; therapist_notes?: string[] }
+  data: { mood_after: number; summary: SessionSummary }
 ): Promise<void> {
   const db = await getDatabase();
   await db.execute(
-    "UPDATE sessions SET ended_at = CURRENT_TIMESTAMP, mood_after = ?, summary = ?, therapist_notes = ?, status = 'completed' WHERE id = ?",
-    [data.mood_after, JSON.stringify(data.summary), JSON.stringify(data.therapist_notes ?? []), id]
+    "UPDATE sessions SET ended_at = CURRENT_TIMESTAMP, mood_after = ?, summary = ?, status = 'completed' WHERE id = ?",
+    [data.mood_after, JSON.stringify(data.summary), id]
   );
 }
 
@@ -110,19 +110,20 @@ export async function getCompletedSessions(): Promise<Omit<Session, "messages">[
   }));
 }
 
-export async function getRecentTherapistNotes(limit = 5): Promise<{ session_id: string; started_at: string; notes: string[] }[]> {
+// Patient Notes (cumulative)
+export async function getPatientNotes(): Promise<string> {
   const db = await getDatabase();
-  const rows = await db.select<{ id: string; started_at: string; therapist_notes: string }[]>(
-    "SELECT id, started_at, therapist_notes FROM sessions WHERE status = 'completed' AND therapist_notes IS NOT NULL ORDER BY created_at DESC LIMIT ?",
-    [limit]
+  const rows = await db.select<{ notes: string }[]>("SELECT notes FROM patient_notes WHERE id = 1");
+  if (rows.length === 0) return "";
+  return rows[0].notes;
+}
+
+export async function upsertPatientNotes(notes: string): Promise<void> {
+  const db = await getDatabase();
+  await db.execute(
+    "INSERT INTO patient_notes (id, notes, updated_at) VALUES (1, ?, CURRENT_TIMESTAMP) ON CONFLICT(id) DO UPDATE SET notes = ?, updated_at = CURRENT_TIMESTAMP",
+    [notes, notes]
   );
-  return rows
-    .map((r) => ({
-      session_id: r.id,
-      started_at: r.started_at,
-      notes: typeof r.therapist_notes === "string" ? JSON.parse(r.therapist_notes) : r.therapist_notes ?? [],
-    }))
-    .filter((r) => r.notes.length > 0);
 }
 
 export async function getTodaySession(): Promise<Session | null> {

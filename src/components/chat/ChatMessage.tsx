@@ -13,7 +13,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
   const isThinkingPhase = message.isStreaming && hasThinking && !message.content;
 
   const [thinkingOpen, setThinkingOpen] = useState(false);
-  const showThinkingExpanded = thinkingOpen || isThinkingPhase;
+  const showThinkingExpanded = thinkingOpen;
 
   return (
     <div className={cn("flex gap-3", isUser && "flex-row-reverse")}>
@@ -43,11 +43,14 @@ export function ChatMessage({ message }: ChatMessageProps) {
         {hasThinking && !isUser && (
           <div className="mb-2">
             <button
-              onClick={() => setThinkingOpen(!showThinkingExpanded)}
+              onClick={() => setThinkingOpen(!thinkingOpen)}
               className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
             >
-              <Sparkles className="w-3 h-3" />
-              <span>Düşünce süreci</span>
+              <Sparkles className={cn(
+                "w-3 h-3 transition-all duration-300",
+                isThinkingPhase && "text-accent-400 animate-pulse drop-shadow-[0_0_6px_rgba(232,168,56,0.6)]"
+              )} />
+              <span>{isThinkingPhase ? "Düşünüyor..." : "Düşünce süreci"}</span>
               {showThinkingExpanded ? (
                 <ChevronDown className="w-3 h-3" />
               ) : (
@@ -64,6 +67,13 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 </p>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Thinking phase indicator when collapsed */}
+        {isThinkingPhase && !showThinkingExpanded && (
+          <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] mb-1">
+            <span className="inline-block w-1.5 h-3.5 bg-accent-400 animate-pulse rounded-sm" />
           </div>
         )}
 

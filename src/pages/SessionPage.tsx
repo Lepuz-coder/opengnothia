@@ -14,7 +14,7 @@ import { SessionEndSummary } from "@/components/session/SessionEndSummary";
 import { PastSessionsList } from "@/components/session/PastSessionsList";
 import { PastSessionDetail } from "@/components/session/PastSessionDetail";
 import { sendMessage, streamMessage } from "@/services/ai/aiService";
-import { buildSystemPrompt, buildSummaryPrompt } from "@/services/ai/promptBuilder";
+import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildNarrativeSummaryPrompt } from "@/services/ai/promptBuilder";
 import { createSession, updateSessionMessages, completeSession, getUserProfile, getTodayCheckIn, getRecentSessions, getRecentTherapistNotes } from "@/services/db/queries";
 import { therapySchools, getTherapySchool, getTherapySchoolName } from "@/constants/therapySchools";
 import type { ChatMessage, SessionSummary } from "@/types";
@@ -28,6 +28,7 @@ export default function SessionPage() {
   const [startModalOpen, setStartModalOpen] = useState(false);
   const [schoolPickerOpen, setSchoolPickerOpen] = useState(false);
   const [viewingSessionId, setViewingSessionId] = useState<string | null>(null);
+  const [endConfirmOpen, setEndConfirmOpen] = useState(false);
 
   const handleStartSession = useCallback(async () => {
     session.startSession(preMood);
@@ -35,6 +36,74 @@ export default function SessionPage() {
     const startedAt = useSessionStore.getState().startedAt!;
     await createSession({ id, started_at: startedAt, mood_before: preMood });
   }, [preMood]);
+
+  const handleGreeting = useCallback(async () => {
+    try {
+      const [profile, checkIn, recentSessions, therapistNotes] = await Promise.all([
+        getUserProfile(),
+        getTodayCheckIn(),
+        getRecentSessions(1),
+        getRecentTherapistNotes(5),
+      ]);
+      const lastSummary = recentSessions[0]?.summary ?? null;
+
+      const greetingPrompt = buildGreetingPrompt({
+        profile,
+        todayCheckIn: checkIn,
+        lastSessionSummary: lastSummary,
+        therapySchool: settings.therapySchool,
+        recentTherapistNotes: therapistNotes,
+      });
+
+      const abortController = new AbortController();
+      session.setAbortController(abortController);
+      session.startStreaming();
+
+      await streamMessage({
+        provider: settings.provider,
+        apiKey: settings.apiKey,
+        model: settings.model,
+        messages: [{ id: "greeting-trigger", role: "user", content: "Merhaba, seansa başlayalım.", timestamp: new Date().toISOString() }],
+        systemPrompt: greetingPrompt,
+        customBaseUrl: settings.customBaseUrl || undefined,
+        thinkingEnabled: settings.thinkingEnabled,
+        thinkingLevel: settings.thinkingLevel,
+        abortSignal: abortController.signal,
+        onThinking: (chunk) => {
+          useSessionStore.getState().appendStreamThinking(chunk);
+        },
+        onContent: (chunk) => {
+          useSessionStore.getState().appendStreamContent(chunk);
+        },
+        onDone: () => {
+          useSessionStore.getState().finishStreaming();
+          const sessionId = useSessionStore.getState().sessionId;
+          if (sessionId) {
+            updateSessionMessages(sessionId, useSessionStore.getState().messages);
+          }
+        },
+        onError: (error) => {
+          const store = useSessionStore.getState();
+          if (store.streamingMessageId) {
+            store.updateMessage(store.streamingMessageId, {
+              content: `Bir hata oluştu: ${error.message}`,
+              isStreaming: false,
+            });
+          }
+          store.finishStreaming();
+        },
+      });
+    } catch (err) {
+      const errorMsg: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: `Bir hata oluştu: ${err instanceof Error ? err.message : "Bilinmeyen hata"}`,
+        timestamp: new Date().toISOString(),
+      };
+      session.addMessage(errorMsg);
+      session.finishStreaming();
+    }
+  }, [settings]);
 
   const handleSendMessage = useCallback(async (content: string) => {
     const { isStreaming } = useSessionStore.getState();
@@ -117,54 +186,104 @@ export default function SessionPage() {
   }, [settings]);
 
   const handleEndSession = useCallback(async () => {
-    session.setLoading(true);
-    try {
-      const messages = useSessionStore.getState().messages;
-      const summaryPrompt = buildSummaryPrompt();
-      const conversationForSummary: ChatMessage[] = [
-        ...messages,
-        {
-          id: "summary-request",
-          role: "user",
-          content: summaryPrompt,
-          timestamp: new Date().toISOString(),
-        },
-      ];
+    const { isStreaming } = useSessionStore.getState();
+    if (isStreaming) return;
 
-      const response = await sendMessage({
+    const messages = useSessionStore.getState().messages;
+
+    // Immediately switch to post view with streaming state
+    session.startSummaryStream();
+
+    // Stream narrative summary
+    const narrativePrompt = buildNarrativeSummaryPrompt();
+    const conversationForNarrative: ChatMessage[] = [
+      ...messages,
+      {
+        id: "narrative-request",
+        role: "user",
+        content: narrativePrompt,
+        timestamp: new Date().toISOString(),
+      },
+    ];
+
+    try {
+      await streamMessage({
         provider: settings.provider,
         apiKey: settings.apiKey,
         model: settings.model,
-        messages: conversationForSummary,
-        systemPrompt: "Sen bir seans analisti. Verilen konuşmayı analiz et.",
+        messages: conversationForNarrative,
+        systemPrompt: "Sen deneyimli bir klinik psikologsun ve bu danışanın terapistisin. Seansı hem danışana geri bildirim vermek hem de kendi klinik notlarını tutmak için profesyonelce değerlendiriyorsun. Gelecek seanslarda süreklilik sağlamak için danışanla ilgili önemli detayları, örüntüleri ve takip edilmesi gereken konuları titizlikle not et.",
         customBaseUrl: settings.customBaseUrl || undefined,
+        thinkingEnabled: false,
+        abortSignal: new AbortController().signal,
+        onThinking: () => {},
+        onContent: (chunk) => {
+          useSessionStore.getState().appendSummaryNarrative(chunk);
+        },
+        onDone: () => {
+          useSessionStore.getState().finishSummaryStream();
+        },
+        onError: (error) => {
+          useSessionStore.getState().appendSummaryNarrative(
+            `\n\nBir hata oluştu: ${error.message}`
+          );
+          useSessionStore.getState().finishSummaryStream();
+        },
       });
 
-      let summary: SessionSummary;
+      // After narrative is done, request structured JSON in background
+      session.setSummaryParsing(true);
       try {
-        summary = JSON.parse(response);
-        if (!summary.therapist_notes) summary.therapist_notes = [];
+        const summaryPrompt = buildSummaryPrompt();
+        const conversationForSummary: ChatMessage[] = [
+          ...messages,
+          {
+            id: "summary-request",
+            role: "user",
+            content: summaryPrompt,
+            timestamp: new Date().toISOString(),
+          },
+        ];
+
+        const response = await sendMessage({
+          provider: settings.provider,
+          apiKey: settings.apiKey,
+          model: settings.model,
+          messages: conversationForSummary,
+          systemPrompt: "Sen bir seans analisti. Verilen konuşmayı analiz et.",
+          customBaseUrl: settings.customBaseUrl || undefined,
+        });
+
+        let summary: SessionSummary;
+        try {
+          summary = JSON.parse(response);
+          if (!summary.therapist_notes) summary.therapist_notes = [];
+        } catch {
+          summary = {
+            themes: [],
+            defenses: [],
+            insights: [],
+            homework: [],
+            therapist_notes: [],
+          };
+        }
+        session.setSummary(summary);
       } catch {
-        summary = {
-          themes: ["Genel konuşma"],
+        session.setSummary({
+          themes: [],
           defenses: [],
-          insights: ["Seans tamamlandı"],
+          insights: [],
           homework: [],
           therapist_notes: [],
-        };
+        });
+      } finally {
+        session.setSummaryParsing(false);
       }
-
-      session.setSummary(summary);
-    } catch {
-      session.setSummary({
-        themes: ["Analiz yapılamadı"],
-        defenses: [],
-        insights: [],
-        homework: [],
-        therapist_notes: [],
-      });
-    } finally {
-      session.setLoading(false);
+    } catch (err) {
+      useSessionStore.getState().appendSummaryNarrative(
+        `Bir hata oluştu: ${err instanceof Error ? err.message : "Bilinmeyen hata"}`
+      );
+      useSessionStore.getState().finishSummaryStream();
     }
   }, [settings]);
 
@@ -255,7 +374,12 @@ export default function SessionPage() {
           <Slider label="Ruh Hali" value={preMood} onChange={setPreMood} min={1} max={10} />
 
           {/* Start button */}
-          <Button onClick={() => { handleStartSession(); setStartModalOpen(false); setSchoolPickerOpen(false); }} size="lg" className="w-full mt-6">
+          <Button onClick={async () => {
+            setStartModalOpen(false);
+            setSchoolPickerOpen(false);
+            await handleStartSession();
+            handleGreeting();
+          }} size="lg" className="w-full mt-6">
             Seansı Başlat
           </Button>
         </Modal>
@@ -264,9 +388,12 @@ export default function SessionPage() {
   }
 
   // Post-session: summary
-  if (session.status === "post" && session.summary) {
+  if (session.status === "post") {
     return (
       <SessionEndSummary
+        summaryNarrative={session.summaryNarrative}
+        isSummaryStreaming={session.isSummaryStreaming}
+        isSummaryParsing={session.isSummaryParsing}
         summary={session.summary}
         moodAfter={session.moodAfter ?? 5}
         onMoodChange={session.setMoodAfter}
@@ -294,10 +421,28 @@ export default function SessionPage() {
       <ChatContainer messages={session.messages} isLoading={session.isLoading} isStreaming={session.isStreaming} />
 
       {/* Toolbar */}
-      <SessionToolbar onEnd={handleEndSession} />
+      <SessionToolbar onEnd={() => setEndConfirmOpen(true)} />
 
       {/* Input */}
       <ChatInput onSend={handleSendMessage} disabled={session.isLoading || session.isStreaming} />
+
+      {/* End session confirmation modal */}
+      <Modal isOpen={endConfirmOpen} onClose={() => setEndConfirmOpen(false)} title="Seansı Bitir">
+        <p className="text-[var(--text-secondary)] mb-6">
+          Seansı bitirmek istediğinden emin misin?
+        </p>
+        <div className="flex gap-3 justify-end">
+          <Button variant="secondary" onClick={() => setEndConfirmOpen(false)}>
+            İptal
+          </Button>
+          <Button variant="danger" onClick={() => {
+            setEndConfirmOpen(false);
+            handleEndSession();
+          }}>
+            Evet, Bitir
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

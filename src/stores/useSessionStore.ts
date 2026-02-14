@@ -14,6 +14,9 @@ interface SessionState {
   isStreaming: boolean;
   streamingMessageId: string | null;
   abortController: AbortController | null;
+  summaryNarrative: string;
+  isSummaryStreaming: boolean;
+  isSummaryParsing: boolean;
 
   setStatus: (status: SessionStatus) => void;
   startSession: (moodBefore: number) => void;
@@ -31,6 +34,11 @@ interface SessionState {
   cancelStreaming: () => void;
   setAbortController: (controller: AbortController | null) => void;
   updateMessage: (id: string, updates: Partial<ChatMessage>) => void;
+
+  startSummaryStream: () => void;
+  appendSummaryNarrative: (chunk: string) => void;
+  finishSummaryStream: () => void;
+  setSummaryParsing: (parsing: boolean) => void;
 }
 
 function generateId() {
@@ -50,6 +58,9 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   isStreaming: false,
   streamingMessageId: null,
   abortController: null,
+  summaryNarrative: "",
+  isSummaryStreaming: false,
+  isSummaryParsing: false,
 
   setStatus: (status) => set({ status }),
 
@@ -94,6 +105,9 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       isStreaming: false,
       streamingMessageId: null,
       abortController: null,
+      summaryNarrative: "",
+      isSummaryStreaming: false,
+      isSummaryParsing: false,
     }),
 
   startStreaming: () => {
@@ -179,4 +193,21 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     set((s) => ({
       messages: s.messages.map((m) => (m.id === id ? { ...m, ...updates } : m)),
     })),
+
+  startSummaryStream: () =>
+    set({
+      status: "post",
+      summaryNarrative: "",
+      isSummaryStreaming: true,
+      summary: null,
+    }),
+
+  appendSummaryNarrative: (chunk) =>
+    set((s) => ({
+      summaryNarrative: s.summaryNarrative + chunk,
+    })),
+
+  finishSummaryStream: () => set({ isSummaryStreaming: false }),
+
+  setSummaryParsing: (parsing) => set({ isSummaryParsing: parsing }),
 }));

@@ -1,3 +1,5 @@
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Card } from "@/components/ui/Card";
 import { Slider } from "@/components/ui/Slider";
 import { Button } from "@/components/ui/Button";
@@ -40,8 +42,10 @@ export function SessionEndSummary({
           )}
         </h3>
         {summaryNarrative ? (
-          <div className="text-sm text-[var(--text-secondary)] leading-relaxed whitespace-pre-wrap">
-            {summaryNarrative}
+          <div className="text-sm text-[var(--text-secondary)] leading-relaxed markdown-content">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {summaryNarrative}
+            </ReactMarkdown>
             {isSummaryStreaming && (
               <span className="inline-block w-1.5 h-3.5 bg-[var(--text-primary)] ml-0.5 animate-pulse" />
             )}

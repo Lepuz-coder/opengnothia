@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
-import { Clock, Calendar, Trash2, MessageCircle } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { Modal } from "@/components/ui/Modal";
-import { getCompletedSessions, deleteSession } from "@/services/db/queries";
+import { Clock, Calendar, MessageCircle } from "lucide-react";
+import { getCompletedSessions } from "@/services/db/queries";
 import type { Session } from "@/types";
 
 interface PastSessionsListProps {
@@ -11,21 +9,10 @@ interface PastSessionsListProps {
 
 export function PastSessionsList({ onViewSession }: PastSessionsListProps) {
   const [sessions, setSessions] = useState<Omit<Session, "messages">[]>([]);
-  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     getCompletedSessions().then(setSessions);
   }, []);
-
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    setDeleting(true);
-    await deleteSession(deleteTarget);
-    setSessions((prev) => prev.filter((s) => s.id !== deleteTarget));
-    setDeleteTarget(null);
-    setDeleting(false);
-  };
 
   if (sessions.length === 0) {
     return (
@@ -53,61 +40,38 @@ export function PastSessionsList({ onViewSession }: PastSessionsListProps) {
             : null;
 
           return (
-            <div
+            <button
               key={s.id}
-              className="flex items-center gap-2"
+              onClick={() => onViewSession(s.id)}
+              className="w-full text-left p-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] hover:border-[var(--text-muted)] transition-all duration-200"
             >
-              <button
-                onClick={() => onViewSession(s.id)}
-                className="flex-1 text-left p-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] hover:border-[var(--text-muted)] transition-all duration-200"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-                    <Calendar className="w-3.5 h-3.5" />
-                    {startDate.toLocaleDateString("tr-TR", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </div>
-                  {durationMin != null && (
-                    <div className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
-                      <Clock className="w-3 h-3" />
-                      {durationMin} dk
-                    </div>
-                  )}
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+                  <Calendar className="w-3.5 h-3.5" />
+                  {startDate.toLocaleDateString("tr-TR", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                  {" · "}
+                  {startDate.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
                 </div>
-                {s.summary_narrative && (
-                  <p className="text-xs text-[var(--text-muted)] line-clamp-2">
-                    {s.summary_narrative}
-                  </p>
+                {durationMin != null && (
+                  <div className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
+                    <Clock className="w-3 h-3" />
+                    {durationMin} dk
+                  </div>
                 )}
-              </button>
-              <button
-                onClick={() => setDeleteTarget(s.id)}
-                className="p-2.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] hover:border-red-400 hover:bg-red-500/10 text-[var(--text-muted)] hover:text-red-500 transition-all duration-200"
-                title="Seansı sil"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
+              </div>
+              {s.summary_narrative && (
+                <p className="text-xs text-[var(--text-muted)] line-clamp-2">
+                  {s.summary_narrative}
+                </p>
+              )}
+            </button>
           );
         })}
       </div>
-
-      <Modal isOpen={deleteTarget !== null} onClose={() => setDeleteTarget(null)} title="Seansı Sil">
-        <p className="text-sm text-[var(--text-secondary)] mb-6">
-          Bu seansı silmek istediğine emin misin? Bu işlem geri alınamaz.
-        </p>
-        <div className="flex gap-3 justify-end">
-          <Button variant="secondary" onClick={() => setDeleteTarget(null)} disabled={deleting}>
-            Vazgeç
-          </Button>
-          <Button onClick={handleDelete} disabled={deleting} className="!bg-red-500 hover:!bg-red-600 !border-red-500">
-            {deleting ? "Siliniyor..." : "Sil"}
-          </Button>
-        </div>
-      </Modal>
     </div>
   );
 }

@@ -15,7 +15,7 @@ import { PastSessionsList } from "@/components/session/PastSessionsList";
 import { PastSessionDetail } from "@/components/session/PastSessionDetail";
 import { sendMessage, streamMessage, testApiKey } from "@/services/ai/aiService";
 import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildRecommendationPrompt, buildPatientNotesUpdatePrompt } from "@/services/ai/promptBuilder";
-import { createSession, updateSessionMessages, completeSession, getUserProfile, getTodayCheckIn, getRecentSessions, getPatientNotes, upsertPatientNotes } from "@/services/db/queries";
+import { createSession, updateSessionMessages, completeSession, deleteSession, getUserProfile, getTodayCheckIn, getRecentSessions, getPatientNotes, upsertPatientNotes } from "@/services/db/queries";
 import { therapySchools, getTherapySchool, getTherapySchoolName } from "@/constants/therapySchools";
 import { Square, Loader2 } from "lucide-react";
 import type { ChatMessage, SessionSummary } from "@/types";
@@ -204,14 +204,11 @@ export default function SessionPage() {
     const messages = useSessionStore.getState().messages;
     const userMessageCount = messages.filter((m) => m.role === "user").length;
 
-    // Short session: skip AI summary, save empty and redirect
+    // Short session: delete and redirect
     if (userMessageCount < 2) {
       const sessionId = useSessionStore.getState().sessionId;
       if (sessionId) {
-        await completeSession(sessionId, {
-          mood_after: 5,
-          summary: { themes: [], defenses: [], insights: [], homework: [] },
-        });
+        await deleteSession(sessionId);
       }
       session.reset();
       setSidebarHidden(false);

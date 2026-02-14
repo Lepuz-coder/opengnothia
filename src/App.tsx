@@ -37,6 +37,14 @@ function AppContent() {
         const model = await store.get<string>("model");
         const customBaseUrl = await store.get<string>("customBaseUrl");
         const therapySchool = await store.get<string>("therapySchool");
+        let providerApiKeys = await store.get<Record<string, string>>("providerApiKeys");
+
+        // Migrate: if providerApiKeys is empty but apiKey exists, seed it
+        if ((!providerApiKeys || Object.keys(providerApiKeys).length === 0) && apiKey && provider) {
+          providerApiKeys = { [provider]: apiKey };
+          await store.set("providerApiKeys", providerApiKeys);
+          await store.save();
+        }
 
         loadFromStore({
           ...(provider && { provider: provider as any }),
@@ -44,6 +52,7 @@ function AppContent() {
           ...(model && { model }),
           ...(customBaseUrl && { customBaseUrl }),
           ...(therapySchool && { therapySchool: therapySchool as any }),
+          ...(providerApiKeys && { providerApiKeys }),
         });
       } catch {
         // Store not available yet, use defaults

@@ -10,6 +10,7 @@ const STORE_DEFAULTS = {
   therapySchool: "cbt",
   thinkingEnabled: false,
   thinkingLevel: "medium",
+  providerApiKeys: {} as Record<string, string>,
 };
 
 export function loadSettings() {

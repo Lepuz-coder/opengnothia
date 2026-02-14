@@ -15,7 +15,7 @@ interface ApiSetupStepProps {
 }
 
 export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
-  const { provider, setProvider, apiKey, setApiKey, model, setModel, customBaseUrl, setCustomBaseUrl, thinkingEnabled, setThinkingEnabled, thinkingLevel, setThinkingLevel } = useSettingsStore();
+  const { provider, setProvider, apiKey, setApiKey, model, setModel, thinkingEnabled, setThinkingEnabled, thinkingLevel, setThinkingLevel } = useSettingsStore();
   const [testStatus, setTestStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [testError, setTestError] = useState("");
 
@@ -31,7 +31,6 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
       provider,
       apiKey,
       model,
-      customBaseUrl: provider === "custom" ? customBaseUrl : undefined,
     });
     if (result.success) {
       setTestStatus("success");
@@ -72,15 +71,6 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
           value={apiKey}
           onChange={(e) => { setApiKey(e.target.value); setTestStatus("idle"); }}
           placeholder={provider === "openai" ? "sk-..." : provider === "anthropic" ? "sk-ant-..." : "API anahtarını gir"}
-        />
-      )}
-
-      {provider === "custom" && (
-        <Input
-          label="Base URL"
-          value={customBaseUrl}
-          onChange={(e) => setCustomBaseUrl(e.target.value)}
-          placeholder="https://api.example.com/v1"
         />
       )}
 

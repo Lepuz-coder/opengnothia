@@ -2,7 +2,7 @@ export type Theme = "light" | "dark" | "system";
 export type Approach = "practical" | "depth" | "balanced";
 export type SessionStatus = "idle" | "pre" | "active" | "post";
 export type ThinkingLevel = "low" | "medium" | "high" | "max";
-export type AIProvider = "openai" | "anthropic" | "google" | "ollama" | "openrouter" | "custom";
+export type AIProvider = "openai" | "anthropic";
 export type TherapySchool = "general" | "cbt" | "psychodynamic" | "logotherapy" | "act" | "schema" | "stoic";
 
 export interface UserProfile {

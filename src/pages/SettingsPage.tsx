@@ -28,12 +28,12 @@ export default function SettingsPage() {
     const store = await loadSettings();
     await store.set("provider", settings.provider);
     await store.set("apiKey", settings.apiKey);
+    await store.set("providerApiKeys", settings.providerApiKeys);
     await store.set("model", settings.model);
     await store.set("theme", theme);
     await store.set("thinkingEnabled", settings.thinkingEnabled);
     await store.set("thinkingLevel", settings.thinkingLevel);
     await store.set("therapySchool", settings.therapySchool);
-    if (settings.customBaseUrl) await store.set("customBaseUrl", settings.customBaseUrl);
     await store.save();
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -72,14 +72,6 @@ export default function SettingsPage() {
               type="password"
               value={settings.apiKey}
               onChange={(e) => settings.setApiKey(e.target.value)}
-            />
-          )}
-
-          {settings.provider === "custom" && (
-            <Input
-              label="Base URL"
-              value={settings.customBaseUrl}
-              onChange={(e) => settings.setCustomBaseUrl(e.target.value)}
             />
           )}
 

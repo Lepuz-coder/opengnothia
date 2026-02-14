@@ -78,7 +78,7 @@ export function InterviewStep({ onNext, onBack }: InterviewStepProps) {
               className={cn(
                 "p-3 rounded-xl border text-center transition-all duration-200",
                 approach === opt.id
-                  ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20"
+                  ? "border-primary-500 bg-primary-900/20"
                   : "border-[var(--border-color)] hover:border-primary-300"
               )}
             >

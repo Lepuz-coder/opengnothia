@@ -15,21 +15,21 @@ export function ChatMessage({ message }: ChatMessageProps) {
         className={cn(
           "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
           isUser
-            ? "bg-primary-100 dark:bg-primary-900/30"
-            : "bg-accent-100 dark:bg-accent-900/30"
+            ? "bg-primary-900/30"
+            : "bg-accent-900/30"
         )}
       >
         {isUser ? (
-          <User className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+          <User className="w-4 h-4 text-primary-400" />
         ) : (
-          <Brain className="w-4 h-4 text-accent-600 dark:text-accent-400" />
+          <Brain className="w-4 h-4 text-accent-400" />
         )}
       </div>
       <div
         className={cn(
           "max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
           isUser
-            ? "bg-primary-600 text-white rounded-br-md"
+            ? "bg-primary-500 text-white rounded-br-md"
             : "bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-bl-md"
         )}
       >

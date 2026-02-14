@@ -31,7 +31,7 @@ export function WeeklyInsightCard() {
       {avgMood !== null ? (
         <div className="flex items-center gap-4">
           <div>
-            <p className="text-3xl font-bold text-primary-600 dark:text-primary-400">{avgMood}</p>
+            <p className="text-3xl font-bold text-primary-400">{avgMood}</p>
             <p className="text-xs text-[var(--text-muted)]">Ort. ruh hali</p>
           </div>
           <div className={`flex items-center gap-1 ${trendColor}`}>

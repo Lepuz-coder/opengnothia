@@ -20,7 +20,7 @@ export function Sidebar() {
           <Brain className="w-5 h-5 text-white" />
         </div>
         {!sidebarCollapsed && (
-          <span className="text-lg font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
+          <span className="text-lg font-bold bg-gradient-to-r from-primary-500 to-accent-500 bg-clip-text text-transparent">
             OpenGnothia
           </span>
         )}

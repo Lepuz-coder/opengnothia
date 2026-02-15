@@ -8,6 +8,7 @@ export async function sendMessage(params: {
   messages: ChatMessage[];
   systemPrompt: string;
   customBaseUrl?: string;
+  maxTokens?: number;
 }): Promise<{ content: string; usage: TokenUsage | null }> {
   const adapter = getAdapter(params.provider);
   const { url, init } = adapter.formatRequest(params);

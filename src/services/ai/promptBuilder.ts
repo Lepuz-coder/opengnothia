@@ -115,7 +115,11 @@ Mevcut notları bu seansın bilgileriyle birleştirerek güncel bir kümülatif 
 - Kriz riski veya dikkat edilmesi gereken durumlar
 - Bu seanstaki yeni bilgiler ve gelişmeler
 
-Önemli: Sadece güncellenmiş notları yaz, başka açıklama ekleme. Notlar düzenli ve okunabilir olsun. Türkçe yaz.`;
+Önemli:
+- Sadece güncellenmiş notları yaz, başka açıklama ekleme
+- Notlar düzenli, okunabilir ve özlü olsun — gereksiz tekrarlardan kaçın
+- Toplam not uzunluğu maksimum 15000 karakter olmalı, bu limiti kesinlikle aşma
+- Türkçe yaz`;
 }
 
 export function buildDreamAnalysisPrompt(patientNotes: string): string {
@@ -212,7 +216,11 @@ Mevcut notları bu günlük yazısından elde edilen bilgilerle birleştirerek g
 - Kriz riski veya dikkat edilmesi gereken durumlar
 - Günlük yazısından elde edilen yeni bilgiler
 
-Önemli: Sadece güncellenmiş notları yaz, başka açıklama ekleme. Notlar düzenli ve okunabilir olsun. Türkçe yaz.`;
+Önemli:
+- Sadece güncellenmiş notları yaz, başka açıklama ekleme
+- Notlar düzenli, okunabilir ve özlü olsun — gereksiz tekrarlardan kaçın
+- Toplam not uzunluğu maksimum 15000 karakter olmalı, bu limiti kesinlikle aşma
+- Türkçe yaz`;
 }
 
 

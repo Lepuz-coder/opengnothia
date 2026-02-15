@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
+import { cn } from "@/lib/cn";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useAppStore } from "@/stores/useAppStore";
 import { streamMessage } from "@/services/ai/aiService";
@@ -10,7 +10,7 @@ import { calculateCost } from "@/services/ai/costCalculator";
 import { buildDreamAnalysisPrompt, buildPatientNotesUpdatePrompt } from "@/services/ai/promptBuilder";
 import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
 import {
-  getDreams,
+  getDreamsByDateRange,
   getDreamById,
   saveDream,
   updateDreamAnalysis,
@@ -19,12 +19,49 @@ import {
   getPatientNotes,
   saveTokenUsage,
 } from "@/services/db/queries";
-import { Moon, Plus, ArrowLeft, Sparkles, Trash2, Loader2, Pencil } from "lucide-react";
+import { Plus, ArrowLeft, Sparkles, Trash2, Loader2, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Dream, AIProvider, TokenUsage } from "@/types";
 
-type View = "list" | "new" | "detail";
+type View = "calendar" | "new" | "detail";
+
+const DAY_NAMES = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
+
+function getCalendarDays(year: number, month: number): Date[] {
+  const firstOfMonth = new Date(year, month, 1);
+  const lastOfMonth = new Date(year, month + 1, 0);
+  const startDow = firstOfMonth.getDay() === 0 ? 6 : firstOfMonth.getDay() - 1;
+
+  const days: Date[] = [];
+
+  for (let i = startDow - 1; i >= 0; i--) {
+    days.push(new Date(year, month, -i));
+  }
+
+  for (let d = 1; d <= lastOfMonth.getDate(); d++) {
+    days.push(new Date(year, month, d));
+  }
+
+  while (days.length % 7 !== 0) {
+    const nextDay = days.length - startDow - lastOfMonth.getDate() + 1;
+    days.push(new Date(year, month + 1, nextDay));
+  }
+
+  return days;
+}
+
+function formatYMD(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function formatMonthYear(year: number, month: number): string {
+  const date = new Date(year, month, 1);
+  return date.toLocaleDateString("tr-TR", { month: "long", year: "numeric" });
+}
 
 async function trackUsage(
   provider: AIProvider,
@@ -49,7 +86,7 @@ export default function DreamsPage() {
   const settings = useSettingsStore();
   const setSidebarHidden = useAppStore((s) => s.setSidebarHidden);
 
-  const [view, setView] = useState<View>("list");
+  const [view, setView] = useState<View>("calendar");
   const [dreams, setDreams] = useState<Dream[]>([]);
   const [selectedDream, setSelectedDream] = useState<Dream | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,6 +98,24 @@ export default function DreamsPage() {
   const [editingDreamId, setEditingDreamId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Calendar state
+  const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth());
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
+  // Calendar computed values
+  const calendarDays = useMemo(() => getCalendarDays(currentYear, currentMonth), [currentYear, currentMonth]);
+  const todayStr = useMemo(() => formatYMD(new Date()), []);
+  const dreamsByDate = useMemo(() => {
+    const map = new Map<string, Dream>();
+    for (const dream of dreams) {
+      if (dream.date && !map.has(dream.date)) {
+        map.set(dream.date, dream);
+      }
+    }
+    return map;
+  }, [dreams]);
+
   // Hide sidebar in new dream view
   useEffect(() => {
     if (view === "new") {
@@ -71,15 +126,61 @@ export default function DreamsPage() {
     return () => setSidebarHidden(false);
   }, [view, setSidebarHidden]);
 
+  // Load dreams for visible calendar range
   const loadDreams = useCallback(async () => {
-    const data = await getDreams();
+    const days = getCalendarDays(currentYear, currentMonth);
+    const startDate = formatYMD(days[0]);
+    const endDate = formatYMD(days[days.length - 1]);
+    const data = await getDreamsByDateRange(startDate, endDate);
     setDreams(data);
     setLoading(false);
-  }, []);
+  }, [currentYear, currentMonth]);
 
   useEffect(() => {
     loadDreams();
   }, [loadDreams]);
+
+  // Month navigation
+  const handlePrevMonth = () => {
+    setCurrentMonth((m) => {
+      if (m === 0) {
+        setCurrentYear((y) => y - 1);
+        return 11;
+      }
+      return m - 1;
+    });
+  };
+
+  const handleNextMonth = () => {
+    const now = new Date();
+    if (currentYear === now.getFullYear() && currentMonth >= now.getMonth()) return;
+    setCurrentMonth((m) => {
+      if (m === 11) {
+        setCurrentYear((y) => y + 1);
+        return 0;
+      }
+      return m + 1;
+    });
+  };
+
+  const handleGoToToday = () => {
+    const now = new Date();
+    setCurrentYear(now.getFullYear());
+    setCurrentMonth(now.getMonth());
+  };
+
+  // Day click handler
+  const handleDayClick = async (dateStr: string) => {
+    const existingDream = dreamsByDate.get(dateStr);
+    if (existingDream) {
+      await openDetail(existingDream);
+    } else {
+      setSelectedDate(dateStr);
+      setNewContent("");
+      setEditingDreamId(null);
+      setView("new");
+    }
+  };
 
   const handleSave = async () => {
     if (!newContent.trim()) return;
@@ -91,11 +192,12 @@ export default function DreamsPage() {
         if (updated) setSelectedDream(updated);
         setEditingDreamId(null);
       } else {
-        const id = await saveDream(newContent.trim());
+        const id = await saveDream(newContent.trim(), selectedDate ?? undefined);
         const dream = await getDreamById(id);
         if (dream) setSelectedDream(dream);
       }
       setNewContent("");
+      setSelectedDate(null);
       setView("detail");
       await loadDreams();
     } finally {
@@ -192,7 +294,7 @@ export default function DreamsPage() {
     await deleteDream(selectedDream.id);
     setSelectedDream(null);
     setDeleteConfirmOpen(false);
-    setView("list");
+    setView("calendar");
     await loadDreams();
   };
 
@@ -208,7 +310,7 @@ export default function DreamsPage() {
   // Loading state
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">Rüyalar</h1>
         <div className="flex items-center gap-2 text-[var(--text-muted)]">
           <Loader2 className="w-4 h-4 animate-spin" />
@@ -221,20 +323,22 @@ export default function DreamsPage() {
   // New dream view (fullscreen)
   if (view === "new") {
     const wordCount = newContent.trim() ? newContent.trim().split(/\s+/).length : 0;
-    const today = new Date();
-    const dateLabel = today.toLocaleDateString("tr-TR", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
+    const dateLabel = (() => {
+      const d = selectedDate ? new Date(selectedDate + "T00:00:00") : new Date();
+      return d.toLocaleDateString("tr-TR", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+    })();
 
     return (
       <div className="flex flex-col h-screen">
         {/* Top bar */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)]">
           <button
-            onClick={() => { if (editingDreamId) { setEditingDreamId(null); setNewContent(""); setView("detail"); } else { setView("list"); } }}
+            onClick={() => { if (editingDreamId) { setEditingDreamId(null); setNewContent(""); setView("detail"); } else { setSelectedDate(null); setView("calendar"); } }}
             className="flex items-center gap-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -286,7 +390,7 @@ export default function DreamsPage() {
     return (
       <div className="max-w-2xl mx-auto">
         <button
-          onClick={() => { if (!analyzing) { setView("list"); setSelectedDream(null); setError(null); } }}
+          onClick={() => { if (!analyzing) { setView("calendar"); setSelectedDream(null); setError(null); } }}
           disabled={analyzing}
           className={`flex items-center gap-1.5 text-sm transition-colors mb-6 ${analyzing ? "text-[var(--text-muted)] opacity-50 cursor-not-allowed" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}
         >
@@ -405,68 +509,107 @@ export default function DreamsPage() {
     );
   }
 
-  // List view (default)
+  // ─── Calendar View (default) ───
+  const isNextDisabled = currentYear === new Date().getFullYear() && currentMonth >= new Date().getMonth();
+
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-4xl mx-auto">
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Rüyalar</h1>
           <p className="text-sm text-[var(--text-muted)]">Rüya günlüğün</p>
         </div>
-        <Button onClick={() => setView("new")}>
+        <Button onClick={() => handleDayClick(todayStr)}>
           <Plus className="w-4 h-4" />
-          Yeni Rüya
+          Bugün Yaz
         </Button>
       </div>
 
-      {dreams.length === 0 ? (
-        <Card>
-          <div className="text-center py-12">
-            <Moon className="w-12 h-12 text-[var(--text-muted)] mx-auto mb-4" />
-            <h2 className="text-lg font-medium mb-2">Henüz rüya kaydın yok</h2>
-            <p className="text-[var(--text-muted)] mb-6">
-              Rüyalarını kaydet ve AI destekli analizlerle iç dünyanı keşfet.
-            </p>
-            <Button onClick={() => setView("new")}>
-              <Plus className="w-4 h-4" />
-              İlk Rüyanı Kaydet
-            </Button>
+      {/* Month navigation */}
+      <div className="flex items-center justify-between mb-4">
+        <button
+          onClick={handlePrevMonth}
+          className="p-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-secondary)]"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <button
+          onClick={handleGoToToday}
+          className="text-sm font-semibold text-[var(--text-secondary)] capitalize hover:text-[var(--text-primary)] transition-colors"
+        >
+          {formatMonthYear(currentYear, currentMonth)}
+        </button>
+        <button
+          onClick={handleNextMonth}
+          disabled={isNextDisabled}
+          className={cn(
+            "p-2 rounded-lg transition-colors text-[var(--text-secondary)]",
+            isNextDisabled ? "opacity-30 cursor-not-allowed" : "hover:bg-[var(--bg-tertiary)]"
+          )}
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Day headers */}
+      <div className="grid grid-cols-7 gap-1.5 mb-1.5">
+        {DAY_NAMES.map((name) => (
+          <div key={name} className="text-center text-xs font-medium text-[var(--text-muted)] py-2">
+            {name}
           </div>
-        </Card>
-      ) : (
-        <div className="space-y-3">
-          {dreams.map((dream) => (
-            <Card
-              key={dream.id}
-              className="cursor-pointer hover:border-[var(--text-muted)] transition-colors"
-              onClick={() => openDetail(dream)}
+        ))}
+      </div>
+
+      {/* Calendar grid */}
+      <div className="grid grid-cols-7 gap-1.5">
+        {calendarDays.map((day) => {
+          const dateStr = formatYMD(day);
+          const isCurrentMonth = day.getMonth() === currentMonth;
+          const isToday = dateStr === todayStr;
+          const isFuture = dateStr > todayStr;
+          const dream = dreamsByDate.get(dateStr);
+
+          return (
+            <button
+              key={dateStr}
+              onClick={() => !isFuture && isCurrentMonth && handleDayClick(dateStr)}
+              disabled={isFuture || !isCurrentMonth}
+              className={cn(
+                "relative min-h-[100px] p-2 rounded-xl border text-left transition-all duration-200 flex flex-col",
+                isCurrentMonth
+                  ? "bg-[var(--bg-secondary)] border-[var(--border-color)]"
+                  : "bg-[var(--bg-primary)] border-transparent opacity-30",
+                isToday && "ring-2 ring-primary-500/50 border-primary-500/30",
+                !isFuture && isCurrentMonth && "hover:border-[var(--text-muted)] cursor-pointer",
+                isFuture && isCurrentMonth && "opacity-40 cursor-not-allowed",
+              )}
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm text-[var(--text-muted)] mb-1">
-                    {new Date(dream.created_at + "Z").toLocaleString("tr-TR", {
-                      day: "2-digit",
-                      month: "long",
-                      year: "numeric",
-                    })}
+              {/* Date number */}
+              <span className={cn(
+                "text-xs font-bold",
+                isToday ? "text-primary-400" : isCurrentMonth ? "text-[var(--text-primary)]" : "text-[var(--text-muted)]"
+              )}>
+                {day.getDate()}
+              </span>
+
+              {/* Dream preview */}
+              {dream && (
+                <div className="mt-1 flex-1 min-w-0">
+                  <p className="text-[10px] text-[var(--text-secondary)] line-clamp-3 leading-tight">
+                    {dream.content.length > 60 ? dream.content.slice(0, 60) + "..." : dream.content}
                   </p>
-                  <p className="text-[var(--text-primary)] line-clamp-2">
-                    {dream.content.length > 100
-                      ? dream.content.slice(0, 100) + "..."
-                      : dream.content}
-                  </p>
+                  {dream.analysis && (
+                    <div className="flex items-center gap-1 mt-1">
+                      <Sparkles className="w-3 h-3 text-primary-400" />
+                    </div>
+                  )}
                 </div>
-                {dream.analysis && (
-                  <Badge variant="primary" className="shrink-0">
-                    <Sparkles className="w-3 h-3 mr-1" />
-                    Analiz Edildi
-                  </Badge>
-                )}
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
+              )}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -93,6 +93,7 @@ export interface AIModel {
 
 export interface Dream {
   id: string;
+  date: string;
   content: string;
   analysis: string | null;
   created_at: string;

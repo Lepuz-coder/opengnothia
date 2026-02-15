@@ -188,12 +188,13 @@ export async function getRecentCheckIns(days = 7): Promise<CheckIn[]> {
 }
 
 // Dreams
-export async function saveDream(content: string): Promise<string> {
+export async function saveDream(content: string, date?: string): Promise<string> {
   const db = await getDatabase();
   const id = crypto.randomUUID();
+  const d = date ?? new Date().toISOString().split("T")[0];
   await db.execute(
-    "INSERT INTO dreams (id, content) VALUES (?, ?)",
-    [id, content]
+    "INSERT INTO dreams (id, date, content) VALUES (?, ?, ?)",
+    [id, d, content]
   );
   return id;
 }
@@ -203,6 +204,17 @@ export async function getDreams(limit = 50): Promise<Dream[]> {
   return db.select<Dream[]>(
     "SELECT * FROM dreams ORDER BY created_at DESC LIMIT ?",
     [limit]
+  );
+}
+
+export async function getDreamsByDateRange(
+  startDate: string,
+  endDate: string,
+): Promise<Dream[]> {
+  const db = await getDatabase();
+  return db.select<Dream[]>(
+    "SELECT * FROM dreams WHERE date >= ? AND date <= ? ORDER BY date ASC",
+    [startDate, endDate]
   );
 }
 

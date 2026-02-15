@@ -19,7 +19,7 @@ export function ChatContainer({ messages, isLoading, isStreaming }: ChatContaine
 
   return (
     <div className="flex-1 overflow-y-auto scrollbar-thin">
-      <div className="max-w-3xl mx-auto px-4 py-6 min-h-full flex flex-col justify-end gap-6">
+      <div className="max-w-3xl mx-auto px-4 py-6 min-h-full flex flex-col gap-6">
         {messages.length === 0 && !isLoading && !isStreaming && (
           <div className="flex items-center justify-center flex-1">
             <p className="text-[var(--text-muted)] text-sm">Hazırlanıyor...</p>

@@ -18,6 +18,12 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
     }
   }, [value]);
 
+  useEffect(() => {
+    if (!disabled) {
+      textareaRef.current?.focus();
+    }
+  }, [disabled]);
+
   function handleSubmit() {
     const trimmed = value.trim();
     if (!trimmed || disabled) return;

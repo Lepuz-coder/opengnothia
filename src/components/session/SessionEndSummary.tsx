@@ -59,14 +59,6 @@ export function SessionEndSummary({
         )}
       </Card>
 
-      {/* Background processing indicator */}
-      {isSummaryParsing && (
-        <div className="flex items-center justify-center gap-2 text-sm text-[var(--text-muted)]">
-          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          Seans notları kaydediliyor...
-        </div>
-      )}
-
       {/* Mood slider - show after streaming is done */}
       {!isSummaryStreaming && (
         <Card>
@@ -87,7 +79,7 @@ export function SessionEndSummary({
         size="lg"
         className="w-full"
       >
-        {saving ? "Kaydediliyor..." : isSummaryStreaming ? "Öneri hazırlanıyor..." : isSummaryParsing ? "Seans notları kaydediliyor..." : "Kaydet ve Kapat"}
+        {saving ? "Kaydediliyor..." : isSummaryStreaming ? "Öneri hazırlanıyor..." : isSummaryParsing ? "Seans özeti hazırlanıyor..." : "Kaydet ve Kapat"}
       </Button>
     </div>
   );

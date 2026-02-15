@@ -224,6 +224,11 @@ export async function updateDreamAnalysis(id: string, analysis: string): Promise
   );
 }
 
+export async function updateDreamContent(id: string, content: string): Promise<void> {
+  const db = await getDatabase();
+  await db.execute("UPDATE dreams SET content = ? WHERE id = ?", [content, id]);
+}
+
 export async function deleteDream(id: string): Promise<void> {
   const db = await getDatabase();
   await db.execute("DELETE FROM dreams WHERE id = ?", [id]);
@@ -275,6 +280,11 @@ export async function getJournalEntryById(id: string): Promise<JournalEntry | nu
 export async function updateJournalAnalysis(id: string, analysis: string): Promise<void> {
   const db = await getDatabase();
   await db.execute("UPDATE journal_entries SET ai_analysis = ? WHERE id = ?", [analysis, id]);
+}
+
+export async function updateJournalEntryContent(id: string, content: string): Promise<void> {
+  const db = await getDatabase();
+  await db.execute("UPDATE journal_entries SET content = ? WHERE id = ?", [content, id]);
 }
 
 export async function deleteJournalEntry(id: string): Promise<void> {

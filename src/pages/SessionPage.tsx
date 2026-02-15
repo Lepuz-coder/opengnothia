@@ -508,11 +508,11 @@ export default function SessionPage() {
   // Pre-session: past sessions + start button
   if (session.status === "idle" || session.status === "pre") {
     return (
-      <div>
+      <div className="max-w-4xl mx-auto">
         {/* Header with Start button */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-xl font-bold">Seanslar</h2>
+            <h1 className="text-2xl font-bold">Seanslar</h1>
             <p className="text-sm text-[var(--text-muted)]">Geçmiş seanslarını görüntüle veya yeni bir seans başlat</p>
           </div>
           <div className="flex items-center gap-3">

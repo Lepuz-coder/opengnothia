@@ -16,6 +16,10 @@ interface SessionState {
   summaryNarrative: string;
   isSummaryStreaming: boolean;
   isSummaryParsing: boolean;
+  currentInputTokens: number;
+  isCompacting: boolean;
+  compactedContext: string | null;
+  compactedAtIndex: number;
 
   setStatus: (status: SessionStatus) => void;
   startSession: (moodBefore: number) => void;
@@ -38,6 +42,11 @@ interface SessionState {
   appendSummaryNarrative: (chunk: string) => void;
   finishSummaryStream: () => void;
   setSummaryParsing: (parsing: boolean) => void;
+
+  setCurrentInputTokens: (tokens: number) => void;
+  startCompaction: () => void;
+  finishCompaction: () => void;
+  applyCompaction: (context: string) => void;
 }
 
 function generateId() {
@@ -59,6 +68,10 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   summaryNarrative: "",
   isSummaryStreaming: false,
   isSummaryParsing: false,
+  currentInputTokens: 0,
+  isCompacting: false,
+  compactedContext: null,
+  compactedAtIndex: 0,
 
   setStatus: (status) => set({ status }),
 
@@ -75,6 +88,10 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       isStreaming: false,
       streamingMessageId: null,
       abortController: null,
+      currentInputTokens: 0,
+      isCompacting: false,
+      compactedContext: null,
+      compactedAtIndex: 0,
     }),
 
   addMessage: (message) =>
@@ -104,6 +121,10 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       summaryNarrative: "",
       isSummaryStreaming: false,
       isSummaryParsing: false,
+      currentInputTokens: 0,
+      isCompacting: false,
+      compactedContext: null,
+      compactedAtIndex: 0,
     }),
 
   startStreaming: () => {
@@ -206,4 +227,13 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   finishSummaryStream: () => set({ isSummaryStreaming: false }),
 
   setSummaryParsing: (parsing) => set({ isSummaryParsing: parsing }),
+
+  setCurrentInputTokens: (tokens) => set({ currentInputTokens: tokens }),
+
+  startCompaction: () => set({ isCompacting: true }),
+
+  finishCompaction: () => set({ isCompacting: false }),
+
+  applyCompaction: (context) =>
+    set((s) => ({ compactedContext: context, compactedAtIndex: s.messages.length, currentInputTokens: 0 })),
 }));

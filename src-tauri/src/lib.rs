@@ -57,6 +57,12 @@ pub fn run() {
             sql: include_str!("../migrations/009_add_dream_date.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 10,
+            description: "add mood_entries table",
+            sql: include_str!("../migrations/010_add_mood_entries.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

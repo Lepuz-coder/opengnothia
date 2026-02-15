@@ -228,6 +228,17 @@ export async function getTodayMoodEntry(): Promise<MoodEntry | null> {
   return rows[0];
 }
 
+export async function getMoodEntriesByDateRange(
+  startDate: string,
+  endDate: string,
+): Promise<MoodEntry[]> {
+  const db = await getDatabase();
+  return db.select<MoodEntry[]>(
+    "SELECT * FROM mood_entries WHERE date >= ? AND date <= ? ORDER BY date ASC",
+    [startDate, endDate]
+  );
+}
+
 // Dreams
 export async function saveDream(content: string, date?: string): Promise<string> {
   const db = await getDatabase();

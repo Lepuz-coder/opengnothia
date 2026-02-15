@@ -26,6 +26,7 @@ export interface ChatMessage {
   timestamp: string;
   thinking?: string;
   isStreaming?: boolean;
+  isCompactSummary?: boolean;
 }
 
 export interface Session {
@@ -110,7 +111,7 @@ export interface TokenUsageRecord {
   input_tokens: number;
   output_tokens: number;
   cost: number;
-  call_type: "greeting" | "chat" | "recommendation" | "summary" | "patient_notes" | "dream_analysis" | "journal_analysis";
+  call_type: "greeting" | "chat" | "recommendation" | "summary" | "patient_notes" | "dream_analysis" | "journal_analysis" | "compaction";
   created_at: string;
 }
 

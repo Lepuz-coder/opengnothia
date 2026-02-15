@@ -1,19 +1,21 @@
 import { useEffect, useRef } from "react";
 import { ChatMessage } from "./ChatMessage";
+import { Loader2 } from "lucide-react";
 import type { ChatMessage as ChatMessageType } from "@/types";
 
 interface ChatContainerProps {
   messages: ChatMessageType[];
   isLoading: boolean;
   isStreaming?: boolean;
+  isCompacting?: boolean;
 }
 
-export function ChatContainer({ messages, isLoading, isStreaming }: ChatContainerProps) {
+export function ChatContainer({ messages, isLoading, isStreaming, isCompacting }: ChatContainerProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isLoading]);
+  }, [messages, isLoading, isCompacting]);
 
   const showLoadingDots = isLoading && !isStreaming;
 
@@ -37,6 +39,17 @@ export function ChatContainer({ messages, isLoading, isStreaming }: ChatContaine
               <div className="w-2 h-2 rounded-full bg-[var(--text-muted)] animate-bounce [animation-delay:150ms]" />
               <div className="w-2 h-2 rounded-full bg-[var(--text-muted)] animate-bounce [animation-delay:300ms]" />
             </div>
+          </div>
+        )}
+        {isCompacting && (
+          <div className="py-4 px-4 rounded-xl bg-primary-500/5 border border-primary-500/20">
+            <div className="flex items-center gap-3">
+              <Loader2 className="w-4 h-4 animate-spin text-primary-400" />
+              <span className="text-sm font-medium text-primary-400">Seans kompakt ediliyor...</span>
+            </div>
+            <p className="text-xs text-[var(--text-muted)] mt-2 ml-7">
+              Konuşma geçmişi model hafıza sınırına yaklaştı. Seans özetlenerek hafıza boşaltılıyor — mesajların aynen kalacak, seans kesintisiz devam edecek.
+            </p>
           </div>
         )}
         <div ref={bottomRef} />

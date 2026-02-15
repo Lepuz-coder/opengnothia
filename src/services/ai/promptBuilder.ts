@@ -216,6 +216,23 @@ Mevcut notları bu günlük yazısından elde edilen bilgilerle birleştirerek g
 }
 
 
+export function buildCompactionPrompt(): string {
+  return `Bu seans konuşmasının tamamını analiz et ve terapötik sürekliliği sağlayacak kapsamlı bir özet oluştur.
+
+Bu özet konuşma geçmişinin YERİNE geçecek, bu yüzden tüm terapötik açıdan önemli bilgileri korumalıdır.
+
+İçermesi gerekenler:
+1. Seansın başlangıcından bu ana kadar ele alınan konular ve sunulan şikayetler
+2. Duygusal temalar, duygu değişimleri
+3. Bahsedilen önemli kişiler, olaylar ve durumlar
+4. Ortaya çıkan içgörüler, gözlemlenen savunma mekanizmaları
+5. ŞU AN konuşmada neredeyiz — en son konuşulan konu ve yönü
+6. Doğal devam noktası — aktif olan soru veya konunun nerede kaldığı
+
+KRİTİK: Özet, tam konuşma geçmişine hâlâ sahipmiş gibi seansa doğal bir şekilde devam edebilmeni sağlamalıdır.
+Terapist notu tarzında, birinci tekil şahıs ile yaz. Kapsamlı ama öz ol. Türkçe yaz.`;
+}
+
 export function buildSummaryPrompt(): string {
   return `Yukarıdaki seans konuşmasını analiz et ve aşağıdaki JSON formatında bir özet oluştur. Sadece JSON döndür, başka bir şey yazma.
 

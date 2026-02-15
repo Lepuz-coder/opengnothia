@@ -15,10 +15,11 @@ import { PastSessionsList } from "@/components/session/PastSessionsList";
 import { PastSessionDetail } from "@/components/session/PastSessionDetail";
 import { sendMessage, streamMessage, testApiKey } from "@/services/ai/aiService";
 import { calculateCost } from "@/services/ai/costCalculator";
-import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildRecommendationPrompt, buildPatientNotesUpdatePrompt } from "@/services/ai/promptBuilder";
+import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildRecommendationPrompt, buildPatientNotesUpdatePrompt, buildCompactionPrompt } from "@/services/ai/promptBuilder";
 import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
 import { createSession, updateSessionMessages, completeSession, deleteSession, getUserProfile, getTodayCheckIn, getRecentSessions, getPatientNotes, saveTokenUsage } from "@/services/db/queries";
 import { therapySchools, getTherapySchool, getTherapySchoolName } from "@/constants/therapySchools";
+import { getProvider } from "@/constants/providers";
 import { Square, Loader2 } from "lucide-react";
 import type { AIProvider, ChatMessage, SessionSummary, TokenUsage } from "@/types";
 
@@ -40,6 +41,28 @@ async function trackUsage(
     cost,
     call_type: callType,
   });
+}
+
+function getEffectiveMessages(
+  messages: ChatMessage[],
+  compactedContext: string | null,
+  compactedAtIndex: number,
+): ChatMessage[] {
+  if (!compactedContext) return messages;
+  const contextMsg: ChatMessage = {
+    id: "compacted-context",
+    role: "assistant",
+    content: compactedContext,
+    timestamp: new Date().toISOString(),
+  };
+  return [contextMsg, ...messages.slice(compactedAtIndex)];
+}
+
+function formatTokenCount(n: number): string {
+  if (n === 0) return "—";
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
 }
 
 export default function SessionPage() {
@@ -119,6 +142,7 @@ export default function SessionPage() {
         onUsage: (usage) => {
           const sid = useSessionStore.getState().sessionId;
           trackUsage(settings.provider, settings.model, sid, "greeting", usage);
+          useSessionStore.getState().setCurrentInputTokens(usage.inputTokens);
         },
         onError: (error) => {
           const store = useSessionStore.getState();
@@ -140,6 +164,70 @@ export default function SessionPage() {
       };
       session.addMessage(errorMsg);
       session.finishStreaming();
+    }
+  }, [settings]);
+
+  const performCompaction = useCallback(async () => {
+    const store = useSessionStore.getState();
+    if (store.isCompacting || store.isStreaming) return;
+
+    store.startCompaction();
+
+    try {
+      const [profile, checkIn, recentSessions, patientNotes] = await Promise.all([
+        getUserProfile(),
+        getTodayCheckIn(),
+        getRecentSessions(1),
+        getPatientNotes(),
+      ]);
+
+      const systemPrompt = buildSystemPrompt({
+        profile,
+        todayCheckIn: checkIn,
+        lastSessionSummary: recentSessions[0]?.summary ?? null,
+        therapySchool: settings.therapySchool,
+        patientNotes,
+      });
+
+      const compactionPrompt = buildCompactionPrompt();
+      const effectiveMsgs = getEffectiveMessages(
+        store.messages.filter((m) => !m.isStreaming),
+        store.compactedContext,
+        store.compactedAtIndex,
+      );
+      const conversationForCompaction: ChatMessage[] = [
+        ...effectiveMsgs,
+        {
+          id: "compaction-request",
+          role: "user",
+          content: compactionPrompt,
+          timestamp: new Date().toISOString(),
+        },
+      ];
+
+      const result = await sendMessage({
+        provider: settings.provider,
+        apiKey: settings.apiKey,
+        model: settings.model,
+        messages: conversationForCompaction,
+        systemPrompt,
+        customBaseUrl: settings.customBaseUrl || undefined,
+      });
+
+      const sid = useSessionStore.getState().sessionId;
+      trackUsage(settings.provider, settings.model, sid, "compaction", result.usage);
+
+      useSessionStore.getState().applyCompaction(result.content);
+      useSessionStore.getState().finishCompaction();
+    } catch (err) {
+      const errorMsg: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: `Kompaktlama sırasında bir hata oluştu: ${err instanceof Error ? err.message : "Bilinmeyen hata"}`,
+        timestamp: new Date().toISOString(),
+      };
+      useSessionStore.getState().addMessage(errorMsg);
+      useSessionStore.getState().finishCompaction();
     }
   }, [settings]);
 
@@ -172,7 +260,12 @@ export default function SessionPage() {
         patientNotes,
       });
 
-      const allMessages = useSessionStore.getState().messages;
+      const state = useSessionStore.getState();
+      const effectiveMessages = getEffectiveMessages(
+        state.messages.filter((m) => !m.isStreaming),
+        state.compactedContext,
+        state.compactedAtIndex,
+      );
       const abortController = new AbortController();
       session.setAbortController(abortController);
       session.startStreaming();
@@ -181,7 +274,7 @@ export default function SessionPage() {
         provider: settings.provider,
         apiKey: settings.apiKey,
         model: settings.model,
-        messages: allMessages.filter((m) => !m.isStreaming),
+        messages: effectiveMessages,
         systemPrompt,
         customBaseUrl: settings.customBaseUrl || undefined,
         thinkingEnabled: settings.thinkingEnabled,
@@ -203,6 +296,7 @@ export default function SessionPage() {
         onUsage: (usage) => {
           const sid = useSessionStore.getState().sessionId;
           trackUsage(settings.provider, settings.model, sid, "chat", usage);
+          useSessionStore.getState().setCurrentInputTokens(usage.inputTokens);
         },
         onError: (error) => {
           const store = useSessionStore.getState();
@@ -215,6 +309,15 @@ export default function SessionPage() {
           store.finishStreaming();
         },
       });
+
+      // Check if compaction is needed
+      const providerConfig = getProvider(settings.provider);
+      const modelConfig = providerConfig?.models.find((m) => m.id === settings.model);
+      const ctxWindow = modelConfig?.contextWindow ?? 0;
+      const { currentInputTokens } = useSessionStore.getState();
+      if (ctxWindow > 0 && currentInputTokens >= ctxWindow * 0.8) {
+        await performCompaction();
+      }
     } catch (err) {
       const errorMsg: ChatMessage = {
         id: crypto.randomUUID(),
@@ -225,14 +328,15 @@ export default function SessionPage() {
       session.addMessage(errorMsg);
       session.finishStreaming();
     }
-  }, [settings]);
+  }, [settings, performCompaction]);
 
   const handleEndSession = useCallback(async () => {
     const { isStreaming } = useSessionStore.getState();
     if (isStreaming) return;
 
-    const messages = useSessionStore.getState().messages;
-    const userMessageCount = messages.filter((m) => m.role === "user").length;
+    const endState = useSessionStore.getState();
+    const messages = getEffectiveMessages(endState.messages, endState.compactedContext, endState.compactedAtIndex);
+    const userMessageCount = endState.messages.filter((m) => m.role === "user").length;
 
     // Short session: delete and redirect
     if (userMessageCount < 2) {
@@ -525,6 +629,13 @@ export default function SessionPage() {
   }
 
   // Active session: chat
+  const providerConfig = getProvider(settings.provider);
+  const modelConfig = providerConfig?.models.find((m) => m.id === settings.model);
+  const contextWindow = modelConfig?.contextWindow ?? 0;
+  const modelName = modelConfig?.name ?? settings.model;
+  const usagePercent = contextWindow > 0 ? (session.currentInputTokens / contextWindow) * 100 : 0;
+  const tokenBarColor = usagePercent >= 80 ? "bg-red-500" : usagePercent >= 50 ? "bg-yellow-500" : "bg-green-500";
+
   return (
     <div className="flex flex-col h-screen">
       {/* Header */}
@@ -536,10 +647,27 @@ export default function SessionPage() {
           </Badge>
         </div>
         <div className="flex items-center gap-3">
+          {/* Token usage display */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-[var(--text-muted)]">{modelName}</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-16 h-1.5 rounded-full bg-[var(--bg-secondary)] overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${tokenBarColor}`}
+                  style={{ width: `${Math.min(usagePercent, 100)}%` }}
+                />
+              </div>
+              <span className="text-xs text-[var(--text-muted)] tabular-nums">
+                {formatTokenCount(session.currentInputTokens)} / {formatTokenCount(contextWindow)}
+              </span>
+            </div>
+          </div>
+          <div className="w-px h-4 bg-[var(--border-color)]" />
           {session.startedAt && <SessionTimer startedAt={session.startedAt} />}
           <button
             onClick={() => setEndConfirmOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+            disabled={session.isCompacting}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Square className="w-3.5 h-3.5" />
             Seansı Bitir
@@ -548,10 +676,10 @@ export default function SessionPage() {
       </div>
 
       {/* Chat */}
-      <ChatContainer messages={session.messages} isLoading={session.isLoading} isStreaming={session.isStreaming} />
+      <ChatContainer messages={session.messages} isLoading={session.isLoading} isStreaming={session.isStreaming} isCompacting={session.isCompacting} />
 
       {/* Input */}
-      <ChatInput onSend={handleSendMessage} disabled={session.isLoading || session.isStreaming} />
+      <ChatInput onSend={handleSendMessage} disabled={session.isLoading || session.isStreaming || session.isCompacting} />
 
       {/* End session confirmation modal */}
       <Modal isOpen={endConfirmOpen} onClose={() => setEndConfirmOpen(false)} title="Seansı Bitir">

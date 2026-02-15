@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/Card";
+import { Select } from "@/components/ui/Select";
+import { Button } from "@/components/ui/Button";
 import { getTokenUsageRecords, getTokenUsageSummaryByProvider } from "@/services/db/queries";
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import type { TokenUsageRecord } from "@/types";
 
 interface ProviderSummary {
@@ -12,6 +14,8 @@ interface ProviderSummary {
   total_cost: number;
   call_count: number;
 }
+
+const PAGE_SIZE = 20;
 
 const CALL_TYPE_LABELS: Record<string, string> = {
   greeting: "Karşılama",
@@ -36,11 +40,13 @@ export default function ExpensesPage() {
   const [records, setRecords] = useState<TokenUsageRecord[]>([]);
   const [summaries, setSummaries] = useState<ProviderSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedModel, setSelectedModel] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     async function load() {
       const [recs, sums] = await Promise.all([
-        getTokenUsageRecords(200),
+        getTokenUsageRecords(1000),
         getTokenUsageSummaryByProvider(),
       ]);
       setRecords(recs);
@@ -50,12 +56,51 @@ export default function ExpensesPage() {
     load();
   }, []);
 
+  const modelOptions = useMemo(() => {
+    const models = [...new Set(records.map((r) => r.model))].sort();
+    return [
+      { value: "all", label: "Tüm Modeller" },
+      ...models.map((m) => ({ value: m, label: m })),
+    ];
+  }, [records]);
+
+  const filteredRecords = useMemo(() => {
+    if (selectedModel === "all") return records;
+    return records.filter((r) => r.model === selectedModel);
+  }, [records, selectedModel]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRecords.length / PAGE_SIZE));
+  const paginatedRecords = filteredRecords.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
+
   const providerGroups = summaries.reduce<Record<string, ProviderSummary[]>>((acc, s) => {
     (acc[s.provider] ??= []).push(s);
     return acc;
   }, {});
 
   const totalCost = summaries.reduce((sum, s) => sum + s.total_cost, 0);
+
+  function handleModelChange(model: string) {
+    setSelectedModel(model);
+    setCurrentPage(1);
+  }
+
+  function getPageNumbers(): (number | "...")[] {
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+
+    const pages: (number | "...")[] = [1];
+    if (currentPage > 3) pages.push("...");
+
+    const start = Math.max(2, currentPage - 1);
+    const end = Math.min(totalPages - 1, currentPage + 1);
+    for (let i = start; i <= end; i++) pages.push(i);
+
+    if (currentPage < totalPages - 2) pages.push("...");
+    pages.push(totalPages);
+    return pages;
+  }
 
   if (loading) {
     return (
@@ -120,45 +165,103 @@ export default function ExpensesPage() {
         </Card>
       )}
 
-      {/* Usage Records Table */}
+      {/* Filter + Table */}
       {records.length > 0 && (
-        <Card padding="none">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[var(--border-color)] text-left text-[var(--text-muted)]">
-                  <th className="px-4 py-3 font-medium">Tarih</th>
-                  <th className="px-4 py-3 font-medium">Model</th>
-                  <th className="px-4 py-3 font-medium">Tür</th>
-                  <th className="px-4 py-3 font-medium text-right">Girdi</th>
-                  <th className="px-4 py-3 font-medium text-right">Çıktı</th>
-                  <th className="px-4 py-3 font-medium text-right">Maliyet</th>
-                </tr>
-              </thead>
-              <tbody>
-                {records.map((r) => (
-                  <tr key={r.id} className="border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] transition-colors">
-                    <td className="px-4 py-3 text-[var(--text-muted)] whitespace-nowrap">
-                      {new Date(r.created_at + "Z").toLocaleString("tr-TR", {
-                        day: "2-digit",
-                        month: "2-digit",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </td>
-                    <td className="px-4 py-3 truncate max-w-[160px]">{r.model}</td>
-                    <td className="px-4 py-3 text-[var(--text-secondary)]">
-                      {CALL_TYPE_LABELS[r.call_type] ?? r.call_type}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums">{r.input_tokens.toLocaleString("tr-TR")}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">{r.output_tokens.toLocaleString("tr-TR")}</td>
-                    <td className="px-4 py-3 text-right font-medium tabular-nums">{formatCost(r.cost)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <>
+          {/* Model Filter */}
+          <div className="flex items-center gap-3">
+            <div className="w-64">
+              <Select
+                options={modelOptions}
+                value={selectedModel}
+                onChange={(e) => handleModelChange(e.target.value)}
+              />
+            </div>
+            <span className="text-sm text-[var(--text-muted)]">
+              {filteredRecords.length} kayıt
+            </span>
           </div>
-        </Card>
+
+          {/* Usage Records Table */}
+          <Card padding="none">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--border-color)] text-left text-[var(--text-muted)]">
+                    <th className="px-4 py-3 font-medium">Tarih</th>
+                    <th className="px-4 py-3 font-medium">Model</th>
+                    <th className="px-4 py-3 font-medium">Tür</th>
+                    <th className="px-4 py-3 font-medium text-right">Girdi</th>
+                    <th className="px-4 py-3 font-medium text-right">Çıktı</th>
+                    <th className="px-4 py-3 font-medium text-right">Maliyet</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedRecords.map((r) => (
+                    <tr key={r.id} className="border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] transition-colors">
+                      <td className="px-4 py-3 text-[var(--text-muted)] whitespace-nowrap">
+                        {new Date(r.created_at + "Z").toLocaleString("tr-TR", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </td>
+                      <td className="px-4 py-3 truncate max-w-[160px]">{r.model}</td>
+                      <td className="px-4 py-3 text-[var(--text-secondary)]">
+                        {CALL_TYPE_LABELS[r.call_type] ?? r.call_type}
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums">{r.input_tokens.toLocaleString("tr-TR")}</td>
+                      <td className="px-4 py-3 text-right tabular-nums">{r.output_tokens.toLocaleString("tr-TR")}</td>
+                      <td className="px-4 py-3 text-right font-medium tabular-nums">{formatCost(r.cost)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--border-color)]">
+                <span className="text-sm text-[var(--text-muted)]">
+                  {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filteredRecords.length)} / {filteredRecords.length}
+                </span>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage((p) => p - 1)}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  {getPageNumbers().map((page, i) =>
+                    page === "..." ? (
+                      <span key={`dots-${i}`} className="px-2 text-sm text-[var(--text-muted)]">...</span>
+                    ) : (
+                      <Button
+                        key={page}
+                        variant={page === currentPage ? "primary" : "ghost"}
+                        size="sm"
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </Button>
+                    )
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage((p) => p + 1)}
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </Card>
+        </>
       )}
     </div>
   );

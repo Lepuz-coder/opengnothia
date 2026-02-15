@@ -68,6 +68,7 @@ export interface JournalEntry {
   content: string;
   mood: number | null;
   tags: string[];
+  ai_analysis: string | null;
   created_at: string;
 }
 
@@ -109,7 +110,7 @@ export interface TokenUsageRecord {
   input_tokens: number;
   output_tokens: number;
   cost: number;
-  call_type: "greeting" | "chat" | "recommendation" | "summary" | "patient_notes" | "dream_analysis";
+  call_type: "greeting" | "chat" | "recommendation" | "summary" | "patient_notes" | "dream_analysis" | "journal_analysis";
   created_at: string;
 }
 

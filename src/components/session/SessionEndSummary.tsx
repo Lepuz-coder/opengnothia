@@ -8,7 +8,6 @@ import { Loader2 } from "lucide-react";
 interface SessionEndSummaryProps {
   summaryNarrative: string;
   isSummaryStreaming: boolean;
-  isSummaryParsing: boolean;
   onSave: () => void;
   saving?: boolean;
 }
@@ -16,7 +15,6 @@ interface SessionEndSummaryProps {
 export function SessionEndSummary({
   summaryNarrative,
   isSummaryStreaming,
-  isSummaryParsing,
   onSave,
   saving,
 }: SessionEndSummaryProps) {
@@ -25,15 +23,15 @@ export function SessionEndSummary({
       <div className="text-center">
         <h2 className="text-2xl font-bold">Seans Tamamlandı</h2>
         <p className="text-[var(--text-muted)] mt-1">
-          Psikologunuzdan Öneriler
+          Seans Özeti
         </p>
       </div>
 
-      {/* Recommendation card */}
+      {/* Summary card */}
       <Card>
         <h3 className="font-semibold mb-3 flex items-center gap-2">
-          Psikolog Önerisi
-          {(isSummaryStreaming || isSummaryParsing) && (
+          Seans Özeti
+          {isSummaryStreaming && (
             <Loader2 className="w-4 h-4 text-accent-400 animate-spin" />
           )}
         </h3>
@@ -42,6 +40,9 @@ export function SessionEndSummary({
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {summaryNarrative}
             </ReactMarkdown>
+            {isSummaryStreaming && (
+              <span className="inline-block w-1.5 h-3.5 bg-[var(--text-primary)] ml-0.5 animate-pulse" />
+            )}
           </div>
         ) : (
           <div className="space-y-3 animate-pulse">
@@ -55,11 +56,11 @@ export function SessionEndSummary({
       {/* Save button */}
       <Button
         onClick={onSave}
-        disabled={saving || isSummaryStreaming || isSummaryParsing}
+        disabled={saving || isSummaryStreaming}
         size="lg"
         className="w-full"
       >
-        {saving ? "Kaydediliyor..." : (isSummaryStreaming || isSummaryParsing) ? "Seans özeti hazırlanıyor..." : "Kaydet ve Kapat"}
+        {saving ? "Kaydediliyor..." : isSummaryStreaming ? "Seans özeti hazırlanıyor..." : "Kaydet ve Kapat"}
       </Button>
     </div>
   );

@@ -24,7 +24,7 @@ import { createSession, updateSessionMessages, completeSession, deleteSession, g
 import { therapySchools, getTherapySchool, getTherapySchoolName } from "@/constants/therapySchools";
 import { providers, getProvider, modelSupportsThinking } from "@/constants/providers";
 import { Square, Loader2, FileText, Sparkles } from "lucide-react";
-import type { AIProvider, ChatMessage, SessionSummary, ThinkingLevel, TokenUsage } from "@/types";
+import type { AIProvider, ChatMessage, ThinkingLevel, TokenUsage } from "@/types";
 
 async function trackUsage(
   provider: AIProvider,
@@ -108,11 +108,13 @@ export default function SessionPage() {
         getPatientNotes(),
       ]);
       const lastSummary = recentSessions[0]?.summary ?? null;
+      const lastNarrative = recentSessions[0]?.summary_narrative ?? null;
 
       const greetingPrompt = buildGreetingPrompt({
         profile,
         todayCheckIn: checkIn,
         lastSessionSummary: lastSummary,
+        lastSessionNarrative: lastNarrative,
         therapySchool: settings.therapySchool,
         patientNotes,
       });
@@ -190,6 +192,7 @@ export default function SessionPage() {
         profile,
         todayCheckIn: checkIn,
         lastSessionSummary: recentSessions[0]?.summary ?? null,
+        lastSessionNarrative: recentSessions[0]?.summary_narrative ?? null,
         therapySchool: settings.therapySchool,
         patientNotes,
       });
@@ -256,11 +259,13 @@ export default function SessionPage() {
         getPatientNotes(),
       ]);
       const lastSummary = recentSessions[0]?.summary ?? null;
+      const lastNarrative = recentSessions[0]?.summary_narrative ?? null;
 
       const systemPrompt = buildSystemPrompt({
         profile,
         todayCheckIn: checkIn,
         lastSessionSummary: lastSummary,
+        lastSessionNarrative: lastNarrative,
         therapySchool: settings.therapySchool,
         patientNotes,
       });
@@ -357,7 +362,6 @@ export default function SessionPage() {
 
     // Switch to post view
     session.startSummaryStream();
-    session.setSummaryParsing(true);
 
     // Fire-and-forget: update patient notes in background
     getPatientNotes().then((existingNotes) => {
@@ -383,7 +387,7 @@ export default function SessionPage() {
       });
     });
 
-    // Single summary call (includes narrative + structured data)
+    // Stream session summary
     try {
       const summaryPrompt = buildSummaryPrompt();
       const conversationForSummary: ChatMessage[] = [
@@ -396,53 +400,41 @@ export default function SessionPage() {
         },
       ];
 
-      const summaryResult = await sendMessage({
+      await streamMessage({
         provider: settings.provider,
         apiKey: settings.apiKey,
         model: settings.model,
         messages: conversationForSummary,
-        systemPrompt: "Sen deneyimli bir klinik psikologsun. Verilen seans konuşmasını analiz et ve danışana sıcak bir öneriyle birlikte yapılandırılmış özet oluştur.",
+        systemPrompt: "Sen deneyimli bir klinik psikologsun. Verilen seans konuşmasını analiz et ve danışana sıcak, destekleyici bir seans özeti yaz.",
         customBaseUrl: settings.customBaseUrl || undefined,
+        thinkingEnabled: false,
+        abortSignal: new AbortController().signal,
+        onThinking: () => {},
+        onContent: (chunk) => {
+          useSessionStore.getState().appendSummaryNarrative(chunk);
+        },
+        onUsage: (usage) => {
+          const sid = useSessionStore.getState().sessionId;
+          trackUsage(settings.provider, settings.model, sid, "summary", usage);
+        },
+        onDone: () => {
+          session.setSummary({ themes: [], defenses: [], insights: [], homework: [] });
+          useSessionStore.getState().finishSummaryStream();
+        },
+        onError: (error) => {
+          useSessionStore.getState().appendSummaryNarrative(
+            `\n\nBir hata oluştu: ${error.message}`
+          );
+          session.setSummary({ themes: [], defenses: [], insights: [], homework: [] });
+          useSessionStore.getState().finishSummaryStream();
+        },
       });
-
-      const sid = useSessionStore.getState().sessionId;
-      trackUsage(settings.provider, settings.model, sid, "summary", summaryResult.usage);
-
-      let summary: SessionSummary;
-      let narrative = "";
-      try {
-        const parsed = JSON.parse(summaryResult.content);
-        narrative = parsed.narrative || "";
-        summary = {
-          themes: parsed.themes || [],
-          defenses: parsed.defenses || [],
-          insights: parsed.insights || [],
-          homework: parsed.homework || [],
-        };
-      } catch {
-        summary = {
-          themes: [],
-          defenses: [],
-          insights: [],
-          homework: [],
-        };
-      }
-      session.setSummary(summary);
-      useSessionStore.getState().appendSummaryNarrative(narrative);
-      useSessionStore.getState().finishSummaryStream();
     } catch (err) {
       useSessionStore.getState().appendSummaryNarrative(
         `Bir hata oluştu: ${err instanceof Error ? err.message : "Bilinmeyen hata"}`
       );
+      session.setSummary({ themes: [], defenses: [], insights: [], homework: [] });
       useSessionStore.getState().finishSummaryStream();
-      session.setSummary({
-        themes: [],
-        defenses: [],
-        insights: [],
-        homework: [],
-      });
-    } finally {
-      session.setSummaryParsing(false);
     }
   }, [settings, navigate, setSidebarHidden]);
 
@@ -670,7 +662,6 @@ export default function SessionPage() {
       <SessionEndSummary
         summaryNarrative={session.summaryNarrative}
         isSummaryStreaming={session.isSummaryStreaming}
-        isSummaryParsing={session.isSummaryParsing}
         onSave={handleSaveAndClose}
         saving={saving}
       />

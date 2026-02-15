@@ -5,10 +5,11 @@ export function buildSystemPrompt(params: {
   profile: UserProfile | null;
   todayCheckIn: CheckIn | null;
   lastSessionSummary: SessionSummary | null;
+  lastSessionNarrative?: string | null;
   therapySchool?: TherapySchool;
   patientNotes?: string;
 }): string {
-  const { profile, todayCheckIn, lastSessionSummary, therapySchool, patientNotes } = params;
+  const { profile, todayCheckIn, lastSessionSummary, lastSessionNarrative, therapySchool, patientNotes } = params;
 
   let prompt = `Sen OpenGnothia'nın yapay zeka destekli psikolojik destek asistanısın. Türkçe konuşuyorsun.
 
@@ -55,11 +56,14 @@ Temel ilkeler:
     }
   }
 
-  if (lastSessionSummary) {
+  const hasStructuredSummary = lastSessionSummary && (lastSessionSummary.themes.length > 0 || lastSessionSummary.insights.length > 0 || lastSessionSummary.homework.length > 0);
+  if (hasStructuredSummary) {
     prompt += `\n\nSon seans özeti:`;
     if (lastSessionSummary.themes.length > 0) prompt += `\n- Temalar: ${lastSessionSummary.themes.join(", ")}`;
     if (lastSessionSummary.insights.length > 0) prompt += `\n- İçgörüler: ${lastSessionSummary.insights.join(", ")}`;
     if (lastSessionSummary.homework.length > 0) prompt += `\n- Ödev: ${lastSessionSummary.homework.join(", ")}`;
+  } else if (lastSessionNarrative && lastSessionNarrative.trim().length > 0) {
+    prompt += `\n\nSon seans özeti:\n${lastSessionNarrative}`;
   }
 
   if (patientNotes && patientNotes.trim().length > 0) {
@@ -75,6 +79,7 @@ export function buildGreetingPrompt(params: {
   profile: UserProfile | null;
   todayCheckIn: CheckIn | null;
   lastSessionSummary: SessionSummary | null;
+  lastSessionNarrative?: string | null;
   therapySchool?: TherapySchool;
   patientNotes?: string;
 }): string {
@@ -87,19 +92,6 @@ Eğer hasta notların varsa, önceki seanslardaki konulara veya ödevlere kısac
 Uzun olma — 2-3 cümle ile başla ve danışanı konuşmaya davet et.`;
 
   return prompt;
-}
-
-export function buildRecommendationPrompt(): string {
-  return `Yukarıdaki seans konuşmasını değerlendir ve danışana yönelik sıcak, destekleyici bir öneri yaz.
-
-Kurallar:
-- Markdown formatında yaz (başlıklar, kalın metin, listeler vb. kullanabilirsin)
-- Danışana doğrudan hitap et ("sen" dili kullan)
-- Seansın ana temasına atıfta bulun
-- Somut ve uygulanabilir bir öneri veya düşünce pratiği öner
-- Sıcak, motive edici ve umut verici bir ton kullan
-- Terapist jargonu kullanma, anlaşılır ol
-- Türkçe yaz`;
 }
 
 export function buildPatientNotesUpdatePrompt(existingNotes: string): string {
@@ -303,13 +295,13 @@ Kurallar:
 }
 
 export function buildSummaryPrompt(): string {
-  return `Yukarıdaki seans konuşmasını analiz et ve aşağıdaki JSON formatında bir özet oluştur. Sadece JSON döndür, başka bir şey yazma.
+  return `Yukarıdaki seans konuşmasını analiz et ve danışana yönelik kapsamlı bir seans özeti yaz.
 
-{
-  "themes": ["seansta işlenen ana temalar"],
-  "defenses": ["gözlemlenen savunma mekanizmaları"],
-  "insights": ["ortaya çıkan içgörüler"],
-  "homework": ["danışana önerilen ödevler veya düşünce egzersizleri"],
-  "narrative": "Danışana yönelik sıcak, destekleyici ve motive edici bir öneri paragrafı. Danışana doğrudan hitap et (sen dili). Seansın ana temasına atıfta bulun. Somut ve uygulanabilir bir öneri veya düşünce pratiği öner. Markdown formatında yaz."
-}`;
+Kurallar:
+- Markdown formatında yaz (başlıklar, kalın metin, listeler kullanabilirsin)
+- Seansın ana temalarını, öne çıkan içgörüleri ve varsa ödevleri özetle
+- Danışana doğrudan hitap et ("sen" dili kullan)
+- Sıcak, destekleyici ve motive edici bir ton kullan
+- Klinik jargondan kaçın, anlaşılır ol
+- Türkçe yaz`;
 }

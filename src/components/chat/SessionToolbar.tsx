@@ -10,23 +10,22 @@ interface SessionToolbarProps {
 
 export function SessionToolbar({ onBreathing, onGrounding, onSummary, onEnd }: SessionToolbarProps) {
   return (
-    <div className="flex items-center gap-2 px-4 py-2 border-t border-[var(--border-color)] bg-[var(--bg-secondary)]">
+    <div className="flex items-center gap-1">
       <Button variant="ghost" size="sm" onClick={onBreathing}>
         <Wind className="w-4 h-4" />
-        Nefes
+        <span className="hidden sm:inline">Nefes</span>
       </Button>
       <Button variant="ghost" size="sm" onClick={onGrounding}>
         <Anchor className="w-4 h-4" />
-        Grounding
+        <span className="hidden sm:inline">Grounding</span>
       </Button>
       <Button variant="ghost" size="sm" onClick={onSummary}>
         <FileText className="w-4 h-4" />
-        Özet
+        <span className="hidden sm:inline">Özet</span>
       </Button>
-      <div className="flex-1" />
       <Button variant="danger" size="sm" onClick={onEnd}>
         <Square className="w-4 h-4" />
-        Bitir
+        <span className="hidden sm:inline">Bitir</span>
       </Button>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send } from "lucide-react";
+import { ArrowUp } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 interface ChatInputProps {
@@ -14,7 +14,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + "px";
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 160) + "px";
     }
   }, [value]);
 
@@ -33,30 +33,37 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   }
 
   return (
-    <div className="border-t border-[var(--border-color)] p-4">
-      <div className="flex items-end gap-3">
-        <textarea
-          ref={textareaRef}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Mesajını yaz..."
-          disabled={disabled}
-          rows={1}
-          className="flex-1 resize-none rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] px-4 py-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 disabled:opacity-50"
-        />
-        <button
-          onClick={handleSubmit}
-          disabled={!value.trim() || disabled}
-          className={cn(
-            "w-10 h-10 rounded-xl flex items-center justify-center transition-all shrink-0",
-            value.trim() && !disabled
-              ? "bg-primary-600 text-white hover:bg-primary-700"
-              : "bg-[var(--bg-tertiary)] text-[var(--text-muted)]"
-          )}
-        >
-          <Send className="w-4 h-4" />
-        </button>
+    <div className="pb-4 pt-2 px-4">
+      <div className="max-w-3xl mx-auto">
+        <div className="relative flex items-end rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-sm focus-within:border-primary-400 focus-within:ring-2 focus-within:ring-primary-500/10 transition-all">
+          <textarea
+            ref={textareaRef}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Mesajını yaz..."
+            disabled={disabled}
+            rows={1}
+            className="flex-1 resize-none bg-transparent px-4 py-3.5 text-sm focus:outline-none disabled:opacity-50 placeholder:text-[var(--text-muted)]"
+          />
+          <div className="p-2">
+            <button
+              onClick={handleSubmit}
+              disabled={!value.trim() || disabled}
+              className={cn(
+                "w-8 h-8 rounded-lg flex items-center justify-center transition-all shrink-0",
+                value.trim() && !disabled
+                  ? "bg-primary-600 text-white hover:bg-primary-700 shadow-sm"
+                  : "bg-[var(--bg-tertiary)] text-[var(--text-muted)]"
+              )}
+            >
+              <ArrowUp className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+        <p className="text-[10px] text-[var(--text-muted)] text-center mt-2">
+          Gnothia bir terapi aracıdır, profesyonel destek yerine geçmez.
+        </p>
       </div>
     </div>
   );

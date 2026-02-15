@@ -202,23 +202,24 @@ export default function SessionPage() {
 
   // Active session: chat
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] -m-8">
+    <div className="flex flex-col h-[calc(100vh-4rem)] -m-8 bg-[var(--bg-primary)]">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-3 border-b border-[var(--border-color)] bg-[var(--bg-secondary)]">
-        <h2 className="font-semibold">Seans</h2>
-        {session.startedAt && <SessionTimer startedAt={session.startedAt} />}
+      <div className="flex items-center justify-between px-6 py-2.5 border-b border-[var(--border-color)]">
+        <div className="flex items-center gap-3">
+          <h2 className="font-semibold text-sm">Seans</h2>
+          {session.startedAt && <SessionTimer startedAt={session.startedAt} />}
+        </div>
+        {/* Toolbar */}
+        <SessionToolbar
+          onBreathing={() => setBreathingOpen(true)}
+          onGrounding={handleGrounding}
+          onSummary={() => {}}
+          onEnd={handleEndSession}
+        />
       </div>
 
       {/* Chat */}
       <ChatContainer messages={session.messages} isLoading={session.isLoading} />
-
-      {/* Toolbar */}
-      <SessionToolbar
-        onBreathing={() => setBreathingOpen(true)}
-        onGrounding={handleGrounding}
-        onSummary={() => {}}
-        onEnd={handleEndSession}
-      />
 
       {/* Input */}
       <ChatInput onSend={handleSendMessage} disabled={session.isLoading} />

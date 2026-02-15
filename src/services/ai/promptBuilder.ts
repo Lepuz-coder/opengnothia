@@ -210,7 +210,6 @@ Mevcut notları bu günlük yazısından elde edilen bilgilerle birleştirerek g
 Önemli:
 - Sadece güncellenmiş notları yaz, başka açıklama ekleme
 - Notlar düzenli, okunabilir ve özlü olsun — gereksiz tekrarlardan kaçın
-- Toplam not uzunluğu maksimum 30000 karakter olmalı, bu limiti kesinlikle aşma
 - Türkçe yaz`;
 }
 

@@ -48,7 +48,7 @@ export function takeBackgroundNotes(params: BackgroundNotesParams) {
     messages: params.messages,
     systemPrompt: params.systemPrompt,
     customBaseUrl: params.customBaseUrl,
-    maxTokens: 16384,
+    maxTokens: 20000,
   })
     .then(async (result) => {
       if (result.content && result.content.trim().length > 0) {

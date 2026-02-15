@@ -110,7 +110,6 @@ Mevcut notları bu seansın bilgileriyle birleştirerek güncel bir kümülatif 
 Önemli:
 - Sadece güncellenmiş notları yaz, başka açıklama ekleme
 - Notlar düzenli, okunabilir ve özlü olsun — gereksiz tekrarlardan kaçın
-- Toplam not uzunluğu maksimum 15000 karakter olmalı, bu limiti kesinlikle aşma
 - Türkçe yaz`;
 }
 
@@ -211,7 +210,7 @@ Mevcut notları bu günlük yazısından elde edilen bilgilerle birleştirerek g
 Önemli:
 - Sadece güncellenmiş notları yaz, başka açıklama ekleme
 - Notlar düzenli, okunabilir ve özlü olsun — gereksiz tekrarlardan kaçın
-- Toplam not uzunluğu maksimum 15000 karakter olmalı, bu limiti kesinlikle aşma
+- Toplam not uzunluğu maksimum 30000 karakter olmalı, bu limiti kesinlikle aşma
 - Türkçe yaz`;
 }
 
@@ -294,14 +293,22 @@ Kurallar:
   return prompt;
 }
 
-export function buildSummaryPrompt(): string {
-  return `Yukarıdaki seans konuşmasını analiz et ve danışana yönelik kapsamlı bir seans özeti yaz.
+export function buildSummaryPrompt(patientNotes?: string): string {
+  let prompt = `Yukarıdaki seans konuşmasını değerlendir ve danışanla birebir konuşuyormuş gibi bir seans özeti yaz.
 
 Kurallar:
-- Markdown formatında yaz (başlıklar, kalın metin, listeler kullanabilirsin)
-- Seansın ana temalarını, öne çıkan içgörüleri ve varsa ödevleri özetle
-- Danışana doğrudan hitap et ("sen" dili kullan)
+- Danışanla sohbet eder gibi yaz, klinik rapor formatı KULLANMA (tarih, danışan adı, başlık gibi meta bilgiler yazma)
+- Doğrudan "sen" dili kullan, sanki seansın sonunda danışanla yüz yüze konuşuyormuşsun gibi
+- Bu seansta neler konuştuğunuzu, hangi konuların öne çıktığını ve varsa elde edilen içgörüleri özetle
+- Varsa somut bir öneri veya düşünce pratiği öner
 - Sıcak, destekleyici ve motive edici bir ton kullan
 - Klinik jargondan kaçın, anlaşılır ol
+- Markdown formatında yaz
 - Türkçe yaz`;
+
+  if (patientNotes && patientNotes.trim().length > 0) {
+    prompt += `\n\n--- Kümülatif Hasta Notları (Arka Plan Bilgisi) ---\nBu notlar önceki seanslardan derlenen klinik notlardır. Özet yazarken sürekliliği sağlamak ve danışanın genel durumunu göz önünde bulundurmak için kullan:\n${patientNotes}`;
+  }
+
+  return prompt;
 }

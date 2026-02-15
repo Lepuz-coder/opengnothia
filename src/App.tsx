@@ -43,7 +43,10 @@ function AppContent() {
         const model = await store.get<string>("model");
         const customBaseUrl = await store.get<string>("customBaseUrl");
         const therapySchool = await store.get<string>("therapySchool");
+        const thinkingEnabled = await store.get<boolean>("thinkingEnabled");
+        const thinkingLevel = await store.get<string>("thinkingLevel");
         let providerApiKeys = await store.get<Record<string, string>>("providerApiKeys");
+        const providerThinkingSettings = await store.get<Record<string, { enabled: boolean; level: string }>>("providerThinkingSettings");
 
         // Migrate: if providerApiKeys is empty but apiKey exists, seed it
         if ((!providerApiKeys || Object.keys(providerApiKeys).length === 0) && apiKey && provider) {
@@ -58,7 +61,10 @@ function AppContent() {
           ...(model && { model }),
           ...(customBaseUrl && { customBaseUrl }),
           ...(therapySchool && { therapySchool: therapySchool as any }),
+          ...(thinkingEnabled != null && { thinkingEnabled }),
+          ...(thinkingLevel && { thinkingLevel: thinkingLevel as any }),
           ...(providerApiKeys && { providerApiKeys }),
+          ...(providerThinkingSettings && { providerThinkingSettings: providerThinkingSettings as any }),
         });
       } catch {
         // Store not available yet, use defaults

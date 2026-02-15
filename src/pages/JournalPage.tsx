@@ -5,9 +5,10 @@ import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useAppStore } from "@/stores/useAppStore";
-import { streamMessage, sendMessage } from "@/services/ai/aiService";
+import { streamMessage } from "@/services/ai/aiService";
 import { calculateCost } from "@/services/ai/costCalculator";
 import { buildJournalAnalysisPrompt, buildJournalPatientNotesUpdatePrompt } from "@/services/ai/promptBuilder";
+import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
 import {
   createJournalEntry,
   getJournalEntries,
@@ -17,10 +18,9 @@ import {
   deleteJournalEntry,
   getUserProfile,
   getPatientNotes,
-  upsertPatientNotes,
   saveTokenUsage,
 } from "@/services/db/queries";
-import { BookOpen, Plus, ArrowLeft, Trash2, Sparkles, Loader2, FileText, Pencil } from "lucide-react";
+import { BookOpen, Plus, ArrowLeft, Trash2, Sparkles, Loader2, Pencil } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { JournalEntry, AIProvider, TokenUsage } from "@/types";
@@ -62,7 +62,6 @@ export default function JournalPage() {
 
   // Analysis state
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isTakingNotes, setIsTakingNotes] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Edit state
@@ -205,29 +204,18 @@ export default function JournalPage() {
       await updateJournalAnalysis(selectedEntry.id, fullAnalysis);
       await trackUsage(settings.provider, settings.model, "journal_analysis", streamUsage);
 
-      // Update patient notes
-      setIsTakingNotes(true);
-      try {
-        const existingNotes = await getPatientNotes();
-        const notesPrompt = buildJournalPatientNotesUpdatePrompt(existingNotes, selectedEntry.content);
-        const notesResult = await sendMessage({
-          provider: settings.provider,
-          apiKey: settings.apiKey,
-          model: settings.model,
-          messages: [{ id: "journal-notes", role: "user", content: notesPrompt, timestamp: new Date().toISOString() }],
-          systemPrompt: "Sen deneyimli bir klinik psikolog. Hasta notlarını güncelle.",
-          customBaseUrl: settings.customBaseUrl || undefined,
-        });
-
-        if (notesResult.content && notesResult.content.trim().length > 0) {
-          await upsertPatientNotes(notesResult.content.trim());
-        }
-        trackUsage(settings.provider, settings.model, "patient_notes", notesResult.usage);
-      } catch {
-        // Silent failure for background notes update
-      } finally {
-        setIsTakingNotes(false);
-      }
+      // Update patient notes in background
+      const existingNotes = await getPatientNotes();
+      const notesPrompt = buildJournalPatientNotesUpdatePrompt(existingNotes, selectedEntry.content);
+      takeBackgroundNotes({
+        provider: settings.provider,
+        apiKey: settings.apiKey,
+        model: settings.model,
+        messages: [{ id: "journal-notes", role: "user", content: notesPrompt, timestamp: new Date().toISOString() }],
+        systemPrompt: "Sen deneyimli bir klinik psikolog. Hasta notlarını güncelle.",
+        customBaseUrl: settings.customBaseUrl || undefined,
+        callType: "patient_notes",
+      });
 
       // Refresh data
       const updated = await getJournalEntryById(selectedEntry.id);
@@ -328,7 +316,7 @@ export default function JournalPage() {
 
   // ─── Detail View ───
   if (view === "detail" && selectedEntry) {
-    const isBusy = isAnalyzing || isTakingNotes;
+    const isBusy = isAnalyzing;
 
     return (
       <div className="max-w-2xl mx-auto">
@@ -441,15 +429,6 @@ export default function JournalPage() {
               </div>
             )}
           </div>
-
-          {/* Notes loading indicator inside modal */}
-          {isTakingNotes && (
-            <div className="mt-4 flex items-center gap-2 px-4 py-3 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-color)]">
-              <FileText className="w-4 h-4 text-primary-400" />
-              <Loader2 className="w-4 h-4 animate-spin text-primary-400" />
-              <span className="text-sm text-[var(--text-secondary)]">Not alınıyor...</span>
-            </div>
-          )}
 
           {error && (
             <div className="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20">

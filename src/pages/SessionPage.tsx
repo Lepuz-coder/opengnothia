@@ -16,7 +16,8 @@ import { PastSessionDetail } from "@/components/session/PastSessionDetail";
 import { sendMessage, streamMessage, testApiKey } from "@/services/ai/aiService";
 import { calculateCost } from "@/services/ai/costCalculator";
 import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildRecommendationPrompt, buildPatientNotesUpdatePrompt } from "@/services/ai/promptBuilder";
-import { createSession, updateSessionMessages, completeSession, deleteSession, getUserProfile, getTodayCheckIn, getRecentSessions, getPatientNotes, upsertPatientNotes, saveTokenUsage } from "@/services/db/queries";
+import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
+import { createSession, updateSessionMessages, completeSession, deleteSession, getUserProfile, getTodayCheckIn, getRecentSessions, getPatientNotes, saveTokenUsage } from "@/services/db/queries";
 import { therapySchools, getTherapySchool, getTherapySchoolName } from "@/constants/therapySchools";
 import { Square, Loader2 } from "lucide-react";
 import type { AIProvider, ChatMessage, SessionSummary, TokenUsage } from "@/types";
@@ -289,11 +290,33 @@ export default function SessionPage() {
         },
       });
 
-      // 2. Background: structured JSON summary + patient notes update (parallel)
+      // 2a. Fire-and-forget: update patient notes in background
+      getPatientNotes().then((existingNotes) => {
+        const patientNotesPrompt = buildPatientNotesUpdatePrompt(existingNotes);
+        const conversationForNotes: ChatMessage[] = [
+          ...messages,
+          {
+            id: "notes-request",
+            role: "user",
+            content: patientNotesPrompt,
+            timestamp: new Date().toISOString(),
+          },
+        ];
+        takeBackgroundNotes({
+          provider: settings.provider,
+          apiKey: settings.apiKey,
+          model: settings.model,
+          messages: conversationForNotes,
+          systemPrompt: "Sen deneyimli bir klinik psikolog. Hasta notlarını güncelle.",
+          customBaseUrl: settings.customBaseUrl || undefined,
+          callType: "patient_notes",
+          sessionId: useSessionStore.getState().sessionId,
+        });
+      });
+
+      // 2b. Background: structured JSON summary
       session.setSummaryParsing(true);
       try {
-        const [existingNotes] = await Promise.all([getPatientNotes()]);
-
         const summaryPrompt = buildSummaryPrompt();
         const conversationForSummary: ChatMessage[] = [
           ...messages,
@@ -305,43 +328,18 @@ export default function SessionPage() {
           },
         ];
 
-        const patientNotesPrompt = buildPatientNotesUpdatePrompt(existingNotes);
-        const conversationForNotes: ChatMessage[] = [
-          ...messages,
-          {
-            id: "notes-request",
-            role: "user",
-            content: patientNotesPrompt,
-            timestamp: new Date().toISOString(),
-          },
-        ];
+        const summaryResult = await sendMessage({
+          provider: settings.provider,
+          apiKey: settings.apiKey,
+          model: settings.model,
+          messages: conversationForSummary,
+          systemPrompt: "Sen bir seans analisti. Verilen konuşmayı analiz et.",
+          customBaseUrl: settings.customBaseUrl || undefined,
+        });
 
-        // Run both in parallel
-        const [summaryResult, notesResult] = await Promise.all([
-          sendMessage({
-            provider: settings.provider,
-            apiKey: settings.apiKey,
-            model: settings.model,
-            messages: conversationForSummary,
-            systemPrompt: "Sen bir seans analisti. Verilen konuşmayı analiz et.",
-            customBaseUrl: settings.customBaseUrl || undefined,
-          }),
-          sendMessage({
-            provider: settings.provider,
-            apiKey: settings.apiKey,
-            model: settings.model,
-            messages: conversationForNotes,
-            systemPrompt: "Sen deneyimli bir klinik psikolog. Hasta notlarını güncelle.",
-            customBaseUrl: settings.customBaseUrl || undefined,
-          }),
-        ]);
-
-        // Track usage for both calls
         const sid = useSessionStore.getState().sessionId;
         trackUsage(settings.provider, settings.model, sid, "summary", summaryResult.usage);
-        trackUsage(settings.provider, settings.model, sid, "patient_notes", notesResult.usage);
 
-        // Parse and save structured summary
         let summary: SessionSummary;
         try {
           summary = JSON.parse(summaryResult.content);
@@ -354,11 +352,6 @@ export default function SessionPage() {
           };
         }
         session.setSummary(summary);
-
-        // Save updated patient notes
-        if (notesResult.content && notesResult.content.trim().length > 0) {
-          await upsertPatientNotes(notesResult.content.trim());
-        }
       } catch {
         session.setSummary({
           themes: [],

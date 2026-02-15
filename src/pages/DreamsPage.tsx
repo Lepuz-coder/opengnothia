@@ -5,9 +5,10 @@ import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useAppStore } from "@/stores/useAppStore";
-import { sendMessage, streamMessage } from "@/services/ai/aiService";
+import { streamMessage } from "@/services/ai/aiService";
 import { calculateCost } from "@/services/ai/costCalculator";
 import { buildDreamAnalysisPrompt, buildPatientNotesUpdatePrompt } from "@/services/ai/promptBuilder";
+import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
 import {
   getDreams,
   getDreamById,
@@ -16,7 +17,6 @@ import {
   updateDreamContent,
   deleteDream,
   getPatientNotes,
-  upsertPatientNotes,
   saveTokenUsage,
 } from "@/services/db/queries";
 import { Moon, Plus, ArrowLeft, Sparkles, Trash2, Loader2, Pencil } from "lucide-react";
@@ -157,10 +157,9 @@ export default function DreamsPage() {
       await updateDreamAnalysis(selectedDream.id, fullAnalysis);
       await trackUsage(settings.provider, settings.model, "dream_analysis", streamUsage);
 
-      // 2. Update patient notes with dream info
-      const existingNotes = patientNotes;
-      const notesPrompt = buildPatientNotesUpdatePrompt(existingNotes);
-      const notesResult = await sendMessage({
+      // 2. Update patient notes in background
+      const notesPrompt = buildPatientNotesUpdatePrompt(patientNotes);
+      takeBackgroundNotes({
         provider: settings.provider,
         apiKey: settings.apiKey,
         model: settings.model,
@@ -174,13 +173,8 @@ export default function DreamsPage() {
         ],
         systemPrompt: notesPrompt,
         customBaseUrl: settings.customBaseUrl || undefined,
+        callType: "patient_notes",
       });
-
-      await trackUsage(settings.provider, settings.model, "patient_notes", notesResult.usage);
-
-      if (notesResult.content && notesResult.content.trim().length > 0) {
-        await upsertPatientNotes(notesResult.content.trim());
-      }
 
       // Refresh dream data
       const updated = await getDreamById(selectedDream.id);

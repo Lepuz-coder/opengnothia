@@ -1,5 +1,5 @@
 import { getDatabase } from "./database";
-import type { CheckIn, Session, UserProfile, ChatMessage, SessionSummary, TokenUsageRecord } from "@/types";
+import type { CheckIn, Dream, Session, UserProfile, ChatMessage, SessionSummary, TokenUsageRecord } from "@/types";
 
 // User Profile
 export async function getUserProfile(): Promise<UserProfile | null> {
@@ -185,6 +185,48 @@ export async function getRecentCheckIns(days = 7): Promise<CheckIn[]> {
     had_dream: Boolean(r.had_dream),
     tags: typeof r.tags === "string" ? JSON.parse(r.tags) : r.tags,
   }));
+}
+
+// Dreams
+export async function saveDream(content: string): Promise<string> {
+  const db = await getDatabase();
+  const id = crypto.randomUUID();
+  await db.execute(
+    "INSERT INTO dreams (id, content) VALUES (?, ?)",
+    [id, content]
+  );
+  return id;
+}
+
+export async function getDreams(limit = 50): Promise<Dream[]> {
+  const db = await getDatabase();
+  return db.select<Dream[]>(
+    "SELECT * FROM dreams ORDER BY created_at DESC LIMIT ?",
+    [limit]
+  );
+}
+
+export async function getDreamById(id: string): Promise<Dream | null> {
+  const db = await getDatabase();
+  const rows = await db.select<Dream[]>(
+    "SELECT * FROM dreams WHERE id = ?",
+    [id]
+  );
+  if (rows.length === 0) return null;
+  return rows[0];
+}
+
+export async function updateDreamAnalysis(id: string, analysis: string): Promise<void> {
+  const db = await getDatabase();
+  await db.execute(
+    "UPDATE dreams SET analysis = ? WHERE id = ?",
+    [analysis, id]
+  );
+}
+
+export async function deleteDream(id: string): Promise<void> {
+  const db = await getDatabase();
+  await db.execute("DELETE FROM dreams WHERE id = ?", [id]);
 }
 
 // Token Usage

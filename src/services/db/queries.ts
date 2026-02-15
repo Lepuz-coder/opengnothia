@@ -1,5 +1,5 @@
 import { getDatabase } from "./database";
-import type { CheckIn, Session, UserProfile, ChatMessage, SessionSummary, TokenUsageRecord } from "@/types";
+import type { CheckIn, Session, UserProfile, ChatMessage, SessionSummary, TokenUsageRecord, JournalEntry } from "@/types";
 
 // User Profile
 export async function getUserProfile(): Promise<UserProfile | null> {
@@ -185,6 +185,59 @@ export async function getRecentCheckIns(days = 7): Promise<CheckIn[]> {
     had_dream: Boolean(r.had_dream),
     tags: typeof r.tags === "string" ? JSON.parse(r.tags) : r.tags,
   }));
+}
+
+// Journal Entries
+function parseJournalEntry(r: JournalEntry): JournalEntry {
+  return {
+    ...r,
+    tags: typeof r.tags === "string" ? JSON.parse(r.tags) : r.tags,
+  };
+}
+
+export async function createJournalEntry(entry: {
+  content: string;
+  mood: number | null;
+  tags: string[];
+}): Promise<JournalEntry> {
+  const db = await getDatabase();
+  const id = crypto.randomUUID();
+  const date = new Date().toISOString().split("T")[0];
+  await db.execute(
+    "INSERT INTO journal_entries (id, date, content, mood, tags) VALUES (?, ?, ?, ?, ?)",
+    [id, date, entry.content, entry.mood, JSON.stringify(entry.tags)]
+  );
+  const rows = await db.select<JournalEntry[]>("SELECT * FROM journal_entries WHERE id = ?", [id]);
+  return parseJournalEntry(rows[0]);
+}
+
+export async function getJournalEntries(limit = 50): Promise<JournalEntry[]> {
+  const db = await getDatabase();
+  const rows = await db.select<JournalEntry[]>(
+    "SELECT * FROM journal_entries ORDER BY created_at DESC LIMIT ?",
+    [limit]
+  );
+  return rows.map(parseJournalEntry);
+}
+
+export async function getJournalEntryById(id: string): Promise<JournalEntry | null> {
+  const db = await getDatabase();
+  const rows = await db.select<JournalEntry[]>(
+    "SELECT * FROM journal_entries WHERE id = ?",
+    [id]
+  );
+  if (rows.length === 0) return null;
+  return parseJournalEntry(rows[0]);
+}
+
+export async function updateJournalAnalysis(id: string, analysis: string): Promise<void> {
+  const db = await getDatabase();
+  await db.execute("UPDATE journal_entries SET ai_analysis = ? WHERE id = ?", [analysis, id]);
+}
+
+export async function deleteJournalEntry(id: string): Promise<void> {
+  const db = await getDatabase();
+  await db.execute("DELETE FROM journal_entries WHERE id = ?", [id]);
 }
 
 // Token Usage

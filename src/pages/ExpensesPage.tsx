@@ -19,6 +19,7 @@ const CALL_TYPE_LABELS: Record<string, string> = {
   recommendation: "Öneri",
   summary: "Özet",
   patient_notes: "Notlar",
+  journal_analysis: "Günlük Analizi",
 };
 
 const PROVIDER_NAMES: Record<string, string> = {

@@ -118,6 +118,80 @@ Mevcut notları bu seansın bilgileriyle birleştirerek güncel bir kümülatif 
 Önemli: Sadece güncellenmiş notları yaz, başka açıklama ekleme. Notlar düzenli ve okunabilir olsun. Türkçe yaz.`;
 }
 
+export function buildJournalAnalysisPrompt(params: {
+  journalContent: string;
+  mood: number | null;
+  tags: string[];
+  patientNotes: string;
+  profile: UserProfile | null;
+  therapySchool?: TherapySchool;
+}): string {
+  const { journalContent, mood, tags, patientNotes, profile, therapySchool } = params;
+
+  let prompt = `Sen deneyimli bir klinik psikologsun. Danışanın günlük yazısını analiz edeceksin.
+
+Temel ilkeler:
+- Empatik, destekleyici ve içgörü odaklı bir analiz yap
+- Danışana doğrudan hitap et ("sen" dili kullan)
+- Yazıdaki duyguları, temaları ve örüntüleri belirle
+- Farkındalık ve içgörü geliştirmeye yardımcı ol
+- Gerekirse nazikçe yeni bakış açıları öner
+- Markdown formatında, 2-4 paragraf yaz
+- Türkçe yaz`;
+
+  if (therapySchool) {
+    const school = getTherapySchool(therapySchool);
+    if (school) {
+      prompt += `\n\nTerapi ekolü: ${school.name}\n${school.promptInstructions}`;
+    }
+  }
+
+  if (profile) {
+    prompt += `\n\nDanışan bilgileri:`;
+    if (profile.name) prompt += `\n- İsim: ${profile.name}`;
+    if (profile.age) prompt += `\n- Yaş: ${profile.age}`;
+    if (profile.goals.length > 0) prompt += `\n- Hedefler: ${profile.goals.join(", ")}`;
+  }
+
+  if (patientNotes && patientNotes.trim().length > 0) {
+    prompt += `\n\n--- Kümülatif Hasta Notları ---\n${patientNotes}`;
+  }
+
+  prompt += `\n\n--- Günlük Yazısı ---`;
+  if (mood !== null) prompt += `\nRuh hali: ${mood}/10`;
+  if (tags.length > 0) prompt += `\nEtiketler: ${tags.join(", ")}`;
+  prompt += `\n\n${journalContent}`;
+
+  prompt += `\n\n--- Görevin ---
+Bu günlük yazısını analiz et. Şunlara odaklan:
+- Yazıdaki temel duyguları ve temaları belirle
+- Danışanın farkında olmayabileceği örüntülere dikkat çek
+- Destekleyici ve içgörü geliştirici geri bildirim ver
+- Gerekirse düşünmeye davet eden sorular sor
+
+Markdown formatında, 2-4 paragraf yaz. Sıcak ve destekleyici bir ton kullan.`;
+
+  return prompt;
+}
+
+export function buildJournalPatientNotesUpdatePrompt(existingNotes: string, journalContent: string): string {
+  return `Sen deneyimli bir klinik psikologsun. Danışanın günlük yazısından elde edilen bilgilerle hasta notlarını güncelle.
+
+${existingNotes ? `--- Mevcut Notlar ---\n${existingNotes}\n\n` : ""}--- Günlük Yazısı ---
+${journalContent}
+
+--- Görevin ---
+Mevcut notları bu günlük yazısından elde edilen bilgilerle birleştirerek güncel bir kümülatif not belgesi oluştur. Şunları içermeli:
+- Danışanın genel profili ve temel konuları
+- Önemli isimler, ilişkiler, olaylar
+- Tekrarlayan temalar ve örüntüler
+- Dirençli olduğu alanlar
+- Kriz riski veya dikkat edilmesi gereken durumlar
+- Günlük yazısından elde edilen yeni bilgiler
+
+Önemli: Sadece güncellenmiş notları yaz, başka açıklama ekleme. Notlar düzenli ve okunabilir olsun. Türkçe yaz.`;
+}
+
 export function buildSummaryPrompt(): string {
   return `Yukarıdaki seans konuşmasını analiz et ve aşağıdaki JSON formatında bir özet oluştur. Sadece JSON döndür, başka bir şey yazma.
 

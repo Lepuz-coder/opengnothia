@@ -135,4 +135,48 @@
     border-color: var(--color-surface-600);
     margin: 0.75em 0;
   }
+
+  /* Breathing exercise animations */
+  .breathing-circle {
+    animation: breathing-glow 4s ease-in-out infinite;
+  }
+
+  .breathing-ring {
+    animation: breathing-ring 3s ease-out infinite;
+  }
+
+  .phase-text-enter {
+    animation: phase-text-enter 0.4s ease-out forwards;
+  }
+}
+
+@keyframes breathing-glow {
+  0%, 100% {
+    box-shadow: 0 0 40px rgba(58, 186, 180, 0.2), 0 0 80px rgba(58, 186, 180, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 60px rgba(58, 186, 180, 0.35), 0 0 120px rgba(58, 186, 180, 0.15);
+  }
+}
+
+@keyframes breathing-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+@keyframes phase-text-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

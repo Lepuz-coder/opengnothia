@@ -4,7 +4,7 @@ import {
   BookOpen,
   Moon,
   Lightbulb,
-  Wrench,
+  Wind,
   GraduationCap,
   Receipt,
   Settings,
@@ -23,8 +23,7 @@ export const navItems: NavItem[] = [
   { path: "/journal", label: "Günlük", icon: BookOpen },
   { path: "/dreams", label: "Rüyalar", icon: Moon },
   { path: "/insights", label: "İçgörüler", icon: Lightbulb },
-  { path: "/tools", label: "Araçlar", icon: Wrench },
-  { path: "/programs", label: "Programlar", icon: GraduationCap },
+  { path: "/tools", label: "Nefes Egzersizi", icon: Wind },
   { path: "/expenses", label: "Harcamalar", icon: Receipt },
   { path: "/settings", label: "Ayarlar", icon: Settings },
 ];

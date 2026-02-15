@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { useSettingsStore } from "@/stores/useSettingsStore";
-import { sendMessage } from "@/services/ai/aiService";
+import { sendMessage, streamMessage } from "@/services/ai/aiService";
 import { calculateCost } from "@/services/ai/costCalculator";
 import { buildDreamAnalysisPrompt, buildPatientNotesUpdatePrompt } from "@/services/ai/promptBuilder";
 import {
@@ -89,9 +89,13 @@ export default function DreamsPage() {
     try {
       const patientNotes = await getPatientNotes();
 
-      // 1. Dream analysis
+      // 1. Dream analysis (streaming)
       const analysisPrompt = buildDreamAnalysisPrompt(patientNotes);
-      const analysisResult = await sendMessage({
+      let fullAnalysis = "";
+      let streamUsage: TokenUsage | null = null;
+      let streamError: Error | null = null;
+
+      await streamMessage({
         provider: settings.provider,
         apiKey: settings.apiKey,
         model: settings.model,
@@ -105,13 +109,30 @@ export default function DreamsPage() {
         ],
         systemPrompt: analysisPrompt,
         customBaseUrl: settings.customBaseUrl || undefined,
+        thinkingEnabled: false,
+        onThinking: () => {},
+        onContent: (chunk) => {
+          fullAnalysis += chunk;
+          setSelectedDream((prev) =>
+            prev ? { ...prev, analysis: fullAnalysis } : null,
+          );
+        },
+        onDone: () => {},
+        onError: (err) => {
+          streamError = err;
+        },
+        onUsage: (usage) => {
+          streamUsage = usage;
+        },
       });
 
-      const analysis = analysisResult.content;
+      if (streamError) {
+        throw streamError;
+      }
 
       // Save analysis to DB
-      await updateDreamAnalysis(selectedDream.id, analysis);
-      await trackUsage(settings.provider, settings.model, "dream_analysis", analysisResult.usage);
+      await updateDreamAnalysis(selectedDream.id, fullAnalysis);
+      await trackUsage(settings.provider, settings.model, "dream_analysis", streamUsage);
 
       // 2. Update patient notes with dream info
       const existingNotes = patientNotes;
@@ -124,7 +145,7 @@ export default function DreamsPage() {
           {
             id: crypto.randomUUID(),
             role: "user",
-            content: `Danışan şu rüyayı paylaştı: ${selectedDream.content}\n\nRüya analizi: ${analysis}`,
+            content: `Danışan şu rüyayı paylaştı: ${selectedDream.content}\n\nRüya analizi: ${fullAnalysis}`,
             timestamp: new Date().toISOString(),
           },
         ],
@@ -268,7 +289,11 @@ export default function DreamsPage() {
         {selectedDream.analysis ? (
           <Card>
             <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="w-4 h-4 text-primary-400" />
+              {analyzing ? (
+                <Loader2 className="w-4 h-4 text-primary-400 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4 text-primary-400" />
+              )}
               <h2 className="text-sm font-medium text-[var(--text-muted)]">AI Analizi</h2>
             </div>
             <div

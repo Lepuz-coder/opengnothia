@@ -535,7 +535,7 @@ export default function SessionPage() {
   return (
     <div className="flex flex-col h-screen">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-3 border-b border-[var(--border-color)] bg-[var(--bg-secondary)]">
+      <div className="flex items-center justify-between px-6 py-3 border-b border-[var(--border-color)]/50 bg-[var(--bg-primary)]">
         <div className="flex items-center gap-2">
           <h2 className="font-semibold">Seans</h2>
           <Badge variant="primary">

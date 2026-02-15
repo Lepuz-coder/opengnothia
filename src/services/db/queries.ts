@@ -246,10 +246,11 @@ export async function createJournalEntry(entry: {
   content: string;
   mood: number | null;
   tags: string[];
+  date?: string;
 }): Promise<JournalEntry> {
   const db = await getDatabase();
   const id = crypto.randomUUID();
-  const date = new Date().toISOString().split("T")[0];
+  const date = entry.date ?? new Date().toISOString().split("T")[0];
   await db.execute(
     "INSERT INTO journal_entries (id, date, content, mood, tags) VALUES (?, ?, ?, ?, ?)",
     [id, date, entry.content, entry.mood, JSON.stringify(entry.tags)]
@@ -265,6 +266,28 @@ export async function getJournalEntries(limit = 50): Promise<JournalEntry[]> {
     [limit]
   );
   return rows.map(parseJournalEntry);
+}
+
+export async function getJournalEntriesByDateRange(
+  startDate: string,
+  endDate: string,
+): Promise<JournalEntry[]> {
+  const db = await getDatabase();
+  const rows = await db.select<JournalEntry[]>(
+    "SELECT * FROM journal_entries WHERE date >= ? AND date <= ? ORDER BY date ASC",
+    [startDate, endDate]
+  );
+  return rows.map(parseJournalEntry);
+}
+
+export async function getJournalEntryByDate(date: string): Promise<JournalEntry | null> {
+  const db = await getDatabase();
+  const rows = await db.select<JournalEntry[]>(
+    "SELECT * FROM journal_entries WHERE date = ? ORDER BY created_at DESC LIMIT 1",
+    [date]
+  );
+  if (rows.length === 0) return null;
+  return parseJournalEntry(rows[0]);
 }
 
 export async function getJournalEntryById(id: string): Promise<JournalEntry | null> {

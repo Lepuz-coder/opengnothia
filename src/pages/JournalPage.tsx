@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
+import { cn } from "@/lib/cn";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useAppStore } from "@/stores/useAppStore";
 import { streamMessage } from "@/services/ai/aiService";
@@ -11,7 +12,7 @@ import { buildJournalAnalysisPrompt, buildJournalPatientNotesUpdatePrompt } from
 import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
 import {
   createJournalEntry,
-  getJournalEntries,
+  getJournalEntriesByDateRange,
   getJournalEntryById,
   updateJournalAnalysis,
   updateJournalEntryContent,
@@ -20,12 +21,49 @@ import {
   getPatientNotes,
   saveTokenUsage,
 } from "@/services/db/queries";
-import { BookOpen, Plus, ArrowLeft, Trash2, Sparkles, Loader2, Pencil } from "lucide-react";
+import { Plus, ArrowLeft, Trash2, Sparkles, Loader2, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { JournalEntry, AIProvider, TokenUsage } from "@/types";
 
-type View = "list" | "write" | "detail";
+type View = "calendar" | "write" | "detail";
+
+const DAY_NAMES = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
+
+function getCalendarDays(year: number, month: number): Date[] {
+  const firstOfMonth = new Date(year, month, 1);
+  const lastOfMonth = new Date(year, month + 1, 0);
+  const startDow = firstOfMonth.getDay() === 0 ? 6 : firstOfMonth.getDay() - 1;
+
+  const days: Date[] = [];
+
+  for (let i = startDow - 1; i >= 0; i--) {
+    days.push(new Date(year, month, -i));
+  }
+
+  for (let d = 1; d <= lastOfMonth.getDate(); d++) {
+    days.push(new Date(year, month, d));
+  }
+
+  while (days.length % 7 !== 0) {
+    const nextDay = days.length - startDow - lastOfMonth.getDate() + 1;
+    days.push(new Date(year, month + 1, nextDay));
+  }
+
+  return days;
+}
+
+function formatYMD(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function formatMonthYear(year: number, month: number): string {
+  const date = new Date(year, month, 1);
+  return date.toLocaleDateString("tr-TR", { month: "long", year: "numeric" });
+}
 
 async function trackUsage(
   provider: AIProvider,
@@ -51,10 +89,15 @@ export default function JournalPage() {
   const setSidebarHidden = useAppStore((s) => s.setSidebarHidden);
 
   // View state
-  const [view, setView] = useState<View>("list");
+  const [view, setView] = useState<View>("calendar");
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Calendar state
+  const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth());
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   // Write form state
   const [content, setContent] = useState("");
@@ -71,6 +114,19 @@ export default function JournalPage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [analysisModalOpen, setAnalysisModalOpen] = useState(false);
 
+  // Calendar computed values
+  const calendarDays = useMemo(() => getCalendarDays(currentYear, currentMonth), [currentYear, currentMonth]);
+  const todayStr = useMemo(() => formatYMD(new Date()), []);
+  const entriesByDate = useMemo(() => {
+    const map = new Map<string, JournalEntry>();
+    for (const entry of entries) {
+      if (!map.has(entry.date)) {
+        map.set(entry.date, entry);
+      }
+    }
+    return map;
+  }, [entries]);
+
   // Hide sidebar in write view
   useEffect(() => {
     if (view === "write") {
@@ -81,21 +137,60 @@ export default function JournalPage() {
     return () => setSidebarHidden(false);
   }, [view, setSidebarHidden]);
 
-  // Load entries
+  // Load entries for visible calendar range
   const loadEntries = useCallback(async () => {
-    const data = await getJournalEntries(50);
+    const days = getCalendarDays(currentYear, currentMonth);
+    const startDate = formatYMD(days[0]);
+    const endDate = formatYMD(days[days.length - 1]);
+    const data = await getJournalEntriesByDateRange(startDate, endDate);
     setEntries(data);
     setLoading(false);
-  }, []);
+  }, [currentYear, currentMonth]);
 
   useEffect(() => {
     loadEntries();
   }, [loadEntries]);
 
-  // Navigate to write view
-  const handleNewEntry = () => {
-    setContent("");
-    setView("write");
+  // Month navigation
+  const handlePrevMonth = () => {
+    setCurrentMonth((m) => {
+      if (m === 0) {
+        setCurrentYear((y) => y - 1);
+        return 11;
+      }
+      return m - 1;
+    });
+  };
+
+  const handleNextMonth = () => {
+    const now = new Date();
+    if (currentYear === now.getFullYear() && currentMonth >= now.getMonth()) return;
+    setCurrentMonth((m) => {
+      if (m === 11) {
+        setCurrentYear((y) => y + 1);
+        return 0;
+      }
+      return m + 1;
+    });
+  };
+
+  const handleGoToToday = () => {
+    const now = new Date();
+    setCurrentYear(now.getFullYear());
+    setCurrentMonth(now.getMonth());
+  };
+
+  // Day click handler
+  const handleDayClick = async (dateStr: string) => {
+    const existingEntry = entriesByDate.get(dateStr);
+    if (existingEntry) {
+      await handleViewEntry(existingEntry.id);
+    } else {
+      setSelectedDate(dateStr);
+      setContent("");
+      setEditingEntryId(null);
+      setView("write");
+    }
   };
 
   // Save entry
@@ -113,11 +208,13 @@ export default function JournalPage() {
           content: content.trim(),
           mood: null,
           tags: [],
+          date: selectedDate ?? undefined,
         });
         setSelectedEntry(entry);
       }
       setView("detail");
       setContent("");
+      setSelectedDate(null);
       await loadEntries();
     } finally {
       setSaving(false);
@@ -140,7 +237,7 @@ export default function JournalPage() {
     await deleteJournalEntry(selectedEntry.id);
     setSelectedEntry(null);
     setDeleteModalOpen(false);
-    setView("list");
+    setView("calendar");
     await loadEntries();
   };
 
@@ -228,20 +325,10 @@ export default function JournalPage() {
     }
   };
 
-  // Format date for display
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr + "T00:00:00");
-    return date.toLocaleDateString("tr-TR", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
-  };
-
   // ─── Loading ───
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">Günlük</h1>
         <div className="flex items-center gap-2 text-[var(--text-muted)]">
           <Loader2 className="w-4 h-4 animate-spin" />
@@ -254,20 +341,22 @@ export default function JournalPage() {
   // ─── Write View ───
   if (view === "write") {
     const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
-    const today = new Date();
-    const dateLabel = today.toLocaleDateString("tr-TR", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
+    const dateLabel = (() => {
+      const d = selectedDate ? new Date(selectedDate + "T00:00:00") : new Date();
+      return d.toLocaleDateString("tr-TR", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+    })();
 
     return (
       <div className="flex flex-col h-screen">
         {/* Top bar */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)]">
           <button
-            onClick={() => { if (editingEntryId) { setEditingEntryId(null); setContent(""); setView("detail"); } else { setView("list"); } }}
+            onClick={() => { if (editingEntryId) { setEditingEntryId(null); setContent(""); setView("detail"); } else { setSelectedDate(null); setView("calendar"); } }}
             className="flex items-center gap-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -321,7 +410,7 @@ export default function JournalPage() {
     return (
       <div className="max-w-2xl mx-auto">
         <button
-          onClick={() => { if (!isBusy) { setView("list"); setSelectedEntry(null); setError(null); } }}
+          onClick={() => { if (!isBusy) { setView("calendar"); setSelectedEntry(null); setError(null); } }}
           disabled={isBusy}
           className={`flex items-center gap-1.5 text-sm transition-colors mb-6 ${isBusy ? "text-[var(--text-muted)] opacity-50 cursor-not-allowed" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}
         >
@@ -455,81 +544,112 @@ export default function JournalPage() {
     );
   }
 
-  // ─── List View (default) ───
+  // ─── Calendar View (default) ───
+  const isNextDisabled = currentYear === new Date().getFullYear() && currentMonth >= new Date().getMonth();
+
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-4xl mx-auto">
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Günlük</h1>
           <p className="text-sm text-[var(--text-muted)]">Düşüncelerini ve duygularını kaydet</p>
         </div>
-        <Button onClick={handleNewEntry}>
+        <Button onClick={() => handleDayClick(todayStr)}>
           <Plus className="w-4 h-4" />
-          Yeni Giriş
+          Bugün Yaz
         </Button>
       </div>
 
-      {entries.length === 0 ? (
-        <Card>
-          <div className="text-center py-12">
-            <BookOpen className="w-12 h-12 text-[var(--text-muted)] mx-auto mb-4" />
-            <h2 className="text-lg font-medium mb-2">Henüz günlük girişi yok</h2>
-            <p className="text-[var(--text-muted)] mb-6">
-              Düşüncelerini, duygularını ve deneyimlerini yazarak kendini daha iyi anlayabilirsin.
-            </p>
-            <Button onClick={handleNewEntry}>
-              <Plus className="w-4 h-4" />
-              İlk Girişini Yaz
-            </Button>
+      {/* Month navigation */}
+      <div className="flex items-center justify-between mb-4">
+        <button
+          onClick={handlePrevMonth}
+          className="p-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-secondary)]"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <button
+          onClick={handleGoToToday}
+          className="text-sm font-semibold text-[var(--text-secondary)] capitalize hover:text-[var(--text-primary)] transition-colors"
+        >
+          {formatMonthYear(currentYear, currentMonth)}
+        </button>
+        <button
+          onClick={handleNextMonth}
+          disabled={isNextDisabled}
+          className={cn(
+            "p-2 rounded-lg transition-colors text-[var(--text-secondary)]",
+            isNextDisabled ? "opacity-30 cursor-not-allowed" : "hover:bg-[var(--bg-tertiary)]"
+          )}
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Day headers */}
+      <div className="grid grid-cols-7 gap-1.5 mb-1.5">
+        {DAY_NAMES.map((name) => (
+          <div key={name} className="text-center text-xs font-medium text-[var(--text-muted)] py-2">
+            {name}
           </div>
-        </Card>
-      ) : (
-        <div className="space-y-3">
-          {entries.map((entry) => (
-            <Card
-              key={entry.id}
-              className="cursor-pointer hover:border-[var(--text-muted)] transition-colors"
-              onClick={() => handleViewEntry(entry.id)}
+        ))}
+      </div>
+
+      {/* Calendar grid */}
+      <div className="grid grid-cols-7 gap-1.5">
+        {calendarDays.map((day) => {
+          const dateStr = formatYMD(day);
+          const isCurrentMonth = day.getMonth() === currentMonth;
+          const isToday = dateStr === todayStr;
+          const isFuture = dateStr > todayStr;
+          const entry = entriesByDate.get(dateStr);
+
+          return (
+            <button
+              key={dateStr}
+              onClick={() => !isFuture && isCurrentMonth && handleDayClick(dateStr)}
+              disabled={isFuture || !isCurrentMonth}
+              className={cn(
+                "relative min-h-[100px] p-2 rounded-xl border text-left transition-all duration-200 flex flex-col",
+                isCurrentMonth
+                  ? "bg-[var(--bg-secondary)] border-[var(--border-color)]"
+                  : "bg-[var(--bg-primary)] border-transparent opacity-30",
+                isToday && "ring-2 ring-primary-500/50 border-primary-500/30",
+                !isFuture && isCurrentMonth && "hover:border-[var(--text-muted)] cursor-pointer",
+                isFuture && isCurrentMonth && "opacity-40 cursor-not-allowed",
+              )}
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm text-[var(--text-muted)] mb-1">
-                    {formatDate(entry.date)}
+              {/* Date number */}
+              <span className={cn(
+                "text-xs font-bold",
+                isToday ? "text-primary-400" : isCurrentMonth ? "text-[var(--text-primary)]" : "text-[var(--text-muted)]"
+              )}>
+                {day.getDate()}
+              </span>
+
+              {/* Entry preview */}
+              {entry && (
+                <div className="mt-1 flex-1 min-w-0">
+                  <p className="text-[10px] text-[var(--text-secondary)] line-clamp-3 leading-tight">
+                    {entry.content.length > 60 ? entry.content.slice(0, 60) + "..." : entry.content}
                   </p>
-                  <p className="text-[var(--text-primary)] line-clamp-2">
-                    {entry.content.length > 100
-                      ? entry.content.slice(0, 100) + "..."
-                      : entry.content}
-                  </p>
-                  {entry.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {entry.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="text-xs px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-muted)]"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1 mt-1">
+                    {entry.mood !== null && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
+                        {entry.mood}/10
+                      </span>
+                    )}
+                    {entry.ai_analysis && (
+                      <Sparkles className="w-3 h-3 text-primary-400" />
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {entry.mood !== null && (
-                    <Badge variant="default">{entry.mood}/10</Badge>
-                  )}
-                  {entry.ai_analysis && (
-                    <Badge variant="primary" className="shrink-0">
-                      <Sparkles className="w-3 h-3 mr-1" />
-                      Analiz Edildi
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
+              )}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

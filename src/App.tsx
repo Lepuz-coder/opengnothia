@@ -4,6 +4,7 @@ import { loadSettings } from "@/lib/store";
 import { useAppStore } from "@/stores/useAppStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useTheme } from "@/hooks/useTheme";
+import { useCloseGuard } from "@/hooks/useCloseGuard";
 import { useDatabase } from "@/hooks/useDatabase";
 import { MainLayout } from "@/components/layout/MainLayout";
 import OnboardingPage from "@/pages/OnboardingPage";
@@ -18,10 +19,11 @@ import ProgramsPage from "@/pages/ProgramsPage";
 import ExpensesPage from "@/pages/ExpensesPage";
 
 function AppContent() {
-  const { isOnboarded, setOnboarded, setTheme } = useAppStore();
+  const { isOnboarded, setOnboarded, setTheme, setHasSeenNoteTutorial } = useAppStore();
   const { loadFromStore } = useSettingsStore();
   const [isLoading, setIsLoading] = useState(true);
   useTheme();
+  useCloseGuard();
 
   useEffect(() => {
     async function init() {
@@ -29,6 +31,9 @@ function AppContent() {
         const store = await loadSettings();
         const onboarded = await store.get<boolean>("isOnboarded");
         if (onboarded) setOnboarded(true);
+
+        const hasSeenNoteTutorial = await store.get<boolean>("hasSeenNoteTutorial");
+        if (hasSeenNoteTutorial) setHasSeenNoteTutorial(true);
 
         const theme = await store.get<"light" | "dark" | "system">("theme");
         if (theme) setTheme(theme);

@@ -15,6 +15,7 @@ export const providers: AIProviderConfig[] = [
         contextWindow: 400000,
         costPer1kInput: 0.00175,
         costPer1kOutput: 0.014,
+        supportsThinking: true,
       },
       {
         id: "gpt-5.1",
@@ -22,6 +23,7 @@ export const providers: AIProviderConfig[] = [
         contextWindow: 128000,
         costPer1kInput: 0.00125,
         costPer1kOutput: 0.01,
+        supportsThinking: true,
       },
       {
         id: "gpt-5",
@@ -29,6 +31,7 @@ export const providers: AIProviderConfig[] = [
         contextWindow: 400000,
         costPer1kInput: 0.00125,
         costPer1kOutput: 0.01,
+        supportsThinking: true,
       },
       {
         id: "gpt-5-mini",
@@ -36,6 +39,7 @@ export const providers: AIProviderConfig[] = [
         contextWindow: 400000,
         costPer1kInput: 0.00025,
         costPer1kOutput: 0.002,
+        supportsThinking: true,
       },
       {
         id: "gpt-5-nano",
@@ -43,6 +47,7 @@ export const providers: AIProviderConfig[] = [
         contextWindow: 400000,
         costPer1kInput: 0.00005,
         costPer1kOutput: 0.0004,
+        supportsThinking: true,
       },
       {
         id: "gpt-5-pro",
@@ -50,6 +55,7 @@ export const providers: AIProviderConfig[] = [
         contextWindow: 400000,
         costPer1kInput: 0.015,
         costPer1kOutput: 0.12,
+        supportsThinking: true,
       },
       // GPT-4.1 Serisi
       {
@@ -88,39 +94,7 @@ export const providers: AIProviderConfig[] = [
         costPer1kInput: 0.00015,
         costPer1kOutput: 0.0006,
       },
-      // o-Serisi (Reasoning)
-      {
-        id: "o3",
-        name: "o3",
-        contextWindow: 200000,
-        costPer1kInput: 0.002,
-        costPer1kOutput: 0.008,
-        supportsThinking: true,
-      },
-      {
-        id: "o3-pro",
-        name: "o3 Pro",
-        contextWindow: 200000,
-        costPer1kInput: 0.02,
-        costPer1kOutput: 0.08,
-        supportsThinking: true,
-      },
-      {
-        id: "o3-mini",
-        name: "o3 Mini",
-        contextWindow: 200000,
-        costPer1kInput: 0.0011,
-        costPer1kOutput: 0.0044,
-        supportsThinking: true,
-      },
-      {
-        id: "o4-mini",
-        name: "o4 Mini",
-        contextWindow: 200000,
-        costPer1kInput: 0.0011,
-        costPer1kOutput: 0.0044,
-        supportsThinking: true,
-      },
+   
     ],
   },
   {

@@ -14,11 +14,32 @@ import { SessionEndSummary } from "@/components/session/SessionEndSummary";
 import { PastSessionsList } from "@/components/session/PastSessionsList";
 import { PastSessionDetail } from "@/components/session/PastSessionDetail";
 import { sendMessage, streamMessage, testApiKey } from "@/services/ai/aiService";
+import { calculateCost } from "@/services/ai/costCalculator";
 import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildRecommendationPrompt, buildPatientNotesUpdatePrompt } from "@/services/ai/promptBuilder";
-import { createSession, updateSessionMessages, completeSession, deleteSession, getUserProfile, getTodayCheckIn, getRecentSessions, getPatientNotes, upsertPatientNotes } from "@/services/db/queries";
+import { createSession, updateSessionMessages, completeSession, deleteSession, getUserProfile, getTodayCheckIn, getRecentSessions, getPatientNotes, upsertPatientNotes, saveTokenUsage } from "@/services/db/queries";
 import { therapySchools, getTherapySchool, getTherapySchoolName } from "@/constants/therapySchools";
 import { Square, Loader2 } from "lucide-react";
-import type { ChatMessage, SessionSummary } from "@/types";
+import type { AIProvider, ChatMessage, SessionSummary, TokenUsage } from "@/types";
+
+async function trackUsage(
+  provider: AIProvider,
+  model: string,
+  sessionId: string | null,
+  callType: string,
+  usage: TokenUsage | null,
+) {
+  if (!usage) return;
+  const cost = calculateCost(provider, model, usage.inputTokens, usage.outputTokens);
+  await saveTokenUsage({
+    session_id: sessionId,
+    provider,
+    model,
+    input_tokens: usage.inputTokens,
+    output_tokens: usage.outputTokens,
+    cost,
+    call_type: callType,
+  });
+}
 
 export default function SessionPage() {
   const navigate = useNavigate();
@@ -93,6 +114,10 @@ export default function SessionPage() {
           if (sessionId) {
             updateSessionMessages(sessionId, useSessionStore.getState().messages);
           }
+        },
+        onUsage: (usage) => {
+          const sid = useSessionStore.getState().sessionId;
+          trackUsage(settings.provider, settings.model, sid, "greeting", usage);
         },
         onError: (error) => {
           const store = useSessionStore.getState();
@@ -174,6 +199,10 @@ export default function SessionPage() {
             updateSessionMessages(sessionId, useSessionStore.getState().messages);
           }
         },
+        onUsage: (usage) => {
+          const sid = useSessionStore.getState().sessionId;
+          trackUsage(settings.provider, settings.model, sid, "chat", usage);
+        },
         onError: (error) => {
           const store = useSessionStore.getState();
           if (store.streamingMessageId) {
@@ -245,6 +274,10 @@ export default function SessionPage() {
         onContent: (chunk) => {
           useSessionStore.getState().appendSummaryNarrative(chunk);
         },
+        onUsage: (usage) => {
+          const sid = useSessionStore.getState().sessionId;
+          trackUsage(settings.provider, settings.model, sid, "recommendation", usage);
+        },
         onDone: () => {
           useSessionStore.getState().finishSummaryStream();
         },
@@ -284,7 +317,7 @@ export default function SessionPage() {
         ];
 
         // Run both in parallel
-        const [summaryResponse, notesResponse] = await Promise.all([
+        const [summaryResult, notesResult] = await Promise.all([
           sendMessage({
             provider: settings.provider,
             apiKey: settings.apiKey,
@@ -303,10 +336,15 @@ export default function SessionPage() {
           }),
         ]);
 
+        // Track usage for both calls
+        const sid = useSessionStore.getState().sessionId;
+        trackUsage(settings.provider, settings.model, sid, "summary", summaryResult.usage);
+        trackUsage(settings.provider, settings.model, sid, "patient_notes", notesResult.usage);
+
         // Parse and save structured summary
         let summary: SessionSummary;
         try {
-          summary = JSON.parse(summaryResponse);
+          summary = JSON.parse(summaryResult.content);
         } catch {
           summary = {
             themes: [],
@@ -318,8 +356,8 @@ export default function SessionPage() {
         session.setSummary(summary);
 
         // Save updated patient notes
-        if (notesResponse && notesResponse.trim().length > 0) {
-          await upsertPatientNotes(notesResponse.trim());
+        if (notesResult.content && notesResult.content.trim().length > 0) {
+          await upsertPatientNotes(notesResult.content.trim());
         }
       } catch {
         session.setSummary({

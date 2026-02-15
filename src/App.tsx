@@ -15,6 +15,7 @@ import DreamsPage from "@/pages/DreamsPage";
 import InsightsPage from "@/pages/InsightsPage";
 import ToolsPage from "@/pages/ToolsPage";
 import ProgramsPage from "@/pages/ProgramsPage";
+import ExpensesPage from "@/pages/ExpensesPage";
 
 function AppContent() {
   const { isOnboarded, setOnboarded, setTheme } = useAppStore();
@@ -86,6 +87,7 @@ function AppContent() {
           <Route path="/insights" element={<InsightsPage />} />
           <Route path="/tools" element={<ToolsPage />} />
           <Route path="/programs" element={<ProgramsPage />} />
+          <Route path="/expenses" element={<ExpensesPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>

@@ -1,4 +1,4 @@
-import type { AIProvider, ChatMessage, ThinkingLevel } from "@/types";
+import type { AIProvider, ChatMessage, ThinkingLevel, TokenUsage } from "@/types";
 
 interface SendMessageParams {
   provider: AIProvider;
@@ -7,6 +7,8 @@ interface SendMessageParams {
   messages: ChatMessage[];
   systemPrompt: string;
   customBaseUrl?: string;
+  thinkingEnabled?: boolean;
+  thinkingLevel?: ThinkingLevel;
 }
 
 interface StreamRequestParams extends SendMessageParams {
@@ -21,38 +23,59 @@ const THINKING_BUDGETS: Record<ThinkingLevel, { budget_tokens: number; max_token
   max: { budget_tokens: 50000, max_tokens: 64000 },
 };
 
+const OPENAI_REASONING_EFFORT: Record<ThinkingLevel, string> = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+  max: "high",
+};
+
+const OPENAI_THINKING_TOKENS: Record<ThinkingLevel, number> = {
+  low: 16000,
+  medium: 25000,
+  high: 50000,
+  max: 50000,
+};
+
 export type StreamChunk =
   | { type: "thinking"; content: string }
   | { type: "text"; content: string }
   | { type: "done" }
+  | { type: "done_with_usage"; usage: TokenUsage }
+  | { type: "usage_delta"; inputTokens?: number; outputTokens?: number }
   | { type: "error"; message: string };
 
 interface ProviderAdapter {
   formatRequest(params: SendMessageParams): { url: string; init: RequestInit };
-  parseResponse(data: unknown): string;
+  parseResponse(data: unknown): { content: string; usage: TokenUsage | null };
   formatStreamRequest(params: StreamRequestParams): { url: string; init: RequestInit };
   parseSSEEvent(eventType: string, data: string): StreamChunk | null;
 }
 
-function isOSeriesModel(model: string): boolean {
-  return /^o\d/.test(model);
+function isReasoningModel(model: string): boolean {
+  return /^o\d/.test(model) || /^gpt-5/.test(model);
 }
 
 const openaiAdapter: ProviderAdapter = {
-  formatRequest({ apiKey, model, messages, systemPrompt, customBaseUrl, provider }) {
+  formatRequest({ apiKey, model, messages, systemPrompt, customBaseUrl, thinkingEnabled, thinkingLevel }) {
     const baseUrl = customBaseUrl || "https://api.openai.com/v1";
-    const isO = isOSeriesModel(model);
+    const isReasoning = isReasoningModel(model);
     const body: Record<string, unknown> = {
       model,
       messages: [
-        { role: "system", content: systemPrompt },
+        { role: isReasoning ? "developer" : "system", content: systemPrompt },
         ...messages.map((m) => ({ role: m.role, content: m.content })),
       ],
     };
-    if (!isO) {
+    if (!isReasoning) {
       body.temperature = 0.7;
     }
-    body.max_completion_tokens = 1024;
+    if (isReasoning && thinkingEnabled) {
+      body.reasoning_effort = OPENAI_REASONING_EFFORT[thinkingLevel ?? "medium"];
+      body.max_completion_tokens = OPENAI_THINKING_TOKENS[thinkingLevel ?? "medium"];
+    } else {
+      body.max_completion_tokens = 1024;
+    }
     return {
       url: `${baseUrl}/chat/completions`,
       init: {
@@ -65,25 +88,61 @@ const openaiAdapter: ProviderAdapter = {
       },
     };
   },
-  parseResponse(data: unknown): string {
-    const d = data as { choices: { message: { content: string } }[] };
-    return d.choices[0]?.message?.content ?? "";
+  parseResponse(data: unknown): { content: string; usage: TokenUsage | null } {
+    const d = data as {
+      choices: { message: { content: string } }[];
+      usage?: { prompt_tokens: number; completion_tokens: number };
+    };
+    const content = d.choices[0]?.message?.content ?? "";
+    const usage = d.usage
+      ? { inputTokens: d.usage.prompt_tokens, outputTokens: d.usage.completion_tokens }
+      : null;
+    return { content, usage };
   },
-  formatStreamRequest({ apiKey, model, messages, systemPrompt, customBaseUrl, provider }) {
+  formatStreamRequest({ apiKey, model, messages, systemPrompt, customBaseUrl, thinkingEnabled, thinkingLevel }) {
     const baseUrl = customBaseUrl || "https://api.openai.com/v1";
-    const isO = isOSeriesModel(model);
+    const isReasoning = isReasoningModel(model);
+
+    // Use Responses API when thinking is enabled for reasoning models
+    if (isReasoning && thinkingEnabled) {
+      const body: Record<string, unknown> = {
+        model,
+        stream: true,
+        instructions: systemPrompt,
+        input: messages.map((m) => ({ role: m.role, content: m.content })),
+        reasoning: {
+          effort: OPENAI_REASONING_EFFORT[thinkingLevel ?? "medium"],
+          summary: "auto",
+        },
+        max_output_tokens: OPENAI_THINKING_TOKENS[thinkingLevel ?? "medium"],
+      };
+      return {
+        url: `${baseUrl}/responses`,
+        init: {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify(body),
+        },
+      };
+    }
+
+    // Chat Completions API for non-reasoning or thinking disabled
     const body: Record<string, unknown> = {
       model,
       stream: true,
       messages: [
-        { role: "system", content: systemPrompt },
+        { role: isReasoning ? "developer" : "system", content: systemPrompt },
         ...messages.map((m) => ({ role: m.role, content: m.content })),
       ],
     };
-    if (!isO) {
+    if (!isReasoning) {
       body.temperature = 0.7;
     }
     body.max_completion_tokens = 1024;
+    body.stream_options = { include_usage: true };
     return {
       url: `${baseUrl}/chat/completions`,
       init: {
@@ -96,15 +155,58 @@ const openaiAdapter: ProviderAdapter = {
       },
     };
   },
-  parseSSEEvent(_eventType: string, data: string): StreamChunk | null {
+  parseSSEEvent(eventType: string, data: string): StreamChunk | null {
+    // Responses API events
+    if (eventType === "response.reasoning_summary_text.delta") {
+      try {
+        const parsed = JSON.parse(data);
+        return parsed.delta ? { type: "thinking", content: parsed.delta } : null;
+      } catch { return null; }
+    }
+    if (eventType === "response.output_text.delta") {
+      try {
+        const parsed = JSON.parse(data);
+        return parsed.delta ? { type: "text", content: parsed.delta } : null;
+      } catch { return null; }
+    }
+    if (eventType === "response.completed") {
+      try {
+        const parsed = JSON.parse(data);
+        if (parsed.response?.usage) {
+          return {
+            type: "done_with_usage",
+            usage: {
+              inputTokens: parsed.response.usage.input_tokens,
+              outputTokens: parsed.response.usage.output_tokens,
+            },
+          };
+        }
+      } catch { /* fall through */ }
+      return { type: "done" };
+    }
+    if (eventType === "error" || eventType === "response.failed") {
+      try {
+        const parsed = JSON.parse(data);
+        return { type: "error", message: parsed.error?.message ?? "Stream error" };
+      } catch { return { type: "error", message: "Stream error" }; }
+    }
+
+    // Chat Completions API events
     if (data === "[DONE]") return { type: "done" };
     try {
       const parsed = JSON.parse(data);
+      // Usage chunk (sent before [DONE] when stream_options.include_usage is true)
+      if (parsed.usage && (!parsed.choices || parsed.choices.length === 0 || !parsed.choices[0]?.delta?.content)) {
+        return {
+          type: "done_with_usage",
+          usage: {
+            inputTokens: parsed.usage.prompt_tokens,
+            outputTokens: parsed.usage.completion_tokens,
+          },
+        };
+      }
       const delta = parsed.choices?.[0]?.delta;
       if (!delta) return null;
-      if (delta.reasoning_content) {
-        return { type: "thinking", content: delta.reasoning_content };
-      }
       if (delta.content) {
         return { type: "text", content: delta.content };
       }
@@ -136,9 +238,16 @@ const anthropicAdapter: ProviderAdapter = {
       },
     };
   },
-  parseResponse(data: unknown): string {
-    const d = data as { content: { type: string; text: string }[] };
-    return d.content.find((c) => c.type === "text")?.text ?? "";
+  parseResponse(data: unknown): { content: string; usage: TokenUsage | null } {
+    const d = data as {
+      content: { type: string; text: string }[];
+      usage?: { input_tokens: number; output_tokens: number };
+    };
+    const content = d.content.find((c) => c.type === "text")?.text ?? "";
+    const usage = d.usage
+      ? { inputTokens: d.usage.input_tokens, outputTokens: d.usage.output_tokens }
+      : null;
+    return { content, usage };
   },
   formatStreamRequest({ apiKey, model, messages, systemPrompt, thinkingEnabled, thinkingLevel }) {
     const body: Record<string, unknown> = {
@@ -170,6 +279,26 @@ const anthropicAdapter: ProviderAdapter = {
     };
   },
   parseSSEEvent(eventType: string, data: string): StreamChunk | null {
+    if (eventType === "message_start") {
+      try {
+        const parsed = JSON.parse(data);
+        const inputTokens = parsed.message?.usage?.input_tokens;
+        if (inputTokens !== undefined) {
+          return { type: "usage_delta", inputTokens };
+        }
+      } catch { /* ignore */ }
+      return null;
+    }
+    if (eventType === "message_delta") {
+      try {
+        const parsed = JSON.parse(data);
+        const outputTokens = parsed.usage?.output_tokens;
+        if (outputTokens !== undefined) {
+          return { type: "usage_delta", outputTokens };
+        }
+      } catch { /* ignore */ }
+      return null;
+    }
     if (eventType === "message_stop") return { type: "done" };
     if (eventType === "content_block_delta") {
       try {

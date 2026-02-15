@@ -86,6 +86,23 @@ export interface AIModel {
   supportsThinking?: boolean;
 }
 
+export interface TokenUsage {
+  inputTokens: number;
+  outputTokens: number;
+}
+
+export interface TokenUsageRecord {
+  id: string;
+  session_id: string | null;
+  provider: AIProvider;
+  model: string;
+  input_tokens: number;
+  output_tokens: number;
+  cost: number;
+  call_type: "greeting" | "chat" | "recommendation" | "summary" | "patient_notes";
+  created_at: string;
+}
+
 export interface SettingsState {
   provider: AIProvider;
   apiKey: string;

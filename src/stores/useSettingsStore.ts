@@ -13,6 +13,7 @@ interface SettingsState {
   thinkingEnabled: boolean;
   thinkingLevel: ThinkingLevel;
   providerApiKeys: Record<string, string>;
+  providerThinkingSettings: Record<string, { enabled: boolean; level: ThinkingLevel }>;
   setProvider: (provider: AIProvider) => void;
   setApiKey: (key: string) => void;
   setModel: (model: string) => void;
@@ -38,11 +39,34 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   thinkingEnabled: false,
   thinkingLevel: "medium",
   providerApiKeys: {},
+  providerThinkingSettings: {},
   setProvider: (provider) => {
     const state = get();
     const updatedKeys = { ...state.providerApiKeys, [state.provider]: state.apiKey };
     const newApiKey = updatedKeys[provider] ?? "";
-    set({ provider, apiKey: newApiKey, providerApiKeys: updatedKeys });
+
+    // Save current provider's thinking settings
+    const updatedThinking = {
+      ...state.providerThinkingSettings,
+      [state.provider]: { enabled: state.thinkingEnabled, level: state.thinkingLevel },
+    };
+
+    // Restore new provider's thinking settings (or defaults)
+    const restored = updatedThinking[provider] ?? { enabled: false, level: "medium" as ThinkingLevel };
+    let restoredLevel = restored.level;
+    // OpenAI doesn't support "max" thinking level
+    if (provider === "openai" && restoredLevel === "max") {
+      restoredLevel = "high";
+    }
+
+    set({
+      provider,
+      apiKey: newApiKey,
+      providerApiKeys: updatedKeys,
+      thinkingEnabled: restored.enabled,
+      thinkingLevel: restoredLevel,
+      providerThinkingSettings: updatedThinking,
+    });
   },
   setApiKey: (apiKey) => {
     const state = get();

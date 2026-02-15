@@ -669,7 +669,6 @@ export default function SessionPage() {
             disabled={session.isCompacting}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Square className="w-3.5 h-3.5" />
             Seansı Bitir
           </button>
         </div>

@@ -12,6 +12,7 @@ const STORE_DEFAULTS = {
   thinkingEnabled: false,
   thinkingLevel: "medium",
   providerApiKeys: {} as Record<string, string>,
+  providerThinkingSettings: {} as Record<string, { enabled: boolean; level: string }>,
 };
 
 export function loadSettings() {

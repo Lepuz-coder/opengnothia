@@ -60,10 +60,6 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
           setTestStatus("idle");
           const prov = getProvider(e.target.value);
           if (prov?.models[0]) setModel(prov.models[0].id);
-          setThinkingEnabled(false);
-          if (e.target.value === "openai" && thinkingLevel === "max") {
-            setThinkingLevel("high");
-          }
         }}
       />
 

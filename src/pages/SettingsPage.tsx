@@ -49,6 +49,7 @@ export default function SettingsPage() {
     await store.set("theme", theme);
     await store.set("thinkingEnabled", settings.thinkingEnabled);
     await store.set("thinkingLevel", settings.thinkingLevel);
+    await store.set("providerThinkingSettings", settings.providerThinkingSettings);
     await store.set("therapySchool", settings.therapySchool);
     await store.save();
 
@@ -126,10 +127,6 @@ export default function SettingsPage() {
               settings.setProvider(e.target.value as AIProvider);
               const prov = getProvider(e.target.value);
               if (prov?.models[0]) settings.setModel(prov.models[0].id);
-              settings.setThinkingEnabled(false);
-              if (e.target.value === "openai" && settings.thinkingLevel === "max") {
-                settings.setThinkingLevel("high");
-              }
             }}
           />
 

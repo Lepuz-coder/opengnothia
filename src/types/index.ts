@@ -8,6 +8,9 @@ export type TherapySchool = "general" | "cbt" | "psychodynamic" | "logotherapy" 
 export interface UserProfile {
   id: number;
   name: string | null;
+  age: number | null;
+  gender: string | null;
+  occupation: string | null;
   goals: string[];
   approach: Approach;
   preferred_session_time: string;

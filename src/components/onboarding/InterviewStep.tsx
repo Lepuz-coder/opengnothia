@@ -1,10 +1,20 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 
 interface InterviewStepProps {
-  onNext: (data: { goals: string[]; approach: string; sessionTime: string }) => void;
+  onNext: (data: {
+    name: string;
+    age: number | null;
+    gender: string;
+    occupation: string;
+    goals: string[];
+    approach: string;
+    sessionTime: string;
+  }) => void;
   onBack: () => void;
 }
 
@@ -21,7 +31,19 @@ const goalOptions = [
   "Genel destek",
 ];
 
+const genderOptions = [
+  { value: "", label: "Seçiniz" },
+  { value: "Kadın", label: "Kadın" },
+  { value: "Erkek", label: "Erkek" },
+  { value: "Diğer", label: "Diğer" },
+  { value: "Belirtmek istemiyorum", label: "Belirtmek istemiyorum" },
+];
+
 export function InterviewStep({ onNext, onBack }: InterviewStepProps) {
+  const [name, setName] = useState("");
+  const [age, setAge] = useState("");
+  const [gender, setGender] = useState("");
+  const [occupation, setOccupation] = useState("");
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
   const { approach, preferredSessionTime, setPreferredSessionTime } = useSettingsStore();
 
@@ -38,6 +60,37 @@ export function InterviewStep({ onNext, onBack }: InterviewStepProps) {
         <p className="text-sm text-[var(--text-muted)] mt-1">
           Deneyimini kişiselleştirmek için birkaç soru.
         </p>
+      </div>
+
+      {/* Personal Info */}
+      <div className="grid grid-cols-2 gap-4">
+        <Input
+          label="Adın"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Adını gir"
+        />
+        <Input
+          label="Yaş"
+          type="number"
+          value={age}
+          onChange={(e) => setAge(e.target.value)}
+          placeholder="25"
+          min={1}
+          max={120}
+        />
+        <Select
+          label="Cinsiyet"
+          options={genderOptions}
+          value={gender}
+          onChange={(e) => setGender(e.target.value)}
+        />
+        <Input
+          label="Meslek / Okul Durumu"
+          value={occupation}
+          onChange={(e) => setOccupation(e.target.value)}
+          placeholder="Öğrenci, Mühendis, vb."
+        />
       </div>
 
       {/* Goals */}
@@ -76,8 +129,16 @@ export function InterviewStep({ onNext, onBack }: InterviewStepProps) {
           Geri
         </Button>
         <Button
-          onClick={() => onNext({ goals: selectedGoals, approach, sessionTime: preferredSessionTime })}
-          disabled={selectedGoals.length === 0}
+          onClick={() => onNext({
+            name: name.trim(),
+            age: age ? parseInt(age, 10) : null,
+            gender,
+            occupation: occupation.trim(),
+            goals: selectedGoals,
+            approach,
+            sessionTime: preferredSessionTime,
+          })}
+          disabled={selectedGoals.length === 0 || !name.trim()}
           className="flex-1"
         >
           Devam

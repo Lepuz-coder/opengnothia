@@ -33,6 +33,12 @@ pub fn run() {
             sql: include_str!("../migrations/005_add_token_usage.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 6,
+            description: "add age, gender, occupation to user_profile",
+            sql: include_str!("../migrations/006_add_profile_fields.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

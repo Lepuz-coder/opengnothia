@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Save, CheckCircle } from "lucide-react";
 import { loadSettings } from "@/lib/store";
 import { Card } from "@/components/ui/Card";
@@ -11,6 +11,7 @@ import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useTheme } from "@/hooks/useTheme";
 import { providers, getProvider, modelSupportsThinking } from "@/constants/providers";
 import { therapySchools } from "@/constants/therapySchools";
+import { getUserProfile, upsertUserProfile } from "@/services/db/queries";
 import type { AIProvider, TherapySchool, ThinkingLevel } from "@/types";
 
 export default function SettingsPage() {
@@ -18,6 +19,21 @@ export default function SettingsPage() {
   const { setOnboarded } = useAppStore();
   const settings = useSettingsStore();
   const [saved, setSaved] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [profileAge, setProfileAge] = useState("");
+  const [profileGender, setProfileGender] = useState("");
+  const [profileOccupation, setProfileOccupation] = useState("");
+
+  useEffect(() => {
+    getUserProfile().then((profile) => {
+      if (profile) {
+        setProfileName(profile.name ?? "");
+        setProfileAge(profile.age != null ? String(profile.age) : "");
+        setProfileGender(profile.gender ?? "");
+        setProfileOccupation(profile.occupation ?? "");
+      }
+    });
+  }, []);
 
   const currentProvider = getProvider(settings.provider);
   const providerOptions = providers.map((p) => ({ value: p.id, label: p.name }));
@@ -35,6 +51,14 @@ export default function SettingsPage() {
     await store.set("thinkingLevel", settings.thinkingLevel);
     await store.set("therapySchool", settings.therapySchool);
     await store.save();
+
+    await upsertUserProfile({
+      name: profileName.trim() || null,
+      age: profileAge ? parseInt(profileAge, 10) : null,
+      gender: profileGender || null,
+      occupation: profileOccupation.trim() || null,
+    });
+
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
@@ -49,6 +73,46 @@ export default function SettingsPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold">Ayarlar</h1>
+
+      {/* Personal Info */}
+      <Card>
+        <h2 className="font-semibold mb-4">Kişisel Bilgiler</h2>
+        <div className="grid grid-cols-2 gap-4">
+          <Input
+            label="Ad"
+            value={profileName}
+            onChange={(e) => setProfileName(e.target.value)}
+            placeholder="Adını gir"
+          />
+          <Input
+            label="Yaş"
+            type="number"
+            value={profileAge}
+            onChange={(e) => setProfileAge(e.target.value)}
+            placeholder="25"
+            min={1}
+            max={120}
+          />
+          <Select
+            label="Cinsiyet"
+            options={[
+              { value: "", label: "Seçiniz" },
+              { value: "Kadın", label: "Kadın" },
+              { value: "Erkek", label: "Erkek" },
+              { value: "Diğer", label: "Diğer" },
+              { value: "Belirtmek istemiyorum", label: "Belirtmek istemiyorum" },
+            ]}
+            value={profileGender}
+            onChange={(e) => setProfileGender(e.target.value)}
+          />
+          <Input
+            label="Meslek / Okul Durumu"
+            value={profileOccupation}
+            onChange={(e) => setProfileOccupation(e.target.value)}
+            placeholder="Öğrenci, Mühendis, vb."
+          />
+        </div>
+      </Card>
 
       {/* AI Settings */}
       <Card>

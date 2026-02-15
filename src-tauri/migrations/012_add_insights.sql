@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS insight_groups (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  emoji TEXT DEFAULT '💡',
+  description TEXT,
+  color TEXT DEFAULT '#3ABAB4',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS insights (
+  id TEXT PRIMARY KEY,
+  group_id TEXT NOT NULL REFERENCES insight_groups(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  is_pinned INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_insights_group_id ON insights(group_id);

@@ -69,6 +69,12 @@ pub fn run() {
             sql: include_str!("../migrations/011_add_weekly_summaries.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 12,
+            description: "add insight_groups and insights tables",
+            sql: include_str!("../migrations/012_add_insights.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

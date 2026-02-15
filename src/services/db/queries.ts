@@ -1,5 +1,5 @@
 import { getDatabase } from "./database";
-import type { CheckIn, Dream, Session, UserProfile, ChatMessage, SessionSummary, TokenUsageRecord, JournalEntry, MoodEntry, WeeklySummary } from "@/types";
+import type { CheckIn, Dream, Session, UserProfile, ChatMessage, SessionSummary, TokenUsageRecord, JournalEntry, MoodEntry, WeeklySummary, InsightGroup, Insight } from "@/types";
 
 // User Profile
 export async function getUserProfile(): Promise<UserProfile | null> {
@@ -439,4 +439,103 @@ export async function getTokenUsageSummaryByProvider(): Promise<
      GROUP BY provider, model
      ORDER BY provider, total_cost DESC`
   );
+}
+
+// Insight Groups
+export async function getInsightGroups(): Promise<InsightGroup[]> {
+  const db = await getDatabase();
+  return db.select<InsightGroup[]>(
+    `SELECT ig.*,
+            COUNT(i.id) as insight_count,
+            MAX(i.created_at) as last_insight_at
+     FROM insight_groups ig
+     LEFT JOIN insights i ON i.group_id = ig.id
+     GROUP BY ig.id
+     ORDER BY ig.updated_at DESC`
+  );
+}
+
+export async function createInsightGroup(data: {
+  name: string;
+  emoji?: string;
+  description?: string;
+  color?: string;
+}): Promise<string> {
+  const db = await getDatabase();
+  const id = crypto.randomUUID();
+  await db.execute(
+    "INSERT INTO insight_groups (id, name, emoji, description, color) VALUES (?, ?, ?, ?, ?)",
+    [id, data.name, data.emoji ?? "💡", data.description ?? null, data.color ?? "#3ABAB4"]
+  );
+  return id;
+}
+
+export async function updateInsightGroup(
+  id: string,
+  data: { name?: string; emoji?: string; description?: string; color?: string }
+): Promise<void> {
+  const db = await getDatabase();
+  const sets: string[] = [];
+  const values: unknown[] = [];
+  if (data.name !== undefined) { sets.push("name = ?"); values.push(data.name); }
+  if (data.emoji !== undefined) { sets.push("emoji = ?"); values.push(data.emoji); }
+  if (data.description !== undefined) { sets.push("description = ?"); values.push(data.description); }
+  if (data.color !== undefined) { sets.push("color = ?"); values.push(data.color); }
+  sets.push("updated_at = CURRENT_TIMESTAMP");
+  values.push(id);
+  await db.execute(`UPDATE insight_groups SET ${sets.join(", ")} WHERE id = ?`, values);
+}
+
+export async function deleteInsightGroup(id: string): Promise<void> {
+  const db = await getDatabase();
+  await db.execute("DELETE FROM insights WHERE group_id = ?", [id]);
+  await db.execute("DELETE FROM insight_groups WHERE id = ?", [id]);
+}
+
+// Insights
+export async function getInsightsByGroupId(groupId: string): Promise<Insight[]> {
+  const db = await getDatabase();
+  const rows = await db.select<Insight[]>(
+    "SELECT * FROM insights WHERE group_id = ? ORDER BY is_pinned DESC, created_at DESC",
+    [groupId]
+  );
+  return rows.map((r) => ({ ...r, is_pinned: Boolean(r.is_pinned) }));
+}
+
+export async function createInsight(data: {
+  group_id: string;
+  content: string;
+}): Promise<string> {
+  const db = await getDatabase();
+  const id = crypto.randomUUID();
+  await db.execute(
+    "INSERT INTO insights (id, group_id, content) VALUES (?, ?, ?)",
+    [id, data.group_id, data.content]
+  );
+  await db.execute(
+    "UPDATE insight_groups SET updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+    [data.group_id]
+  );
+  return id;
+}
+
+export async function updateInsightContent(id: string, content: string): Promise<void> {
+  const db = await getDatabase();
+  await db.execute(
+    "UPDATE insights SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+    [content, id]
+  );
+}
+
+export async function toggleInsightPin(id: string, isPinned: boolean): Promise<void> {
+  const db = await getDatabase();
+  await db.execute(
+    "UPDATE insights SET is_pinned = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+    [isPinned ? 1 : 0, id]
+  );
+}
+
+export async function deleteInsight(id: string): Promise<void> {
+  const db = await getDatabase();
+  await db.execute("DELETE FROM insights WHERE id = ?", [id]);
 }

@@ -107,6 +107,27 @@ export interface MoodEntry {
   updated_at: string;
 }
 
+export interface InsightGroup {
+  id: string;
+  name: string;
+  emoji: string;
+  description: string | null;
+  color: string;
+  insight_count: number;
+  last_insight_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Insight {
+  id: string;
+  group_id: string;
+  content: string;
+  is_pinned: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface WeeklySummary {
   id: string;
   week_start: string;

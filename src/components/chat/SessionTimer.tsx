@@ -22,7 +22,7 @@ export function SessionTimer({ startedAt }: SessionTimerProps) {
   return (
     <div className="flex items-center gap-1.5 text-sm text-[var(--text-muted)]">
       <Clock className="w-4 h-4" />
-      <span>{String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}</span>
+      <span className="tabular-nums w-[3.5ch] text-right">{String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}</span>
     </div>
   );
 }

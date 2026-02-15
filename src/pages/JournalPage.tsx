@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { useSettingsStore } from "@/stores/useSettingsStore";
+import { useAppStore } from "@/stores/useAppStore";
 import { streamMessage, sendMessage } from "@/services/ai/aiService";
 import { calculateCost } from "@/services/ai/costCalculator";
 import { buildJournalAnalysisPrompt, buildJournalPatientNotesUpdatePrompt } from "@/services/ai/promptBuilder";
@@ -18,7 +19,7 @@ import {
   upsertPatientNotes,
   saveTokenUsage,
 } from "@/services/db/queries";
-import { BookOpen, Plus, ArrowLeft, Trash2, Sparkles, Loader2, X } from "lucide-react";
+import { BookOpen, Plus, ArrowLeft, Trash2, Sparkles, Loader2, FileText } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { JournalEntry, AIProvider, TokenUsage } from "@/types";
@@ -46,6 +47,7 @@ async function trackUsage(
 
 export default function JournalPage() {
   const settings = useSettingsStore();
+  const setSidebarHidden = useAppStore((s) => s.setSidebarHidden);
 
   // View state
   const [view, setView] = useState<View>("list");
@@ -55,23 +57,29 @@ export default function JournalPage() {
 
   // Write form state
   const [content, setContent] = useState("");
-  const [mood, setMood] = useState<number | null>(null);
-  const [tagInput, setTagInput] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   // Analysis state
-  const [analysisStream, setAnalysisStream] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isTakingNotes, setIsTakingNotes] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Delete state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [analysisModalOpen, setAnalysisModalOpen] = useState(false);
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // Hide sidebar in write view
+  useEffect(() => {
+    if (view === "write") {
+      setSidebarHidden(true);
+    } else {
+      setSidebarHidden(false);
+    }
+    return () => setSidebarHidden(false);
+  }, [view, setSidebarHidden]);
 
   // Load entries
   const loadEntries = useCallback(async () => {
-    setLoading(true);
     const data = await getJournalEntries(50);
     setEntries(data);
     setLoading(false);
@@ -81,20 +89,9 @@ export default function JournalPage() {
     loadEntries();
   }, [loadEntries]);
 
-  // Auto-expand textarea
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = Math.max(200, textareaRef.current.scrollHeight) + "px";
-    }
-  }, [content]);
-
   // Navigate to write view
   const handleNewEntry = () => {
     setContent("");
-    setMood(null);
-    setTags([]);
-    setTagInput("");
     setView("write");
   };
 
@@ -102,15 +99,19 @@ export default function JournalPage() {
   const handleSave = async () => {
     if (!content.trim()) return;
     setSaving(true);
-    const entry = await createJournalEntry({
-      content: content.trim(),
-      mood,
-      tags,
-    });
-    setSaving(false);
-    setSelectedEntry(entry);
-    setView("detail");
-    loadEntries();
+    try {
+      const entry = await createJournalEntry({
+        content: content.trim(),
+        mood: null,
+        tags: [],
+      });
+      setSelectedEntry(entry);
+      setView("detail");
+      setContent("");
+      await loadEntries();
+    } finally {
+      setSaving(false);
+    }
   };
 
   // View detail
@@ -118,7 +119,7 @@ export default function JournalPage() {
     const entry = await getJournalEntryById(id);
     if (entry) {
       setSelectedEntry(entry);
-      setAnalysisStream("");
+      setError(null);
       setView("detail");
     }
   };
@@ -127,33 +128,18 @@ export default function JournalPage() {
   const handleDelete = async () => {
     if (!selectedEntry) return;
     await deleteJournalEntry(selectedEntry.id);
-    setDeleteModalOpen(false);
     setSelectedEntry(null);
+    setDeleteModalOpen(false);
     setView("list");
-    loadEntries();
-  };
-
-  // Add tag
-  const handleAddTag = () => {
-    const tag = tagInput.trim();
-    if (tag && !tags.includes(tag)) {
-      setTags([...tags, tag]);
-    }
-    setTagInput("");
-  };
-
-  const handleTagKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleAddTag();
-    }
+    await loadEntries();
   };
 
   // AI Analysis
   const handleAnalyze = async () => {
     if (!selectedEntry || isAnalyzing) return;
     setIsAnalyzing(true);
-    setAnalysisStream("");
+    setError(null);
+    setAnalysisModalOpen(true);
 
     try {
       const [profile, patientNotes] = await Promise.all([
@@ -171,6 +157,8 @@ export default function JournalPage() {
       });
 
       let fullAnalysis = "";
+      let streamUsage: TokenUsage | null = null;
+      let streamError: Error | null = null;
 
       await streamMessage({
         provider: settings.provider,
@@ -185,49 +173,58 @@ export default function JournalPage() {
         onThinking: () => {},
         onContent: (chunk) => {
           fullAnalysis += chunk;
-          setAnalysisStream((prev) => prev + chunk);
+          setSelectedEntry((prev) =>
+            prev ? { ...prev, ai_analysis: fullAnalysis } : prev,
+          );
         },
-        onDone: async () => {
-          // Save analysis to DB
-          await updateJournalAnalysis(selectedEntry.id, fullAnalysis);
-          setSelectedEntry((prev) => prev ? { ...prev, ai_analysis: fullAnalysis } : prev);
-          setIsAnalyzing(false);
-
-          // Update entries list
-          loadEntries();
-
-          // Background: update patient notes silently
-          try {
-            const existingNotes = await getPatientNotes();
-            const notesPrompt = buildJournalPatientNotesUpdatePrompt(existingNotes, selectedEntry.content);
-
-            const notesResult = await sendMessage({
-              provider: settings.provider,
-              apiKey: settings.apiKey,
-              model: settings.model,
-              messages: [{ id: "journal-notes", role: "user", content: notesPrompt, timestamp: new Date().toISOString() }],
-              systemPrompt: "Sen deneyimli bir klinik psikolog. Hasta notlarını güncelle.",
-              customBaseUrl: settings.customBaseUrl || undefined,
-            });
-
-            if (notesResult.content && notesResult.content.trim().length > 0) {
-              await upsertPatientNotes(notesResult.content.trim());
-            }
-            trackUsage(settings.provider, settings.model, "patient_notes", notesResult.usage);
-          } catch {
-            // Silent failure for background notes update
-          }
+        onDone: () => {},
+        onError: (err) => {
+          streamError = err;
         },
         onUsage: (usage) => {
-          trackUsage(settings.provider, settings.model, "journal_analysis", usage);
-        },
-        onError: (error) => {
-          setAnalysisStream(`Bir hata oluştu: ${error.message}`);
-          setIsAnalyzing(false);
+          streamUsage = usage;
         },
       });
+
+      if (streamError) {
+        throw streamError;
+      }
+
+      // Save analysis to DB
+      await updateJournalAnalysis(selectedEntry.id, fullAnalysis);
+      await trackUsage(settings.provider, settings.model, "journal_analysis", streamUsage);
+
+      // Update patient notes
+      setIsTakingNotes(true);
+      try {
+        const existingNotes = await getPatientNotes();
+        const notesPrompt = buildJournalPatientNotesUpdatePrompt(existingNotes, selectedEntry.content);
+        const notesResult = await sendMessage({
+          provider: settings.provider,
+          apiKey: settings.apiKey,
+          model: settings.model,
+          messages: [{ id: "journal-notes", role: "user", content: notesPrompt, timestamp: new Date().toISOString() }],
+          systemPrompt: "Sen deneyimli bir klinik psikolog. Hasta notlarını güncelle.",
+          customBaseUrl: settings.customBaseUrl || undefined,
+        });
+
+        if (notesResult.content && notesResult.content.trim().length > 0) {
+          await upsertPatientNotes(notesResult.content.trim());
+        }
+        trackUsage(settings.provider, settings.model, "patient_notes", notesResult.usage);
+      } catch {
+        // Silent failure for background notes update
+      } finally {
+        setIsTakingNotes(false);
+      }
+
+      // Refresh data
+      const updated = await getJournalEntryById(selectedEntry.id);
+      if (updated) setSelectedEntry(updated);
+      await loadEntries();
     } catch (err) {
-      setAnalysisStream(`Bir hata oluştu: ${err instanceof Error ? err.message : "Bilinmeyen hata"}`);
+      setError(err instanceof Error ? err.message : "Bir hata oluştu. Lütfen API ayarlarını kontrol et.");
+    } finally {
       setIsAnalyzing(false);
     }
   };
@@ -242,194 +239,49 @@ export default function JournalPage() {
     });
   };
 
-  const formatDateTime = (dateStr: string) => {
-    const date = new Date(dateStr.includes("T") ? dateStr : dateStr + "Z");
-    return date.toLocaleDateString("tr-TR", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  // ─── List View ───
-  if (view === "list") {
+  // ─── Loading ───
+  if (loading) {
     return (
       <div className="max-w-2xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-xl font-bold">Günlük</h2>
-            <p className="text-sm text-[var(--text-muted)]">Düşüncelerini ve duygularını kaydet</p>
-          </div>
-          <Button onClick={handleNewEntry} size="lg">
-            <span className="flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              Yeni Giriş
-            </span>
-          </Button>
+        <h1 className="text-2xl font-bold mb-6">Günlük</h1>
+        <div className="flex items-center gap-2 text-[var(--text-muted)]">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          <span>Yükleniyor...</span>
         </div>
-
-        {loading ? (
-          <div className="flex items-center gap-2 text-[var(--text-muted)]">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span>Yükleniyor...</span>
-          </div>
-        ) : entries.length === 0 ? (
-          <Card>
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <BookOpen className="w-12 h-12 text-[var(--text-muted)] mb-4" />
-              <h3 className="font-medium mb-2">Henüz günlük girişi yok</h3>
-              <p className="text-sm text-[var(--text-muted)] max-w-sm">
-                Düşüncelerini, duygularını ve deneyimlerini yazarak kendini daha iyi anlayabilirsin.
-              </p>
-            </div>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {entries.map((entry) => (
-              <Card key={entry.id}>
-                <button
-                  onClick={() => handleViewEntry(entry.id)}
-                  className="w-full text-left"
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm text-[var(--text-muted)]">
-                      {formatDate(entry.date)}
-                    </span>
-                    {entry.mood !== null && (
-                      <Badge variant="default">{entry.mood}/10</Badge>
-                    )}
-                    {entry.ai_analysis && (
-                      <Badge variant="primary">Analiz</Badge>
-                    )}
-                  </div>
-                  <p className="text-[var(--text-primary)] line-clamp-2">
-                    {entry.content}
-                  </p>
-                  {entry.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {entry.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="text-xs px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-muted)]"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </button>
-              </Card>
-            ))}
-          </div>
-        )}
       </div>
     );
   }
 
   // ─── Write View ───
   if (view === "write") {
+    const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
+    const today = new Date();
+    const dateLabel = today.toLocaleDateString("tr-TR", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+
     return (
-      <div className="max-w-2xl mx-auto">
-        <div className="flex items-center gap-3 mb-6">
+      <div className="flex flex-col h-screen">
+        {/* Top bar */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)]">
           <button
             onClick={() => setView("list")}
-            className="p-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
+            className="flex items-center gap-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-4 h-4" />
+            Geri
           </button>
-          <h2 className="text-xl font-bold">Yeni Günlük Girişi</h2>
-        </div>
-
-        <div className="space-y-6">
-          {/* Content textarea */}
-          <div>
-            <textarea
-              ref={textareaRef}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Bugün neler hissettin, neler yaşadın?"
-              className="w-full min-h-[200px] p-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all"
-            />
-          </div>
-
-          {/* Mood slider */}
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Ruh Hali {mood !== null ? `(${mood}/10)` : "(isteğe bağlı)"}
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                type="range"
-                min={1}
-                max={10}
-                value={mood ?? 5}
-                onChange={(e) => setMood(Number(e.target.value))}
-                className="flex-1 accent-[var(--primary-500)]"
-              />
-              {mood !== null && (
-                <button
-                  onClick={() => setMood(null)}
-                  className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
-                >
-                  Temizle
-                </button>
-              )}
-              {mood === null && (
-                <button
-                  onClick={() => setMood(5)}
-                  className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
-                >
-                  Ekle
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Tags */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Etiketler</label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="inline-flex items-center gap-1 text-sm px-3 py-1 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
-                >
-                  {tag}
-                  <button
-                    onClick={() => setTags(tags.filter((t) => t !== tag))}
-                    className="hover:text-[var(--text-primary)] transition-colors"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={handleTagKeyDown}
-                placeholder="Etiket ekle..."
-                className="flex-1 px-3 py-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-primary-500/50"
-              />
-              <Button variant="secondary" size="sm" onClick={handleAddTag} disabled={!tagInput.trim()}>
-                Ekle
-              </Button>
-            </div>
-          </div>
-
-          {/* Save button */}
+          <span className="text-sm text-[var(--text-muted)] capitalize">{dateLabel}</span>
           <Button
             onClick={handleSave}
-            size="lg"
-            className="w-full"
             disabled={!content.trim() || saving}
+            size="sm"
           >
             {saving ? (
-              <span className="flex items-center justify-center gap-2">
+              <span className="flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Kaydediliyor...
               </span>
@@ -438,105 +290,153 @@ export default function JournalPage() {
             )}
           </Button>
         </div>
+
+        {/* Writing area */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-3xl mx-auto px-6 py-10">
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Bugün neler hissettin, neler yaşadın?"
+              autoFocus
+              className="w-full bg-transparent text-[var(--text-primary)] text-lg leading-relaxed placeholder:text-[var(--text-muted)]/40 resize-none focus:outline-none"
+              style={{ minHeight: "calc(100vh - 180px)" }}
+            />
+          </div>
+        </div>
+
+        {/* Bottom bar */}
+        <div className="flex items-center justify-end px-6 py-3 border-t border-[var(--border-color)]">
+          <span className="text-xs text-[var(--text-muted)]">
+            {wordCount} kelime
+          </span>
+        </div>
       </div>
     );
   }
 
   // ─── Detail View ───
   if (view === "detail" && selectedEntry) {
-    const hasAnalysis = selectedEntry.ai_analysis && selectedEntry.ai_analysis.trim().length > 0;
-    const showStreamingAnalysis = isAnalyzing || analysisStream.length > 0;
+    const isBusy = isAnalyzing || isTakingNotes;
 
     return (
       <div className="max-w-2xl mx-auto">
+        <button
+          onClick={() => { if (!isBusy) { setView("list"); setSelectedEntry(null); setError(null); } }}
+          disabled={isBusy}
+          className={`flex items-center gap-1.5 text-sm transition-colors mb-6 ${isBusy ? "text-[var(--text-muted)] opacity-50 cursor-not-allowed" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Geri
+        </button>
+
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => { setView("list"); setAnalysisStream(""); }}
-              className="p-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h2 className="text-xl font-bold">Günlük Girişi</h2>
-              <p className="text-sm text-[var(--text-muted)]">{formatDateTime(selectedEntry.created_at)}</p>
-            </div>
+          <div>
+            <h1 className="text-2xl font-bold">Günlük Detayı</h1>
+            <p className="text-sm text-[var(--text-muted)]">
+              {new Date(selectedEntry.created_at.includes("T") ? selectedEntry.created_at : selectedEntry.created_at + "Z").toLocaleString("tr-TR", {
+                day: "2-digit",
+                month: "long",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </p>
           </div>
-          <button
-            onClick={() => setDeleteModalOpen(true)}
-            className="p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
-          >
-            <Trash2 className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={() => {
+                if (selectedEntry.ai_analysis) {
+                  setAnalysisModalOpen(true);
+                } else {
+                  handleAnalyze();
+                }
+              }}
+              disabled={isAnalyzing}
+            >
+              {isAnalyzing ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Analiz ediliyor...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" />
+                  {selectedEntry.ai_analysis ? "Analizi Göster" : "Analiz Et"}
+                </span>
+              )}
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => setDeleteModalOpen(true)}
+              disabled={isBusy}
+            >
+              <Trash2 className="w-4 h-4" />
+              Sil
+            </Button>
+          </div>
         </div>
 
         {/* Entry content */}
         <Card>
-          <div className="space-y-4">
-            {/* Mood & Tags */}
-            {(selectedEntry.mood !== null || selectedEntry.tags.length > 0) && (
-              <div className="flex flex-wrap items-center gap-2">
-                {selectedEntry.mood !== null && (
-                  <Badge variant="default">Ruh Hali: {selectedEntry.mood}/10</Badge>
-                )}
-                {selectedEntry.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="text-xs px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-muted)]"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* Content */}
-            <div className="whitespace-pre-wrap text-[var(--text-primary)] leading-relaxed">
-              {selectedEntry.content}
+          {(selectedEntry.mood !== null || selectedEntry.tags.length > 0) && (
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              {selectedEntry.mood !== null && (
+                <Badge variant="default">Ruh Hali: {selectedEntry.mood}/10</Badge>
+              )}
+              {selectedEntry.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="text-xs px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-muted)]"
+                >
+                  {tag}
+                </span>
+              ))}
             </div>
-          </div>
+          )}
+          <p className="text-[var(--text-primary)] whitespace-pre-wrap leading-relaxed">{selectedEntry.content}</p>
         </Card>
 
-        {/* AI Analysis section */}
-        <div className="mt-6">
-          {!hasAnalysis && !showStreamingAnalysis && (
-            <Button onClick={handleAnalyze} variant="secondary" className="w-full">
-              <span className="flex items-center justify-center gap-2">
-                <Sparkles className="w-4 h-4" />
-                AI Analiz
-              </span>
-            </Button>
-          )}
-
-          {showStreamingAnalysis && !hasAnalysis && (
-            <Card>
-              <div className="flex items-center gap-2 mb-3">
-                <Sparkles className="w-4 h-4 text-primary-500" />
-                <h3 className="font-medium">AI Analiz</h3>
-                {isAnalyzing && <Loader2 className="w-4 h-4 animate-spin text-[var(--text-muted)]" />}
-              </div>
-              <div className="prose prose-sm dark:prose-invert max-w-none text-[var(--text-secondary)]">
+        {/* Analysis modal */}
+        <Modal
+          isOpen={analysisModalOpen}
+          onClose={() => { if (!isBusy) setAnalysisModalOpen(false); }}
+          title="AI Analizi"
+          className="max-w-2xl max-h-[80vh] flex flex-col"
+        >
+          <div className="overflow-y-auto flex-1 -mx-6 px-6">
+            {selectedEntry.ai_analysis ? (
+              <div
+                className="prose prose-invert prose-sm max-w-none text-[var(--text-primary)] [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm [&_h1]:font-bold [&_h2]:font-semibold [&_h3]:font-medium [&_strong]:text-[var(--text-primary)] [&_p]:text-[var(--text-secondary)] [&_li]:text-[var(--text-secondary)] [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+              >
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {analysisStream}
+                  {selectedEntry.ai_analysis}
                 </ReactMarkdown>
               </div>
-            </Card>
+            ) : (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-6 h-6 animate-spin text-primary-400" />
+              </div>
+            )}
+          </div>
+
+          {/* Notes loading indicator inside modal */}
+          {isTakingNotes && (
+            <div className="mt-4 flex items-center gap-2 px-4 py-3 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-color)]">
+              <FileText className="w-4 h-4 text-primary-400" />
+              <Loader2 className="w-4 h-4 animate-spin text-primary-400" />
+              <span className="text-sm text-[var(--text-secondary)]">Not alınıyor...</span>
+            </div>
           )}
 
-          {hasAnalysis && (
-            <Card>
-              <div className="flex items-center gap-2 mb-3">
-                <Sparkles className="w-4 h-4 text-primary-500" />
-                <h3 className="font-medium">AI Analiz</h3>
-              </div>
-              <div className="prose prose-sm dark:prose-invert max-w-none text-[var(--text-secondary)]">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {selectedEntry.ai_analysis!}
-                </ReactMarkdown>
-              </div>
-            </Card>
+          {error && (
+            <div className="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+              <p className="text-sm text-red-400">{error}</p>
+            </div>
           )}
-        </div>
+        </Modal>
 
         {/* Delete confirmation modal */}
         <Modal isOpen={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="Girişi Sil">
@@ -556,5 +456,81 @@ export default function JournalPage() {
     );
   }
 
-  return null;
+  // ─── List View (default) ───
+  return (
+    <div className="max-w-2xl mx-auto">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold">Günlük</h1>
+          <p className="text-sm text-[var(--text-muted)]">Düşüncelerini ve duygularını kaydet</p>
+        </div>
+        <Button onClick={handleNewEntry}>
+          <Plus className="w-4 h-4" />
+          Yeni Giriş
+        </Button>
+      </div>
+
+      {entries.length === 0 ? (
+        <Card>
+          <div className="text-center py-12">
+            <BookOpen className="w-12 h-12 text-[var(--text-muted)] mx-auto mb-4" />
+            <h2 className="text-lg font-medium mb-2">Henüz günlük girişi yok</h2>
+            <p className="text-[var(--text-muted)] mb-6">
+              Düşüncelerini, duygularını ve deneyimlerini yazarak kendini daha iyi anlayabilirsin.
+            </p>
+            <Button onClick={handleNewEntry}>
+              <Plus className="w-4 h-4" />
+              İlk Girişini Yaz
+            </Button>
+          </div>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {entries.map((entry) => (
+            <Card
+              key={entry.id}
+              className="cursor-pointer hover:border-[var(--text-muted)] transition-colors"
+              onClick={() => handleViewEntry(entry.id)}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-[var(--text-muted)] mb-1">
+                    {formatDate(entry.date)}
+                  </p>
+                  <p className="text-[var(--text-primary)] line-clamp-2">
+                    {entry.content.length > 100
+                      ? entry.content.slice(0, 100) + "..."
+                      : entry.content}
+                  </p>
+                  {entry.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {entry.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="text-xs px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-muted)]"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {entry.mood !== null && (
+                    <Badge variant="default">{entry.mood}/10</Badge>
+                  )}
+                  {entry.ai_analysis && (
+                    <Badge variant="primary" className="shrink-0">
+                      <Sparkles className="w-3 h-3 mr-1" />
+                      Analiz Edildi
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }

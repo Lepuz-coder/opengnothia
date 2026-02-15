@@ -233,6 +233,67 @@ KRİTİK: Özet, tam konuşma geçmişine hâlâ sahipmiş gibi seansa doğal bi
 Terapist notu tarzında, birinci tekil şahıs ile yaz. Kapsamlı ama öz ol. Türkçe yaz.`;
 }
 
+export function buildWeeklySummaryPrompt(params: {
+  weekRange: string;
+  sessions: {
+    date: string;
+    summary: SessionSummary | null;
+    summaryNarrative: string | null;
+  }[];
+  patientNotes: string;
+  profile: UserProfile | null;
+}): string {
+  const { weekRange, sessions, patientNotes, profile } = params;
+
+  let prompt = `Sen deneyimli bir klinik psikologsun. Danışanının ${weekRange} tarihleri arasındaki haftalık terapi sürecini değerlendireceksin.
+
+Bu hafta ${sessions.length} seans gerçekleşti. Aşağıda her seansın özeti bulunmaktadır:`;
+
+  for (let i = 0; i < sessions.length; i++) {
+    const s = sessions[i];
+    prompt += `\n\n--- Seans ${i + 1} (${s.date}) ---`;
+    if (s.summary) {
+      if (s.summary.themes.length > 0) prompt += `\nTemalar: ${s.summary.themes.join(", ")}`;
+      if (s.summary.defenses.length > 0) prompt += `\nSavunma mekanizmaları: ${s.summary.defenses.join(", ")}`;
+      if (s.summary.insights.length > 0) prompt += `\nİçgörüler: ${s.summary.insights.join(", ")}`;
+      if (s.summary.homework.length > 0) prompt += `\nÖdevler: ${s.summary.homework.join(", ")}`;
+    }
+    if (s.summaryNarrative) {
+      prompt += `\nSeans anlatısı: ${s.summaryNarrative}`;
+    }
+  }
+
+  if (profile) {
+    prompt += `\n\nDanışan bilgileri:`;
+    if (profile.name) prompt += `\n- İsim: ${profile.name}`;
+    if (profile.age) prompt += `\n- Yaş: ${profile.age}`;
+    if (profile.goals.length > 0) prompt += `\n- Hedefler: ${profile.goals.join(", ")}`;
+  }
+
+  if (patientNotes && patientNotes.trim().length > 0) {
+    prompt += `\n\n--- Kümülatif Hasta Notları ---\n${patientNotes}`;
+  }
+
+  prompt += `\n\n--- Görevin ---
+Haftalık bir değerlendirme raporu oluştur. Şunları içermeli:
+
+1. **Haftanın Genel Değerlendirmesi**: Bu haftaki seansların genel bir özeti ve danışanın genel durumu
+2. **Öne Çıkan Temalar**: Hafta boyunca tekrarlayan veya belirgin olan temalar
+3. **Gözlemlenen İlerleme**: Olumlu gelişmeler, içgörüler ve fark edilen değişimler
+4. **Dikkat Edilmesi Gerekenler**: Dirençli alanlar, risk faktörleri veya derinleştirilmesi gereken konular
+5. **Gelecek Hafta İçin Öneriler**: Danışana yönelik somut öneriler ve odaklanılması gereken konular
+
+Kurallar:
+- Markdown formatında yaz (başlıklar, kalın metin, listeler kullanabilirsin)
+- Danışana doğrudan hitap et ("sen" dili kullan)
+- Sıcak, destekleyici ve motive edici bir ton kullan
+- Klinik jargondan kaçın, anlaşılır ol
+- Türkçe yaz
+- KRİTİK: Gelecek seanslarda ele alınacak konular, terapist planları veya öncelik listeleri gibi klinik içerikler YAZMA. Danışan gelecek seanslarda nelerin konuşulacağını önceden bilmemeli — bu terapötik süreci olumsuz etkiler. Sadece danışanın kendi hayatında uygulayabileceği öneriler ver.`;
+
+  return prompt;
+}
+
 export function buildSummaryPrompt(): string {
   return `Yukarıdaki seans konuşmasını analiz et ve aşağıdaki JSON formatında bir özet oluştur. Sadece JSON döndür, başka bir şey yazma.
 

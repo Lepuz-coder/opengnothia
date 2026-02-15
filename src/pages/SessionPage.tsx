@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { useSessionStore } from "@/stores/useSessionStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
@@ -14,6 +14,7 @@ import { ChatInput } from "@/components/chat/ChatInput";
 import { SessionTimer } from "@/components/chat/SessionTimer";
 import { SessionEndSummary } from "@/components/session/SessionEndSummary";
 import { PastSessionsList } from "@/components/session/PastSessionsList";
+import type { PastSessionsListHandle, WeekSummaryInfo } from "@/components/session/PastSessionsList";
 import { PastSessionDetail } from "@/components/session/PastSessionDetail";
 import { sendMessage, streamMessage, testApiKey } from "@/services/ai/aiService";
 import { calculateCost } from "@/services/ai/costCalculator";
@@ -22,7 +23,7 @@ import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
 import { createSession, updateSessionMessages, completeSession, deleteSession, getUserProfile, getTodayCheckIn, getRecentSessions, getPatientNotes, saveTokenUsage } from "@/services/db/queries";
 import { therapySchools, getTherapySchool, getTherapySchoolName } from "@/constants/therapySchools";
 import { providers, getProvider, modelSupportsThinking } from "@/constants/providers";
-import { Square, Loader2 } from "lucide-react";
+import { Square, Loader2, FileText, Sparkles } from "lucide-react";
 import type { AIProvider, ChatMessage, SessionSummary, ThinkingLevel, TokenUsage } from "@/types";
 
 async function trackUsage(
@@ -79,6 +80,9 @@ export default function SessionPage() {
   const [endConfirmOpen, setEndConfirmOpen] = useState(false);
   const [apiTesting, setApiTesting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const pastSessionsRef = useRef<PastSessionsListHandle>(null);
+  const [weekSummaryInfo, setWeekSummaryInfo] = useState<WeekSummaryInfo>({ weekSessionCount: 0, hasWeeklySummary: false, summaryLoading: false, generating: false });
+  const isSunday = new Date().getDay() === 0;
 
   // Restore sidebar when leaving session page
   useEffect(() => {
@@ -511,13 +515,42 @@ export default function SessionPage() {
             <h2 className="text-xl font-bold">Seanslar</h2>
             <p className="text-sm text-[var(--text-muted)]">Geçmiş seanslarını görüntüle veya yeni bir seans başlat</p>
           </div>
-          <Button onClick={() => { setApiError(null); setStartModalOpen(true); }} size="lg">
-            Seans Başlat
-          </Button>
+          <div className="flex items-center gap-3">
+            {/* Weekly Summary Button */}
+            {weekSummaryInfo.weekSessionCount >= 2 && !weekSummaryInfo.summaryLoading && (
+              weekSummaryInfo.hasWeeklySummary ? (
+                <Button variant="secondary" size="lg" onClick={() => pastSessionsRef.current?.showSummary()}>
+                  <span className="flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    Haftalık Özeti Göster
+                  </span>
+                </Button>
+              ) : isSunday ? (
+                <Button variant="secondary" size="lg" onClick={() => pastSessionsRef.current?.generateSummary()} disabled={weekSummaryInfo.generating}>
+                  <span className="flex items-center gap-2">
+                    {weekSummaryInfo.generating ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Özet hazırlanıyor...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        Haftalık Özet Çıkar
+                      </>
+                    )}
+                  </span>
+                </Button>
+              ) : null
+            )}
+            <Button onClick={() => { setApiError(null); setStartModalOpen(true); }} size="lg">
+              Seans Başlat
+            </Button>
+          </div>
         </div>
 
         {/* Past sessions */}
-        <PastSessionsList onViewSession={setViewingSessionId} />
+        <PastSessionsList ref={pastSessionsRef} onViewSession={setViewingSessionId} onWeekSummaryInfoChange={setWeekSummaryInfo} />
 
         {/* Start session modal */}
         <Modal isOpen={startModalOpen} onClose={() => { setStartModalOpen(false); setSchoolPickerOpen(false); }} title="Seansa Başla">

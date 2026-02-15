@@ -25,6 +25,7 @@ const CALL_TYPE_LABELS: Record<string, string> = {
   patient_notes: "Notlar",
   dream_analysis: "Rüya Analizi",
   journal_analysis: "Günlük Analizi",
+  weekly_summary: "Haftalık Özet",
 };
 
 const PROVIDER_NAMES: Record<string, string> = {

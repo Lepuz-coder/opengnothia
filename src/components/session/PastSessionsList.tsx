@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Clock, Calendar, MessageCircle, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Clock, Calendar, MessageCircle } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { getCompletedSessions } from "@/services/db/queries";
@@ -40,10 +40,6 @@ export function PastSessionsList({ onViewSession }: PastSessionsListProps) {
           const durationMin = endDate
             ? Math.round((endDate.getTime() - startDate.getTime()) / 60000)
             : null;
-          const hasMood = s.mood_before != null && s.mood_after != null;
-          const moodDelta = hasMood ? s.mood_after! - s.mood_before! : 0;
-          const hasFooter = hasMood;
-
           return (
             <Card
               key={s.id}
@@ -78,27 +74,6 @@ export function PastSessionsList({ onViewSession }: PastSessionsListProps) {
                 </p>
               )}
 
-              {/* Row 3: Mood change */}
-              {hasFooter && (
-                <div className="flex items-center gap-3 mt-3 pt-3 border-t border-[var(--border-color)]/50">
-                  <div className="flex items-center gap-1.5 text-xs">
-                    <span className="text-[var(--text-muted)]">{s.mood_before}</span>
-                    <span className="text-[var(--text-muted)]">&rarr;</span>
-                    <span className={
-                      moodDelta > 0
-                        ? "text-green-400"
-                        : moodDelta < 0
-                        ? "text-red-400"
-                        : "text-[var(--text-muted)]"
-                    }>
-                      {s.mood_after}
-                    </span>
-                    {moodDelta > 0 && <TrendingUp className="w-3.5 h-3.5 text-green-400" />}
-                    {moodDelta < 0 && <TrendingDown className="w-3.5 h-3.5 text-red-400" />}
-                    {moodDelta === 0 && <Minus className="w-3.5 h-3.5 text-[var(--text-muted)]" />}
-                  </div>
-                </div>
-              )}
             </Card>
           );
         })}

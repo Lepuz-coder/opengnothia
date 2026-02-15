@@ -1,6 +1,52 @@
-import { Wrench } from "lucide-react";
-import { PlaceholderPage } from "@/components/ui/PlaceholderPage";
+import { useState, useEffect } from "react";
+import { useAppStore } from "@/stores/useAppStore";
+import { breathingTechniques } from "@/constants/breathingTechniques";
+import { BreathingSetup } from "@/components/breathing/BreathingSetup";
+import { BreathingExercise } from "@/components/breathing/BreathingExercise";
 
 export default function ToolsPage() {
-  return <PlaceholderPage icon={Wrench} title="Araçlar" description="Psikolojik araçlar yakında eklenecek." />;
+  const setSidebarHidden = useAppStore((s) => s.setSidebarHidden);
+  const [isActive, setIsActive] = useState(false);
+  const [selectedTechniqueId, setSelectedTechniqueId] = useState("box");
+  const [selectedDuration, setSelectedDuration] = useState("180");
+
+  useEffect(() => {
+    return () => {
+      useAppStore.getState().setSidebarHidden(false);
+    };
+  }, []);
+
+  const handleStart = () => {
+    setSidebarHidden(true);
+    setIsActive(true);
+  };
+
+  const handleStop = () => {
+    setSidebarHidden(false);
+    setIsActive(false);
+  };
+
+  const technique = breathingTechniques.find(
+    (t) => t.id === selectedTechniqueId
+  )!;
+
+  if (isActive) {
+    return (
+      <BreathingExercise
+        technique={technique}
+        totalDuration={parseInt(selectedDuration)}
+        onStop={handleStop}
+      />
+    );
+  }
+
+  return (
+    <BreathingSetup
+      selectedTechniqueId={selectedTechniqueId}
+      onSelectTechnique={setSelectedTechniqueId}
+      selectedDuration={selectedDuration}
+      onSelectDuration={setSelectedDuration}
+      onStart={handleStart}
+    />
+  );
 }

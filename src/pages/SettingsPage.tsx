@@ -19,6 +19,7 @@ export default function SettingsPage() {
   const { setOnboarded } = useAppStore();
   const settings = useSettingsStore();
   const [saved, setSaved] = useState(false);
+  const [apiKeyFocused, setApiKeyFocused] = useState(false);
   const [profileName, setProfileName] = useState("");
   const [profileAge, setProfileAge] = useState("");
   const [profileGender, setProfileGender] = useState("");
@@ -133,9 +134,17 @@ export default function SettingsPage() {
           {currentProvider?.requiresKey && (
             <Input
               label="API Anahtarı"
-              type="password"
-              value={settings.apiKey}
+              type={apiKeyFocused ? "text" : "text"}
+              value={
+                apiKeyFocused || !settings.apiKey
+                  ? settings.apiKey
+                  : settings.apiKey.length > 10
+                    ? settings.apiKey.slice(0, 5) + "•".repeat(Math.min(settings.apiKey.length - 10, 20)) + settings.apiKey.slice(-5)
+                    : settings.apiKey
+              }
               onChange={(e) => settings.setApiKey(e.target.value)}
+              onFocus={() => setApiKeyFocused(true)}
+              onBlur={() => setApiKeyFocused(false)}
             />
           )}
 

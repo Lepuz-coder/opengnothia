@@ -389,7 +389,8 @@ export default function SessionPage() {
 
     // Stream session summary
     try {
-      const summaryPrompt = buildSummaryPrompt();
+      const patientNotes = await getPatientNotes();
+      const summaryPrompt = buildSummaryPrompt(patientNotes);
       const conversationForSummary: ChatMessage[] = [
         ...messages,
         {
@@ -405,7 +406,7 @@ export default function SessionPage() {
         apiKey: settings.apiKey,
         model: settings.model,
         messages: conversationForSummary,
-        systemPrompt: "Sen deneyimli bir klinik psikologsun. Verilen seans konuşmasını analiz et ve danışana sıcak, destekleyici bir seans özeti yaz.",
+        systemPrompt: "Sen deneyimli bir klinik psikologsun ve bu danışanın terapistisin. Seansın sonunda danışanla konuşuyorsun.",
         customBaseUrl: settings.customBaseUrl || undefined,
         thinkingEnabled: false,
         abortSignal: new AbortController().signal,

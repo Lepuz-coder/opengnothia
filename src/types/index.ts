@@ -99,6 +99,14 @@ export interface Dream {
   created_at: string;
 }
 
+export interface MoodEntry {
+  id: string;
+  date: string;
+  mood: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface TokenUsage {
   inputTokens: number;
   outputTokens: number;

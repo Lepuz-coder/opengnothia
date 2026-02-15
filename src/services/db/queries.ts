@@ -1,5 +1,5 @@
 import { getDatabase } from "./database";
-import type { CheckIn, Dream, Session, UserProfile, ChatMessage, SessionSummary, TokenUsageRecord, JournalEntry } from "@/types";
+import type { CheckIn, Dream, Session, UserProfile, ChatMessage, SessionSummary, TokenUsageRecord, JournalEntry, MoodEntry } from "@/types";
 
 // User Profile
 export async function getUserProfile(): Promise<UserProfile | null> {
@@ -185,6 +185,47 @@ export async function getRecentCheckIns(days = 7): Promise<CheckIn[]> {
     had_dream: Boolean(r.had_dream),
     tags: typeof r.tags === "string" ? JSON.parse(r.tags) : r.tags,
   }));
+}
+
+// Counts
+export async function getCompletedSessionCount(): Promise<number> {
+  const db = await getDatabase();
+  const rows = await db.select<{ count: number }[]>("SELECT COUNT(*) as count FROM sessions WHERE status = 'completed'");
+  return rows[0].count;
+}
+
+export async function getJournalEntryCount(): Promise<number> {
+  const db = await getDatabase();
+  const rows = await db.select<{ count: number }[]>("SELECT COUNT(*) as count FROM journal_entries");
+  return rows[0].count;
+}
+
+export async function getDreamCount(): Promise<number> {
+  const db = await getDatabase();
+  const rows = await db.select<{ count: number }[]>("SELECT COUNT(*) as count FROM dreams");
+  return rows[0].count;
+}
+
+// Mood Entries
+export async function saveMoodEntry(mood: number): Promise<void> {
+  const db = await getDatabase();
+  const id = crypto.randomUUID();
+  const date = new Date().toISOString().split("T")[0];
+  await db.execute(
+    "INSERT INTO mood_entries (id, date, mood) VALUES (?, ?, ?) ON CONFLICT(date) DO UPDATE SET mood = ?, updated_at = CURRENT_TIMESTAMP",
+    [id, date, mood, mood]
+  );
+}
+
+export async function getTodayMoodEntry(): Promise<MoodEntry | null> {
+  const db = await getDatabase();
+  const today = new Date().toISOString().split("T")[0];
+  const rows = await db.select<MoodEntry[]>(
+    "SELECT * FROM mood_entries WHERE date = ?",
+    [today]
+  );
+  if (rows.length === 0) return null;
+  return rows[0];
 }
 
 // Dreams

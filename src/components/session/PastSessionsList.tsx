@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { Clock, Calendar, MessageCircle } from "lucide-react";
+import { Clock, Calendar, MessageCircle, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
 import { getCompletedSessions } from "@/services/db/queries";
 import type { Session } from "@/types";
 
@@ -33,20 +33,25 @@ export function PastSessionsList({ onViewSession }: PastSessionsListProps) {
   return (
     <div className="mt-6">
       <h3 className="text-sm font-semibold text-[var(--text-muted)] mb-3">Geçmiş Seanslar</h3>
-      <div className="space-y-2">
+      <div className="space-y-3">
         {sessions.map((s) => {
           const startDate = new Date(s.started_at);
           const endDate = s.ended_at ? new Date(s.ended_at) : null;
           const durationMin = endDate
             ? Math.round((endDate.getTime() - startDate.getTime()) / 60000)
             : null;
+          const hasMood = s.mood_before != null && s.mood_after != null;
+          const moodDelta = hasMood ? s.mood_after! - s.mood_before! : 0;
+          const hasFooter = hasMood;
 
           return (
-            <button
+            <Card
               key={s.id}
+              padding="sm"
+              className="cursor-pointer hover:border-[var(--text-muted)] hover:shadow-lg hover:shadow-black/10 transition-all duration-200"
               onClick={() => onViewSession(s.id)}
-              className="w-full text-left p-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] hover:border-[var(--text-muted)] transition-all duration-200"
             >
+              {/* Row 1: Date + Duration */}
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
                   <Calendar className="w-3.5 h-3.5" />
@@ -59,20 +64,42 @@ export function PastSessionsList({ onViewSession }: PastSessionsListProps) {
                   {startDate.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
                 </div>
                 {durationMin != null && (
-                  <div className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
-                    <Clock className="w-3 h-3" />
+                  <Badge variant="default">
+                    <Clock className="w-3 h-3 mr-1" />
                     {durationMin} dk
-                  </div>
+                  </Badge>
                 )}
               </div>
+
+              {/* Row 2: Summary narrative */}
               {s.summary_narrative && (
-                <div className="text-xs text-[var(--text-muted)] line-clamp-2 markdown-content">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {s.summary_narrative}
-                  </ReactMarkdown>
+                <p className="text-sm text-[var(--text-muted)] line-clamp-2">
+                  {s.summary_narrative.replace(/[#*_~`>]/g, "").slice(0, 200)}
+                </p>
+              )}
+
+              {/* Row 3: Mood change */}
+              {hasFooter && (
+                <div className="flex items-center gap-3 mt-3 pt-3 border-t border-[var(--border-color)]/50">
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <span className="text-[var(--text-muted)]">{s.mood_before}</span>
+                    <span className="text-[var(--text-muted)]">&rarr;</span>
+                    <span className={
+                      moodDelta > 0
+                        ? "text-green-400"
+                        : moodDelta < 0
+                        ? "text-red-400"
+                        : "text-[var(--text-muted)]"
+                    }>
+                      {s.mood_after}
+                    </span>
+                    {moodDelta > 0 && <TrendingUp className="w-3.5 h-3.5 text-green-400" />}
+                    {moodDelta < 0 && <TrendingDown className="w-3.5 h-3.5 text-red-400" />}
+                    {moodDelta === 0 && <Minus className="w-3.5 h-3.5 text-[var(--text-muted)]" />}
+                  </div>
                 </div>
               )}
-            </button>
+            </Card>
           );
         })}
       </div>

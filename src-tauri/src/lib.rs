@@ -63,6 +63,12 @@ pub fn run() {
             sql: include_str!("../migrations/010_add_mood_entries.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 11,
+            description: "add weekly_summaries table",
+            sql: include_str!("../migrations/011_add_weekly_summaries.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

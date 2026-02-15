@@ -107,6 +107,14 @@ export interface MoodEntry {
   updated_at: string;
 }
 
+export interface WeeklySummary {
+  id: string;
+  week_start: string;
+  content: string;
+  session_count: number;
+  created_at: string;
+}
+
 export interface TokenUsage {
   inputTokens: number;
   outputTokens: number;
@@ -120,7 +128,7 @@ export interface TokenUsageRecord {
   input_tokens: number;
   output_tokens: number;
   cost: number;
-  call_type: "greeting" | "chat" | "recommendation" | "summary" | "patient_notes" | "dream_analysis" | "journal_analysis" | "compaction";
+  call_type: "greeting" | "chat" | "recommendation" | "summary" | "patient_notes" | "dream_analysis" | "journal_analysis" | "compaction" | "weekly_summary";
   created_at: string;
 }
 

@@ -1,5 +1,5 @@
 import { getDatabase } from "./database";
-import type { CheckIn, Dream, Session, UserProfile, ChatMessage, SessionSummary, TokenUsageRecord, JournalEntry, MoodEntry } from "@/types";
+import type { CheckIn, Dream, Session, UserProfile, ChatMessage, SessionSummary, TokenUsageRecord, JournalEntry, MoodEntry, WeeklySummary } from "@/types";
 
 // User Profile
 export async function getUserProfile(): Promise<UserProfile | null> {
@@ -402,6 +402,26 @@ export async function getTokenUsageRecords(limit = 1000): Promise<TokenUsageReco
   return db.select<TokenUsageRecord[]>(
     "SELECT * FROM token_usage ORDER BY created_at DESC LIMIT ?",
     [limit]
+  );
+}
+
+// Weekly Summaries
+export async function getWeeklySummary(weekStart: string): Promise<WeeklySummary | null> {
+  const db = await getDatabase();
+  const rows = await db.select<WeeklySummary[]>(
+    "SELECT * FROM weekly_summaries WHERE week_start = ?",
+    [weekStart]
+  );
+  if (rows.length === 0) return null;
+  return rows[0];
+}
+
+export async function saveWeeklySummary(weekStart: string, content: string, sessionCount: number): Promise<void> {
+  const db = await getDatabase();
+  const id = crypto.randomUUID();
+  await db.execute(
+    "INSERT INTO weekly_summaries (id, week_start, content, session_count) VALUES (?, ?, ?, ?) ON CONFLICT(week_start) DO UPDATE SET content = ?, session_count = ?, created_at = CURRENT_TIMESTAMP",
+    [id, weekStart, content, sessionCount, content, sessionCount]
   );
 }
 

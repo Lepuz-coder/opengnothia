@@ -397,7 +397,7 @@ export async function saveTokenUsage(record: {
   );
 }
 
-export async function getTokenUsageRecords(limit = 200): Promise<TokenUsageRecord[]> {
+export async function getTokenUsageRecords(limit = 1000): Promise<TokenUsageRecord[]> {
   const db = await getDatabase();
   return db.select<TokenUsageRecord[]>(
     "SELECT * FROM token_usage ORDER BY created_at DESC LIMIT ?",

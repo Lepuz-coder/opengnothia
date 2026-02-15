@@ -27,6 +27,12 @@ pub fn run() {
             sql: include_str!("../migrations/004_add_summary_narrative.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 5,
+            description: "add token_usage table",
+            sql: include_str!("../migrations/005_add_token_usage.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

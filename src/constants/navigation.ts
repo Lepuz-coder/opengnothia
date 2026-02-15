@@ -6,6 +6,7 @@ import {
   Lightbulb,
   Wrench,
   GraduationCap,
+  Receipt,
   Settings,
   type LucideIcon,
 } from "lucide-react";
@@ -24,5 +25,6 @@ export const navItems: NavItem[] = [
   { path: "/insights", label: "İçgörüler", icon: Lightbulb },
   { path: "/tools", label: "Araçlar", icon: Wrench },
   { path: "/programs", label: "Programlar", icon: GraduationCap },
+  { path: "/expenses", label: "Harcamalar", icon: Receipt },
   { path: "/settings", label: "Ayarlar", icon: Settings },
 ];

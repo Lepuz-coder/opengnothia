@@ -1,5 +1,5 @@
 import { getDatabase } from "./database";
-import type { CheckIn, Session, UserProfile, ChatMessage, SessionSummary } from "@/types";
+import type { CheckIn, Session, UserProfile, ChatMessage, SessionSummary, TokenUsageRecord } from "@/types";
 
 // User Profile
 export async function getUserProfile(): Promise<UserProfile | null> {
@@ -182,4 +182,46 @@ export async function getRecentCheckIns(days = 7): Promise<CheckIn[]> {
     had_dream: Boolean(r.had_dream),
     tags: typeof r.tags === "string" ? JSON.parse(r.tags) : r.tags,
   }));
+}
+
+// Token Usage
+export async function saveTokenUsage(record: {
+  session_id: string | null;
+  provider: string;
+  model: string;
+  input_tokens: number;
+  output_tokens: number;
+  cost: number;
+  call_type: string;
+}): Promise<void> {
+  const db = await getDatabase();
+  const id = crypto.randomUUID();
+  await db.execute(
+    "INSERT INTO token_usage (id, session_id, provider, model, input_tokens, output_tokens, cost, call_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    [id, record.session_id, record.provider, record.model, record.input_tokens, record.output_tokens, record.cost, record.call_type]
+  );
+}
+
+export async function getTokenUsageRecords(limit = 200): Promise<TokenUsageRecord[]> {
+  const db = await getDatabase();
+  return db.select<TokenUsageRecord[]>(
+    "SELECT * FROM token_usage ORDER BY created_at DESC LIMIT ?",
+    [limit]
+  );
+}
+
+export async function getTokenUsageSummaryByProvider(): Promise<
+  { provider: string; model: string; total_input_tokens: number; total_output_tokens: number; total_cost: number; call_count: number }[]
+> {
+  const db = await getDatabase();
+  return db.select(
+    `SELECT provider, model,
+            SUM(input_tokens) as total_input_tokens,
+            SUM(output_tokens) as total_output_tokens,
+            SUM(cost) as total_cost,
+            COUNT(*) as call_count
+     FROM token_usage
+     GROUP BY provider, model
+     ORDER BY provider, total_cost DESC`
+  );
 }

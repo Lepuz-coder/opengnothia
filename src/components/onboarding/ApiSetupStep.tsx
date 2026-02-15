@@ -61,6 +61,9 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
           const prov = getProvider(e.target.value);
           if (prov?.models[0]) setModel(prov.models[0].id);
           setThinkingEnabled(false);
+          if (e.target.value === "openai" && thinkingLevel === "max") {
+            setThinkingLevel("high");
+          }
         }}
       />
 
@@ -108,7 +111,7 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
             { value: "low", label: "Hızlı — Kısa düşünür, çabuk yanıt verir" },
             { value: "medium", label: "Dengeli — Yeterince düşünür, makul hızda" },
             { value: "high", label: "Derinlemesine — Uzun düşünür, detaylı analiz" },
-            { value: "max", label: "Kapsamlı — En derin analiz, en yavaş yanıt" },
+            ...(provider !== "openai" ? [{ value: "max", label: "Kapsamlı — En derin analiz, en yavaş yanıt" }] : []),
           ]}
           value={thinkingLevel}
           onChange={(e) => setThinkingLevel(e.target.value as ThinkingLevel)}

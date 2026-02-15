@@ -1,4 +1,4 @@
-import type { AIProvider, ChatMessage, ThinkingLevel } from "@/types";
+import type { AIProvider, ChatMessage, ThinkingLevel, TokenUsage } from "@/types";
 import { getAdapter } from "./providers";
 
 export async function sendMessage(params: {
@@ -8,7 +8,7 @@ export async function sendMessage(params: {
   messages: ChatMessage[];
   systemPrompt: string;
   customBaseUrl?: string;
-}): Promise<string> {
+}): Promise<{ content: string; usage: TokenUsage | null }> {
   const adapter = getAdapter(params.provider);
   const { url, init } = adapter.formatRequest(params);
 
@@ -34,7 +34,7 @@ export async function testApiKey(params: {
       messages: [{ id: "test", role: "user", content: "Merhaba, test mesajı.", timestamp: new Date().toISOString() }],
       systemPrompt: "Kısa bir merhaba de.",
     });
-    return { success: result.length > 0 };
+    return { success: result.content.length > 0 };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Bilinmeyen hata" };
   }
@@ -54,6 +54,7 @@ export async function streamMessage(params: {
   onContent: (chunk: string) => void;
   onDone: () => void;
   onError: (error: Error) => void;
+  onUsage?: (usage: TokenUsage) => void;
 }): Promise<void> {
   const adapter = getAdapter(params.provider);
   const { url, init } = adapter.formatStreamRequest(params);
@@ -75,6 +76,8 @@ export async function streamMessage(params: {
     const decoder = new TextDecoder();
     let buffer = "";
     let currentEventType = "";
+    const usageAccumulator = { inputTokens: 0, outputTokens: 0 };
+    let hasUsage = false;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -110,8 +113,25 @@ export async function streamMessage(params: {
               params.onContent(chunk.content);
               break;
             case "done":
+              if (hasUsage) {
+                params.onUsage?.(usageAccumulator);
+              }
               params.onDone();
               return;
+            case "done_with_usage":
+              params.onUsage?.(chunk.usage);
+              params.onDone();
+              return;
+            case "usage_delta":
+              if (chunk.inputTokens !== undefined) {
+                usageAccumulator.inputTokens = chunk.inputTokens;
+                hasUsage = true;
+              }
+              if (chunk.outputTokens !== undefined) {
+                usageAccumulator.outputTokens = chunk.outputTokens;
+                hasUsage = true;
+              }
+              break;
             case "error":
               params.onError(new Error(chunk.message));
               return;
@@ -121,6 +141,9 @@ export async function streamMessage(params: {
     }
 
     // If we reach here without a "done" event, still signal completion
+    if (hasUsage) {
+      params.onUsage?.(usageAccumulator);
+    }
     params.onDone();
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {

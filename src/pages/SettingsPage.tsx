@@ -63,6 +63,9 @@ export default function SettingsPage() {
               const prov = getProvider(e.target.value);
               if (prov?.models[0]) settings.setModel(prov.models[0].id);
               settings.setThinkingEnabled(false);
+              if (e.target.value === "openai" && settings.thinkingLevel === "max") {
+                settings.setThinkingLevel("high");
+              }
             }}
           />
 
@@ -109,7 +112,7 @@ export default function SettingsPage() {
                 { value: "low", label: "Hızlı — Kısa düşünür, çabuk yanıt verir" },
                 { value: "medium", label: "Dengeli — Yeterince düşünür, makul hızda" },
                 { value: "high", label: "Derinlemesine — Uzun düşünür, detaylı analiz" },
-                { value: "max", label: "Kapsamlı — En derin analiz, en yavaş yanıt" },
+                ...(settings.provider !== "openai" ? [{ value: "max", label: "Kapsamlı — En derin analiz, en yavaş yanıt" }] : []),
               ]}
               value={settings.thinkingLevel}
               onChange={(e) => settings.setThinkingLevel(e.target.value as ThinkingLevel)}

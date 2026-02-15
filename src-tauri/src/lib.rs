@@ -41,8 +41,14 @@ pub fn run() {
         },
         Migration {
             version: 7,
+            description: "add dreams table",
+            sql: include_str!("../migrations/007_add_dreams.sql"),
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 8,
             description: "add ai_analysis to journal_entries",
-            sql: include_str!("../migrations/007_add_journal_analysis.sql"),
+            sql: include_str!("../migrations/008_add_journal_analysis.sql"),
             kind: MigrationKind::Up,
         },
     ];

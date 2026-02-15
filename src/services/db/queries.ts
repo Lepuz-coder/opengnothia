@@ -14,7 +14,7 @@ export async function getUserProfile(): Promise<UserProfile | null> {
 }
 
 export async function upsertUserProfile(
-  data: Partial<Pick<UserProfile, "name" | "goals" | "approach" | "preferred_session_time" | "session_duration_minutes">>
+  data: Partial<Pick<UserProfile, "name" | "age" | "gender" | "occupation" | "goals" | "approach" | "preferred_session_time" | "session_duration_minutes">>
 ): Promise<void> {
   const db = await getDatabase();
   const existing = await getUserProfile();
@@ -22,6 +22,9 @@ export async function upsertUserProfile(
     const sets: string[] = [];
     const values: unknown[] = [];
     if (data.name !== undefined) { sets.push("name = ?"); values.push(data.name); }
+    if (data.age !== undefined) { sets.push("age = ?"); values.push(data.age); }
+    if (data.gender !== undefined) { sets.push("gender = ?"); values.push(data.gender); }
+    if (data.occupation !== undefined) { sets.push("occupation = ?"); values.push(data.occupation); }
     if (data.goals !== undefined) { sets.push("goals = ?"); values.push(JSON.stringify(data.goals)); }
     if (data.approach !== undefined) { sets.push("approach = ?"); values.push(data.approach); }
     if (data.preferred_session_time !== undefined) { sets.push("preferred_session_time = ?"); values.push(data.preferred_session_time); }
@@ -30,8 +33,8 @@ export async function upsertUserProfile(
     await db.execute(`UPDATE user_profile SET ${sets.join(", ")} WHERE id = 1`, values);
   } else {
     await db.execute(
-      "INSERT INTO user_profile (id, name, goals, approach, preferred_session_time, session_duration_minutes) VALUES (1, ?, ?, ?, ?, ?)",
-      [data.name ?? null, JSON.stringify(data.goals ?? []), data.approach ?? "balanced", data.preferred_session_time ?? "20:00", data.session_duration_minutes ?? 50]
+      "INSERT INTO user_profile (id, name, age, gender, occupation, goals, approach, preferred_session_time, session_duration_minutes) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [data.name ?? null, data.age ?? null, data.gender ?? null, data.occupation ?? null, JSON.stringify(data.goals ?? []), data.approach ?? "balanced", data.preferred_session_time ?? "20:00", data.session_duration_minutes ?? 50]
     );
   }
 }

@@ -31,6 +31,9 @@ Temel ilkeler:
   if (profile) {
     prompt += `\n\nDanışan bilgileri:`;
     if (profile.name) prompt += `\n- İsim: ${profile.name}`;
+    if (profile.age) prompt += `\n- Yaş: ${profile.age}`;
+    if (profile.gender) prompt += `\n- Cinsiyet: ${profile.gender}`;
+    if (profile.occupation) prompt += `\n- Meslek/Okul: ${profile.occupation}`;
     if (profile.goals.length > 0) prompt += `\n- Hedefler: ${profile.goals.join(", ")}`;
     prompt += `\n- Tercih edilen yaklaşım: ${
       profile.approach === "practical" ? "Pratik ve çözüm odaklı" :

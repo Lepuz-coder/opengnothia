@@ -34,8 +34,20 @@ export default function OnboardingPage() {
     setOnboarded(true);
   }
 
-  async function handleInterviewNext(data: { goals: string[]; approach: string; sessionTime: string }) {
+  async function handleInterviewNext(data: {
+    name: string;
+    age: number | null;
+    gender: string;
+    occupation: string;
+    goals: string[];
+    approach: string;
+    sessionTime: string;
+  }) {
     await upsertUserProfile({
+      name: data.name,
+      age: data.age,
+      gender: data.gender,
+      occupation: data.occupation,
       goals: data.goals,
       approach: data.approach as any,
       preferred_session_time: data.sessionTime,

@@ -528,35 +528,10 @@ export default function SessionPage() {
               <div className="flex-1 px-4 py-2.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)]">
                 <span className="text-sm font-medium">{getTherapySchool(settings.therapySchool)?.name ?? "BDT"}</span>
               </div>
-              <Button variant="secondary" size="sm" onClick={() => setSchoolPickerOpen(!schoolPickerOpen)}>
+              <Button variant="secondary" size="sm" onClick={() => setSchoolPickerOpen(true)}>
                 Değiştir
               </Button>
             </div>
-
-            {/* School picker grid */}
-            {schoolPickerOpen && (
-              <div className="grid grid-cols-2 gap-2 mt-3">
-                {therapySchools.map((school) => (
-                  <button
-                    key={school.id}
-                    onClick={() => {
-                      settings.setTherapySchool(school.id);
-                      setSchoolPickerOpen(false);
-                    }}
-                    className={`text-left p-3 rounded-xl border transition-all duration-200 ${
-                      school.id === "general" ? "col-span-2" : ""
-                    } ${
-                      settings.therapySchool === school.id
-                        ? "border-primary-500 bg-primary-500/10"
-                        : "border-[var(--border-color)] hover:border-[var(--text-muted)]"
-                    }`}
-                  >
-                    <span className="text-sm font-medium block">{school.shortName}</span>
-                    <span className="text-xs text-[var(--text-muted)]">{school.description}</span>
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* AI Settings */}
@@ -659,6 +634,31 @@ export default function SessionPage() {
               "Seansı Başlat"
             )}
           </Button>
+        </Modal>
+
+        {/* School picker modal */}
+        <Modal isOpen={schoolPickerOpen} onClose={() => setSchoolPickerOpen(false)} title="Terapi Ekolü Seç">
+          <div className="grid grid-cols-2 gap-2">
+            {therapySchools.map((school) => (
+              <button
+                key={school.id}
+                onClick={() => {
+                  settings.setTherapySchool(school.id);
+                  setSchoolPickerOpen(false);
+                }}
+                className={`text-left p-3 rounded-xl border transition-all duration-200 ${
+                  school.id === "general" ? "col-span-2" : ""
+                } ${
+                  settings.therapySchool === school.id
+                    ? "border-primary-500 bg-primary-500/10"
+                    : "border-[var(--border-color)] hover:border-[var(--text-muted)]"
+                }`}
+              >
+                <span className="text-sm font-medium block">{school.shortName}</span>
+                <span className="text-xs text-[var(--text-muted)]">{school.description}</span>
+              </button>
+            ))}
+          </div>
         </Modal>
       </div>
     );

@@ -89,6 +89,13 @@ export interface AIModel {
   supportsThinking?: boolean;
 }
 
+export interface Dream {
+  id: string;
+  content: string;
+  analysis: string | null;
+  created_at: string;
+}
+
 export interface TokenUsage {
   inputTokens: number;
   outputTokens: number;
@@ -102,7 +109,7 @@ export interface TokenUsageRecord {
   input_tokens: number;
   output_tokens: number;
   cost: number;
-  call_type: "greeting" | "chat" | "recommendation" | "summary" | "patient_notes";
+  call_type: "greeting" | "chat" | "recommendation" | "summary" | "patient_notes" | "dream_analysis";
   created_at: string;
 }
 

@@ -39,6 +39,12 @@ pub fn run() {
             sql: include_str!("../migrations/006_add_profile_fields.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 7,
+            description: "add dreams table",
+            sql: include_str!("../migrations/007_add_dreams.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

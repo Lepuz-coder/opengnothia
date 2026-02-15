@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Clock, Calendar, MessageCircle } from "lucide-react";
 import { getCompletedSessions } from "@/services/db/queries";
 import type { Session } from "@/types";
@@ -64,9 +66,11 @@ export function PastSessionsList({ onViewSession }: PastSessionsListProps) {
                 )}
               </div>
               {s.summary_narrative && (
-                <p className="text-xs text-[var(--text-muted)] line-clamp-2">
-                  {s.summary_narrative}
-                </p>
+                <div className="text-xs text-[var(--text-muted)] line-clamp-2 markdown-content">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {s.summary_narrative}
+                  </ReactMarkdown>
+                </div>
               )}
             </button>
           );

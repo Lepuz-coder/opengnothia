@@ -39,6 +39,12 @@ pub fn run() {
             sql: include_str!("../migrations/006_add_profile_fields.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 7,
+            description: "add ai_analysis to journal_entries",
+            sql: include_str!("../migrations/007_add_journal_analysis.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

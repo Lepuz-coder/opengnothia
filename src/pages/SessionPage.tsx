@@ -504,7 +504,7 @@ export default function SessionPage() {
   // Pre-session: past sessions + start button
   if (session.status === "idle" || session.status === "pre") {
     return (
-      <div className="max-w-2xl mx-auto">
+      <div>
         {/* Header with Start button */}
         <div className="flex items-center justify-between mb-8">
           <div>

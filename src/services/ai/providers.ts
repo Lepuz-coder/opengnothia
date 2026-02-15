@@ -9,6 +9,7 @@ interface SendMessageParams {
   customBaseUrl?: string;
   thinkingEnabled?: boolean;
   thinkingLevel?: ThinkingLevel;
+  maxTokens?: number;
 }
 
 interface StreamRequestParams extends SendMessageParams {
@@ -57,7 +58,7 @@ function isReasoningModel(model: string): boolean {
 }
 
 const openaiAdapter: ProviderAdapter = {
-  formatRequest({ apiKey, model, messages, systemPrompt, customBaseUrl, thinkingEnabled, thinkingLevel }) {
+  formatRequest({ apiKey, model, messages, systemPrompt, customBaseUrl, thinkingEnabled, thinkingLevel, maxTokens }) {
     const baseUrl = customBaseUrl || "https://api.openai.com/v1";
     const isReasoning = isReasoningModel(model);
     const body: Record<string, unknown> = {
@@ -69,10 +70,11 @@ const openaiAdapter: ProviderAdapter = {
     };
     if (!isReasoning) {
       body.temperature = 0.7;
+      if (maxTokens) body.max_tokens = maxTokens;
     }
     if (isReasoning && thinkingEnabled) {
       body.reasoning_effort = OPENAI_REASONING_EFFORT[thinkingLevel ?? "medium"];
-      body.max_completion_tokens = OPENAI_THINKING_TOKENS[thinkingLevel ?? "medium"];
+      body.max_completion_tokens = maxTokens || OPENAI_THINKING_TOKENS[thinkingLevel ?? "medium"];
     }
     return {
       url: `${baseUrl}/chat/completions`,
@@ -215,7 +217,7 @@ const openaiAdapter: ProviderAdapter = {
 };
 
 const anthropicAdapter: ProviderAdapter = {
-  formatRequest({ apiKey, model, messages, systemPrompt }) {
+  formatRequest({ apiKey, model, messages, systemPrompt, maxTokens }) {
     return {
       url: "https://api.anthropic.com/v1/messages",
       init: {
@@ -230,7 +232,7 @@ const anthropicAdapter: ProviderAdapter = {
           model,
           system: systemPrompt,
           messages: messages.map((m) => ({ role: m.role, content: m.content })),
-          max_tokens: 8192,
+          max_tokens: maxTokens || 8192,
         }),
       },
     };

@@ -4,6 +4,8 @@ import { calculateCost } from "@/services/ai/costCalculator";
 import { upsertPatientNotes, saveTokenUsage } from "@/services/db/queries";
 import type { AIProvider, ChatMessage, TokenUsage } from "@/types";
 
+const MAX_NOTES_LENGTH = 15_000;
+
 interface BackgroundNotesParams {
   provider: AIProvider;
   apiKey: string;
@@ -46,10 +48,12 @@ export function takeBackgroundNotes(params: BackgroundNotesParams) {
     messages: params.messages,
     systemPrompt: params.systemPrompt,
     customBaseUrl: params.customBaseUrl,
+    maxTokens: 16384,
   })
     .then(async (result) => {
       if (result.content && result.content.trim().length > 0) {
-        await upsertPatientNotes(result.content.trim());
+        const notes = result.content.trim().slice(0, MAX_NOTES_LENGTH);
+        await upsertPatientNotes(notes);
       }
       trackUsage(
         params.provider,

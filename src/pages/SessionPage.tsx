@@ -14,7 +14,17 @@ import { BreathingOverlay } from "@/components/session/BreathingOverlay";
 import { sendMessage } from "@/services/ai/aiService";
 import { buildSystemPrompt, buildSummaryPrompt } from "@/services/ai/promptBuilder";
 import { createSession, updateSessionMessages, completeSession, getUserProfile, getTodayCheckIn, getRecentSessions } from "@/services/db/queries";
-import type { ChatMessage, SessionSummary } from "@/types";
+import { getProvider } from "@/constants/providers";
+import type { ChatMessage, SessionSummary, TokenUsage } from "@/types";
+
+function calculateCost(usage: TokenUsage, provider: string, model: string): number {
+  const providerConfig = getProvider(provider);
+  const modelConfig = providerConfig?.models.find((m) => m.id === model);
+  if (!modelConfig?.costPer1kInput || !modelConfig?.costPer1kOutput) return 0;
+  const inputCost = (usage.inputTokens / 1000) * modelConfig.costPer1kInput;
+  const outputCost = (usage.outputTokens / 1000) * modelConfig.costPer1kOutput;
+  return inputCost + outputCost;
+}
 
 export default function SessionPage() {
   const navigate = useNavigate();
@@ -63,10 +73,16 @@ export default function SessionPage() {
         customBaseUrl: settings.customBaseUrl || undefined,
       });
 
+      if (response.usage) {
+        const cost = calculateCost(response.usage, settings.provider, settings.model);
+        session.addUsage(response.usage, cost);
+        session.setModelUsed(settings.model);
+      }
+
       const assistantMsg: ChatMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: response,
+        content: response.content,
         timestamp: new Date().toISOString(),
       };
       session.addMessage(assistantMsg);
@@ -112,9 +128,14 @@ export default function SessionPage() {
         customBaseUrl: settings.customBaseUrl || undefined,
       });
 
+      if (response.usage) {
+        const cost = calculateCost(response.usage, settings.provider, settings.model);
+        session.addUsage(response.usage, cost);
+      }
+
       let summary: SessionSummary;
       try {
-        summary = JSON.parse(response);
+        summary = JSON.parse(response.content);
       } catch {
         summary = {
           themes: ["Genel konuşma"],
@@ -154,6 +175,10 @@ export default function SessionPage() {
       await completeSession(state.sessionId, {
         mood_after: state.moodAfter ?? 5,
         summary: state.summary,
+        total_input_tokens: state.totalInputTokens,
+        total_output_tokens: state.totalOutputTokens,
+        total_cost: state.totalCost,
+        model_used: state.modelUsed,
       });
     }
     session.reset();
@@ -196,6 +221,10 @@ export default function SessionPage() {
         onMoodChange={session.setMoodAfter}
         onSave={handleSaveAndClose}
         saving={saving}
+        totalInputTokens={session.totalInputTokens}
+        totalOutputTokens={session.totalOutputTokens}
+        totalCost={session.totalCost}
+        modelUsed={session.modelUsed}
       />
     );
   }

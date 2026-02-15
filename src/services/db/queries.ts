@@ -56,12 +56,27 @@ export async function updateSessionMessages(id: string, messages: ChatMessage[])
 
 export async function completeSession(
   id: string,
-  data: { mood_after: number; summary: SessionSummary }
+  data: {
+    mood_after: number;
+    summary: SessionSummary;
+    total_input_tokens?: number;
+    total_output_tokens?: number;
+    total_cost?: number;
+    model_used?: string | null;
+  }
 ): Promise<void> {
   const db = await getDatabase();
   await db.execute(
-    "UPDATE sessions SET ended_at = CURRENT_TIMESTAMP, mood_after = ?, summary = ?, status = 'completed' WHERE id = ?",
-    [data.mood_after, JSON.stringify(data.summary), id]
+    "UPDATE sessions SET ended_at = CURRENT_TIMESTAMP, mood_after = ?, summary = ?, total_input_tokens = ?, total_output_tokens = ?, total_cost = ?, model_used = ?, status = 'completed' WHERE id = ?",
+    [
+      data.mood_after,
+      JSON.stringify(data.summary),
+      data.total_input_tokens ?? 0,
+      data.total_output_tokens ?? 0,
+      data.total_cost ?? 0,
+      data.model_used ?? null,
+      id,
+    ]
   );
 }
 

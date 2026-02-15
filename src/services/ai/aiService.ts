@@ -1,4 +1,4 @@
-import type { AIProvider, ChatMessage } from "@/types";
+import type { AIProvider, AIResponse, ChatMessage } from "@/types";
 import { getAdapter } from "./providers";
 
 export async function sendMessage(params: {
@@ -8,7 +8,7 @@ export async function sendMessage(params: {
   messages: ChatMessage[];
   systemPrompt: string;
   customBaseUrl?: string;
-}): Promise<string> {
+}): Promise<AIResponse> {
   const adapter = getAdapter(params.provider);
   const { url, init } = adapter.formatRequest(params);
 
@@ -19,7 +19,10 @@ export async function sendMessage(params: {
   }
 
   const data = await response.json();
-  return adapter.parseResponse(data);
+  return {
+    content: adapter.parseResponse(data),
+    usage: adapter.parseUsage(data),
+  };
 }
 
 export async function testApiKey(params: {
@@ -34,7 +37,7 @@ export async function testApiKey(params: {
       messages: [{ id: "test", role: "user", content: "Merhaba, test mesajı.", timestamp: new Date().toISOString() }],
       systemPrompt: "Kısa bir merhaba de.",
     });
-    return { success: result.length > 0 };
+    return { success: result.content.length > 0 };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Bilinmeyen hata" };
   }

@@ -1,4 +1,4 @@
-import type { AIProvider, ChatMessage } from "@/types";
+import type { AIProvider, ChatMessage, TokenUsage } from "@/types";
 
 interface SendMessageParams {
   provider: AIProvider;
@@ -12,6 +12,7 @@ interface SendMessageParams {
 interface ProviderAdapter {
   formatRequest(params: SendMessageParams): { url: string; init: RequestInit };
   parseResponse(data: unknown): string;
+  parseUsage(data: unknown): TokenUsage | null;
 }
 
 const openaiAdapter: ProviderAdapter = {
@@ -42,6 +43,14 @@ const openaiAdapter: ProviderAdapter = {
     const d = data as { choices: { message: { content: string } }[] };
     return d.choices[0]?.message?.content ?? "";
   },
+  parseUsage(data: unknown): TokenUsage | null {
+    const d = data as { usage?: { prompt_tokens?: number; completion_tokens?: number } };
+    if (!d.usage) return null;
+    return {
+      inputTokens: d.usage.prompt_tokens ?? 0,
+      outputTokens: d.usage.completion_tokens ?? 0,
+    };
+  },
 };
 
 const anthropicAdapter: ProviderAdapter = {
@@ -68,6 +77,14 @@ const anthropicAdapter: ProviderAdapter = {
   parseResponse(data: unknown): string {
     const d = data as { content: { type: string; text: string }[] };
     return d.content.find((c) => c.type === "text")?.text ?? "";
+  },
+  parseUsage(data: unknown): TokenUsage | null {
+    const d = data as { usage?: { input_tokens?: number; output_tokens?: number } };
+    if (!d.usage) return null;
+    return {
+      inputTokens: d.usage.input_tokens ?? 0,
+      outputTokens: d.usage.output_tokens ?? 0,
+    };
   },
 };
 

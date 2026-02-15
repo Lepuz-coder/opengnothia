@@ -30,6 +30,10 @@ export interface Session {
   messages: ChatMessage[];
   summary: SessionSummary | null;
   status: "active" | "completed" | "abandoned";
+  total_input_tokens: number;
+  total_output_tokens: number;
+  total_cost: number;
+  model_used: string | null;
   created_at: string;
 }
 
@@ -38,6 +42,16 @@ export interface SessionSummary {
   defenses: string[];
   insights: string[];
   homework: string[];
+}
+
+export interface TokenUsage {
+  inputTokens: number;
+  outputTokens: number;
+}
+
+export interface AIResponse {
+  content: string;
+  usage: TokenUsage | null;
 }
 
 export interface CheckIn {

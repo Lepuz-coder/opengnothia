@@ -73,8 +73,6 @@ const openaiAdapter: ProviderAdapter = {
     if (isReasoning && thinkingEnabled) {
       body.reasoning_effort = OPENAI_REASONING_EFFORT[thinkingLevel ?? "medium"];
       body.max_completion_tokens = OPENAI_THINKING_TOKENS[thinkingLevel ?? "medium"];
-    } else {
-      body.max_completion_tokens = 1024;
     }
     return {
       url: `${baseUrl}/chat/completions`,
@@ -141,7 +139,6 @@ const openaiAdapter: ProviderAdapter = {
     if (!isReasoning) {
       body.temperature = 0.7;
     }
-    body.max_completion_tokens = 1024;
     body.stream_options = { include_usage: true };
     return {
       url: `${baseUrl}/chat/completions`,
@@ -233,7 +230,7 @@ const anthropicAdapter: ProviderAdapter = {
           model,
           system: systemPrompt,
           messages: messages.map((m) => ({ role: m.role, content: m.content })),
-          max_tokens: 1024,
+          max_tokens: 8192,
         }),
       },
     };
@@ -262,7 +259,7 @@ const anthropicAdapter: ProviderAdapter = {
       body.max_tokens = budget.max_tokens;
       // temperature must NOT be sent when thinking is enabled
     } else {
-      body.max_tokens = 1024;
+      body.max_tokens = 8192;
     }
     return {
       url: "https://api.anthropic.com/v1/messages",

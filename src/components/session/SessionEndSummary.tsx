@@ -33,7 +33,7 @@ export function SessionEndSummary({
       <Card>
         <h3 className="font-semibold mb-3 flex items-center gap-2">
           Psikolog Önerisi
-          {isSummaryStreaming && (
+          {(isSummaryStreaming || isSummaryParsing) && (
             <Loader2 className="w-4 h-4 text-accent-400 animate-spin" />
           )}
         </h3>
@@ -42,9 +42,6 @@ export function SessionEndSummary({
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {summaryNarrative}
             </ReactMarkdown>
-            {isSummaryStreaming && (
-              <span className="inline-block w-1.5 h-3.5 bg-[var(--text-primary)] ml-0.5 animate-pulse" />
-            )}
           </div>
         ) : (
           <div className="space-y-3 animate-pulse">
@@ -62,7 +59,7 @@ export function SessionEndSummary({
         size="lg"
         className="w-full"
       >
-        {saving ? "Kaydediliyor..." : isSummaryStreaming ? "Öneri hazırlanıyor..." : isSummaryParsing ? "Seans özeti hazırlanıyor..." : "Kaydet ve Kapat"}
+        {saving ? "Kaydediliyor..." : (isSummaryStreaming || isSummaryParsing) ? "Seans özeti hazırlanıyor..." : "Kaydet ve Kapat"}
       </Button>
     </div>
   );

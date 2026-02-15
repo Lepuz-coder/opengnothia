@@ -18,7 +18,7 @@ import type { PastSessionsListHandle, WeekSummaryInfo } from "@/components/sessi
 import { PastSessionDetail } from "@/components/session/PastSessionDetail";
 import { sendMessage, streamMessage, testApiKey } from "@/services/ai/aiService";
 import { calculateCost } from "@/services/ai/costCalculator";
-import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildRecommendationPrompt, buildPatientNotesUpdatePrompt, buildCompactionPrompt } from "@/services/ai/promptBuilder";
+import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildPatientNotesUpdatePrompt, buildCompactionPrompt } from "@/services/ai/promptBuilder";
 import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
 import { createSession, updateSessionMessages, completeSession, deleteSession, getUserProfile, getTodayCheckIn, getRecentSessions, getPatientNotes, saveTokenUsage } from "@/services/db/queries";
 import { therapySchools, getTherapySchool, getTherapySchoolName } from "@/constants/therapySchools";
@@ -355,127 +355,94 @@ export default function SessionPage() {
       return;
     }
 
-    // Switch to post view with streaming state
+    // Switch to post view
     session.startSummaryStream();
+    session.setSummaryParsing(true);
 
-    // 1. Stream recommendation paragraph (user sees this)
-    const recommendationPrompt = buildRecommendationPrompt();
-    const conversationForRecommendation: ChatMessage[] = [
-      ...messages,
-      {
-        id: "recommendation-request",
-        role: "user",
-        content: recommendationPrompt,
-        timestamp: new Date().toISOString(),
-      },
-    ];
-
-    try {
-      await streamMessage({
+    // Fire-and-forget: update patient notes in background
+    getPatientNotes().then((existingNotes) => {
+      const patientNotesPrompt = buildPatientNotesUpdatePrompt(existingNotes);
+      const conversationForNotes: ChatMessage[] = [
+        ...messages,
+        {
+          id: "notes-request",
+          role: "user",
+          content: patientNotesPrompt,
+          timestamp: new Date().toISOString(),
+        },
+      ];
+      takeBackgroundNotes({
         provider: settings.provider,
         apiKey: settings.apiKey,
         model: settings.model,
-        messages: conversationForRecommendation,
-        systemPrompt: "Sen deneyimli bir klinik psikologsun ve bu danışanın terapistisin. Danışana sıcak ve destekleyici bir öneri yaz.",
+        messages: conversationForNotes,
+        systemPrompt: "Sen deneyimli bir klinik psikolog. Hasta notlarını güncelle.",
         customBaseUrl: settings.customBaseUrl || undefined,
-        thinkingEnabled: false,
-        abortSignal: new AbortController().signal,
-        onThinking: () => {},
-        onContent: (chunk) => {
-          useSessionStore.getState().appendSummaryNarrative(chunk);
+        callType: "patient_notes",
+        sessionId: useSessionStore.getState().sessionId,
+      });
+    });
+
+    // Single summary call (includes narrative + structured data)
+    try {
+      const summaryPrompt = buildSummaryPrompt();
+      const conversationForSummary: ChatMessage[] = [
+        ...messages,
+        {
+          id: "summary-request",
+          role: "user",
+          content: summaryPrompt,
+          timestamp: new Date().toISOString(),
         },
-        onUsage: (usage) => {
-          const sid = useSessionStore.getState().sessionId;
-          trackUsage(settings.provider, settings.model, sid, "recommendation", usage);
-        },
-        onDone: () => {
-          useSessionStore.getState().finishSummaryStream();
-        },
-        onError: (error) => {
-          useSessionStore.getState().appendSummaryNarrative(
-            `\n\nBir hata oluştu: ${error.message}`
-          );
-          useSessionStore.getState().finishSummaryStream();
-        },
+      ];
+
+      const summaryResult = await sendMessage({
+        provider: settings.provider,
+        apiKey: settings.apiKey,
+        model: settings.model,
+        messages: conversationForSummary,
+        systemPrompt: "Sen deneyimli bir klinik psikologsun. Verilen seans konuşmasını analiz et ve danışana sıcak bir öneriyle birlikte yapılandırılmış özet oluştur.",
+        customBaseUrl: settings.customBaseUrl || undefined,
       });
 
-      // 2a. Fire-and-forget: update patient notes in background
-      getPatientNotes().then((existingNotes) => {
-        const patientNotesPrompt = buildPatientNotesUpdatePrompt(existingNotes);
-        const conversationForNotes: ChatMessage[] = [
-          ...messages,
-          {
-            id: "notes-request",
-            role: "user",
-            content: patientNotesPrompt,
-            timestamp: new Date().toISOString(),
-          },
-        ];
-        takeBackgroundNotes({
-          provider: settings.provider,
-          apiKey: settings.apiKey,
-          model: settings.model,
-          messages: conversationForNotes,
-          systemPrompt: "Sen deneyimli bir klinik psikolog. Hasta notlarını güncelle.",
-          customBaseUrl: settings.customBaseUrl || undefined,
-          callType: "patient_notes",
-          sessionId: useSessionStore.getState().sessionId,
-        });
-      });
+      const sid = useSessionStore.getState().sessionId;
+      trackUsage(settings.provider, settings.model, sid, "summary", summaryResult.usage);
 
-      // 2b. Background: structured JSON summary
-      session.setSummaryParsing(true);
+      let summary: SessionSummary;
+      let narrative = "";
       try {
-        const summaryPrompt = buildSummaryPrompt();
-        const conversationForSummary: ChatMessage[] = [
-          ...messages,
-          {
-            id: "summary-request",
-            role: "user",
-            content: summaryPrompt,
-            timestamp: new Date().toISOString(),
-          },
-        ];
-
-        const summaryResult = await sendMessage({
-          provider: settings.provider,
-          apiKey: settings.apiKey,
-          model: settings.model,
-          messages: conversationForSummary,
-          systemPrompt: "Sen bir seans analisti. Verilen konuşmayı analiz et.",
-          customBaseUrl: settings.customBaseUrl || undefined,
-        });
-
-        const sid = useSessionStore.getState().sessionId;
-        trackUsage(settings.provider, settings.model, sid, "summary", summaryResult.usage);
-
-        let summary: SessionSummary;
-        try {
-          summary = JSON.parse(summaryResult.content);
-        } catch {
-          summary = {
-            themes: [],
-            defenses: [],
-            insights: [],
-            homework: [],
-          };
-        }
-        session.setSummary(summary);
+        const parsed = JSON.parse(summaryResult.content);
+        narrative = parsed.narrative || "";
+        summary = {
+          themes: parsed.themes || [],
+          defenses: parsed.defenses || [],
+          insights: parsed.insights || [],
+          homework: parsed.homework || [],
+        };
       } catch {
-        session.setSummary({
+        summary = {
           themes: [],
           defenses: [],
           insights: [],
           homework: [],
-        });
-      } finally {
-        session.setSummaryParsing(false);
+        };
       }
+      session.setSummary(summary);
+      useSessionStore.getState().appendSummaryNarrative(narrative);
+      useSessionStore.getState().finishSummaryStream();
     } catch (err) {
       useSessionStore.getState().appendSummaryNarrative(
         `Bir hata oluştu: ${err instanceof Error ? err.message : "Bilinmeyen hata"}`
       );
       useSessionStore.getState().finishSummaryStream();
+      session.setSummary({
+        themes: [],
+        defenses: [],
+        insights: [],
+        homework: [],
+      });
+    } finally {
+      session.setSummaryParsing(false);
     }
   }, [settings, navigate, setSidebarHidden]);
 

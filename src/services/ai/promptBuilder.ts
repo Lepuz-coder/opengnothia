@@ -301,6 +301,7 @@ export function buildSummaryPrompt(): string {
   "themes": ["seansta işlenen ana temalar"],
   "defenses": ["gözlemlenen savunma mekanizmaları"],
   "insights": ["ortaya çıkan içgörüler"],
-  "homework": ["danışana önerilen ödevler veya düşünce egzersizleri"]
+  "homework": ["danışana önerilen ödevler veya düşünce egzersizleri"],
+  "narrative": "Danışana yönelik sıcak, destekleyici ve motive edici bir öneri paragrafı. Danışana doğrudan hitap et (sen dili). Seansın ana temasına atıfta bulun. Somut ve uygulanabilir bir öneri veya düşünce pratiği öner. Markdown formatında yaz."
 }`;
 }

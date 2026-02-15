@@ -51,6 +51,12 @@ pub fn run() {
             sql: include_str!("../migrations/008_add_journal_analysis.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 9,
+            description: "add date column to dreams",
+            sql: include_str!("../migrations/009_add_dream_date.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

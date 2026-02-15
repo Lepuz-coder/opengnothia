@@ -1,11 +1,28 @@
-import { Brain, PanelLeftClose, PanelLeft, FileText, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Brain, PanelLeftClose, PanelLeft, FileText, Loader2, X } from "lucide-react";
 import { useAppStore } from "@/stores/useAppStore";
+import { loadSettings } from "@/lib/store";
 import { navItems } from "@/constants/navigation";
 import { SidebarItem } from "./SidebarItem";
 import { cn } from "@/lib/cn";
 
 export function Sidebar() {
-  const { sidebarCollapsed, toggleSidebar, isNoteTaking } = useAppStore();
+  const { sidebarCollapsed, toggleSidebar, isNoteTaking, hasSeenNoteTutorial, setHasSeenNoteTutorial } = useAppStore();
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  useEffect(() => {
+    if (isNoteTaking && !hasSeenNoteTutorial) {
+      setShowTutorial(true);
+    }
+  }, [isNoteTaking, hasSeenNoteTutorial]);
+
+  async function dismissTutorial() {
+    setShowTutorial(false);
+    setHasSeenNoteTutorial(true);
+    const store = await loadSettings();
+    await store.set("hasSeenNoteTutorial", true);
+    await store.save();
+  }
 
   return (
     <aside
@@ -42,18 +59,49 @@ export function Sidebar() {
       {/* Bottom bar */}
       <div className="px-3 py-4 border-t border-[var(--border-color)] space-y-2">
         {isNoteTaking && (
-          <div className={cn(
-            "flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-[var(--text-muted)] bg-[var(--bg-tertiary)]",
-            sidebarCollapsed && "justify-center px-2"
-          )}>
-            {sidebarCollapsed ? (
-              <Loader2 className="w-4 h-4 animate-spin text-primary-400 shrink-0" />
-            ) : (
-              <>
-                <FileText className="w-4 h-4 text-primary-400 shrink-0" />
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-primary-400 shrink-0" />
-                <span className="text-xs truncate">Not alınıyor...</span>
-              </>
+          <div className="relative">
+            <div className={cn(
+              "flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-[var(--text-muted)] bg-[var(--bg-tertiary)] transition-all",
+              sidebarCollapsed && "justify-center px-2",
+              showTutorial && "ring-2 ring-primary-400/50"
+            )}>
+              {sidebarCollapsed ? (
+                <Loader2 className="w-4 h-4 animate-spin text-primary-400 shrink-0" />
+              ) : (
+                <>
+                  <FileText className="w-4 h-4 text-primary-400 shrink-0" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-primary-400 shrink-0" />
+                  <span className="text-xs truncate">Not alınıyor...</span>
+                </>
+              )}
+            </div>
+
+            {showTutorial && (
+              <div className="absolute bottom-0 left-full ml-3 w-72 z-50">
+                <div className="absolute left-0 top-4 -translate-x-full">
+                  <div className="w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-r-[6px] border-r-[var(--bg-secondary)]" />
+                </div>
+                <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-4 shadow-xl">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <span className="text-xs font-medium text-primary-400">Bilgi</span>
+                    <button
+                      onClick={dismissTutorial}
+                      className="p-0.5 rounded hover:bg-[var(--bg-tertiary)] transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                    Seanslarınız bittikten sonra sizinle ilgili diğer seanslar için notlar alınır. Bu yüklenme tamamlanmadan uygulamayı kapatmamanız gerekir.
+                  </p>
+                  <button
+                    onClick={dismissTutorial}
+                    className="mt-3 w-full text-xs font-medium text-primary-400 hover:text-primary-300 transition-colors"
+                  >
+                    Anladım
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         )}

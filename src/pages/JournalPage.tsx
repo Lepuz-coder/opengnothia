@@ -13,13 +13,14 @@ import {
   getJournalEntries,
   getJournalEntryById,
   updateJournalAnalysis,
+  updateJournalEntryContent,
   deleteJournalEntry,
   getUserProfile,
   getPatientNotes,
   upsertPatientNotes,
   saveTokenUsage,
 } from "@/services/db/queries";
-import { BookOpen, Plus, ArrowLeft, Trash2, Sparkles, Loader2, FileText } from "lucide-react";
+import { BookOpen, Plus, ArrowLeft, Trash2, Sparkles, Loader2, FileText, Pencil } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { JournalEntry, AIProvider, TokenUsage } from "@/types";
@@ -64,6 +65,9 @@ export default function JournalPage() {
   const [isTakingNotes, setIsTakingNotes] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Edit state
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+
   // Delete state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [analysisModalOpen, setAnalysisModalOpen] = useState(false);
@@ -100,12 +104,19 @@ export default function JournalPage() {
     if (!content.trim()) return;
     setSaving(true);
     try {
-      const entry = await createJournalEntry({
-        content: content.trim(),
-        mood: null,
-        tags: [],
-      });
-      setSelectedEntry(entry);
+      if (editingEntryId) {
+        await updateJournalEntryContent(editingEntryId, content.trim());
+        const updated = await getJournalEntryById(editingEntryId);
+        if (updated) setSelectedEntry(updated);
+        setEditingEntryId(null);
+      } else {
+        const entry = await createJournalEntry({
+          content: content.trim(),
+          mood: null,
+          tags: [],
+        });
+        setSelectedEntry(entry);
+      }
       setView("detail");
       setContent("");
       await loadEntries();
@@ -268,7 +279,7 @@ export default function JournalPage() {
         {/* Top bar */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)]">
           <button
-            onClick={() => setView("list")}
+            onClick={() => { if (editingEntryId) { setEditingEntryId(null); setContent(""); setView("detail"); } else { setView("list"); } }}
             className="flex items-center gap-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -344,6 +355,15 @@ export default function JournalPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => { setContent(selectedEntry.content); setEditingEntryId(selectedEntry.id); setView("write"); }}
+              disabled={isBusy}
+            >
+              <Pencil className="w-4 h-4" />
+              Düzenle
+            </Button>
             <Button
               size="sm"
               onClick={() => {

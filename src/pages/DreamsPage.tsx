@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { useSettingsStore } from "@/stores/useSettingsStore";
+import { useAppStore } from "@/stores/useAppStore";
 import { sendMessage, streamMessage } from "@/services/ai/aiService";
 import { calculateCost } from "@/services/ai/costCalculator";
 import { buildDreamAnalysisPrompt, buildPatientNotesUpdatePrompt } from "@/services/ai/promptBuilder";
@@ -12,12 +13,15 @@ import {
   getDreamById,
   saveDream,
   updateDreamAnalysis,
+  updateDreamContent,
   deleteDream,
   getPatientNotes,
   upsertPatientNotes,
   saveTokenUsage,
 } from "@/services/db/queries";
-import { Moon, Plus, ArrowLeft, Sparkles, Trash2, Loader2 } from "lucide-react";
+import { Moon, Plus, ArrowLeft, Sparkles, Trash2, Loader2, Pencil } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { Dream, AIProvider, TokenUsage } from "@/types";
 
 type View = "list" | "new" | "detail";
@@ -43,6 +47,7 @@ async function trackUsage(
 
 export default function DreamsPage() {
   const settings = useSettingsStore();
+  const setSidebarHidden = useAppStore((s) => s.setSidebarHidden);
 
   const [view, setView] = useState<View>("list");
   const [dreams, setDreams] = useState<Dream[]>([]);
@@ -52,7 +57,19 @@ export default function DreamsPage() {
   const [saving, setSaving] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [analysisModalOpen, setAnalysisModalOpen] = useState(false);
+  const [editingDreamId, setEditingDreamId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Hide sidebar in new dream view
+  useEffect(() => {
+    if (view === "new") {
+      setSidebarHidden(true);
+    } else {
+      setSidebarHidden(false);
+    }
+    return () => setSidebarHidden(false);
+  }, [view, setSidebarHidden]);
 
   const loadDreams = useCallback(async () => {
     const data = await getDreams();
@@ -68,13 +85,18 @@ export default function DreamsPage() {
     if (!newContent.trim()) return;
     setSaving(true);
     try {
-      const id = await saveDream(newContent.trim());
-      const dream = await getDreamById(id);
-      if (dream) {
-        setSelectedDream(dream);
-        setView("detail");
+      if (editingDreamId) {
+        await updateDreamContent(editingDreamId, newContent.trim());
+        const updated = await getDreamById(editingDreamId);
+        if (updated) setSelectedDream(updated);
+        setEditingDreamId(null);
+      } else {
+        const id = await saveDream(newContent.trim());
+        const dream = await getDreamById(id);
+        if (dream) setSelectedDream(dream);
       }
       setNewContent("");
+      setView("detail");
       await loadDreams();
     } finally {
       setSaving(false);
@@ -85,6 +107,7 @@ export default function DreamsPage() {
     if (!selectedDream) return;
     setAnalyzing(true);
     setError(null);
+    setAnalysisModalOpen(true);
 
     try {
       const patientNotes = await getPatientNotes();
@@ -201,45 +224,65 @@ export default function DreamsPage() {
     );
   }
 
-  // New dream view
+  // New dream view (fullscreen)
   if (view === "new") {
+    const wordCount = newContent.trim() ? newContent.trim().split(/\s+/).length : 0;
+    const today = new Date();
+    const dateLabel = today.toLocaleDateString("tr-TR", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+
     return (
-      <div className="max-w-2xl mx-auto">
-        <button
-          onClick={() => setView("list")}
-          className="flex items-center gap-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors mb-6"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Geri
-        </button>
+      <div className="flex flex-col h-screen">
+        {/* Top bar */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)]">
+          <button
+            onClick={() => { if (editingDreamId) { setEditingDreamId(null); setNewContent(""); setView("detail"); } else { setView("list"); } }}
+            className="flex items-center gap-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Geri
+          </button>
+          <span className="text-sm text-[var(--text-muted)] capitalize">{dateLabel}</span>
+          <Button
+            onClick={handleSave}
+            disabled={!newContent.trim() || saving}
+            size="sm"
+          >
+            {saving ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Kaydediliyor...
+              </span>
+            ) : (
+              "Kaydet"
+            )}
+          </Button>
+        </div>
 
-        <h1 className="text-2xl font-bold mb-6">Yeni Rüya</h1>
-
-        <Card>
-          <label className="block text-sm font-medium mb-2">Rüyanı anlat</label>
-          <textarea
-            value={newContent}
-            onChange={(e) => setNewContent(e.target.value)}
-            placeholder="Rüyanda neler gördün..."
-            rows={8}
-            className="w-full px-4 py-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none focus:outline-none focus:ring-2 focus:ring-primary-500/50"
-          />
-          <div className="flex justify-end mt-4">
-            <Button
-              onClick={handleSave}
-              disabled={!newContent.trim() || saving}
-            >
-              {saving ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Kaydediliyor...
-                </span>
-              ) : (
-                "Kaydet"
-              )}
-            </Button>
+        {/* Writing area */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-3xl mx-auto px-6 py-10">
+            <textarea
+              value={newContent}
+              onChange={(e) => setNewContent(e.target.value)}
+              placeholder="Rüyanda neler gördün..."
+              autoFocus
+              className="w-full bg-transparent text-[var(--text-primary)] text-lg leading-relaxed placeholder:text-[var(--text-muted)]/40 resize-none focus:outline-none"
+              style={{ minHeight: "calc(100vh - 180px)" }}
+            />
           </div>
-        </Card>
+        </div>
+
+        {/* Bottom bar */}
+        <div className="flex items-center justify-end px-6 py-3 border-t border-[var(--border-color)]">
+          <span className="text-xs text-[var(--text-muted)]">
+            {wordCount} kelime
+          </span>
+        </div>
       </div>
     );
   }
@@ -249,8 +292,9 @@ export default function DreamsPage() {
     return (
       <div className="max-w-2xl mx-auto">
         <button
-          onClick={() => { setView("list"); setSelectedDream(null); setError(null); }}
-          className="flex items-center gap-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors mb-6"
+          onClick={() => { if (!analyzing) { setView("list"); setSelectedDream(null); setError(null); } }}
+          disabled={analyzing}
+          className={`flex items-center gap-1.5 text-sm transition-colors mb-6 ${analyzing ? "text-[var(--text-muted)] opacity-50 cursor-not-allowed" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}
         >
           <ArrowLeft className="w-4 h-4" />
           Geri
@@ -269,65 +313,85 @@ export default function DreamsPage() {
               })}
             </p>
           </div>
-          <Button
-            variant="danger"
-            size="sm"
-            onClick={() => setDeleteConfirmOpen(true)}
-          >
-            <Trash2 className="w-4 h-4" />
-            Sil
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => { setNewContent(selectedDream.content); setEditingDreamId(selectedDream.id); setView("new"); }}
+              disabled={analyzing}
+            >
+              <Pencil className="w-4 h-4" />
+              Düzenle
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                if (selectedDream.analysis) {
+                  setAnalysisModalOpen(true);
+                } else {
+                  handleAnalyze();
+                }
+              }}
+              disabled={analyzing}
+            >
+              {analyzing ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Analiz ediliyor...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" />
+                  {selectedDream.analysis ? "Analizi Göster" : "Analiz Et"}
+                </span>
+              )}
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => setDeleteConfirmOpen(true)}
+              disabled={analyzing}
+            >
+              <Trash2 className="w-4 h-4" />
+              Sil
+            </Button>
+          </div>
         </div>
 
         {/* Dream content */}
-        <Card className="mb-4">
-          <h2 className="text-sm font-medium text-[var(--text-muted)] mb-2">Rüya İçeriği</h2>
-          <p className="text-[var(--text-primary)] whitespace-pre-wrap">{selectedDream.content}</p>
+        <Card>
+          <p className="text-[var(--text-primary)] whitespace-pre-wrap leading-relaxed">{selectedDream.content}</p>
         </Card>
 
-        {/* Analysis section */}
-        {selectedDream.analysis ? (
-          <Card>
-            <div className="flex items-center gap-2 mb-3">
-              {analyzing ? (
-                <Loader2 className="w-4 h-4 text-primary-400 animate-spin" />
-              ) : (
-                <Sparkles className="w-4 h-4 text-primary-400" />
-              )}
-              <h2 className="text-sm font-medium text-[var(--text-muted)]">AI Analizi</h2>
+        {/* Analysis modal */}
+        <Modal
+          isOpen={analysisModalOpen}
+          onClose={() => { if (!analyzing) setAnalysisModalOpen(false); }}
+          title="AI Analizi"
+          className="max-w-2xl max-h-[80vh] flex flex-col"
+        >
+          <div className="overflow-y-auto flex-1 -mx-6 px-6">
+            {selectedDream.analysis ? (
+              <div
+                className="prose prose-invert prose-sm max-w-none text-[var(--text-primary)] [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm [&_h1]:font-bold [&_h2]:font-semibold [&_h3]:font-medium [&_strong]:text-[var(--text-primary)] [&_p]:text-[var(--text-secondary)] [&_li]:text-[var(--text-secondary)] [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+              >
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {selectedDream.analysis}
+                </ReactMarkdown>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-6 h-6 animate-spin text-primary-400" />
+              </div>
+            )}
+          </div>
+
+          {error && (
+            <div className="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+              <p className="text-sm text-red-400">{error}</p>
             </div>
-            <div
-              className="prose prose-invert prose-sm max-w-none text-[var(--text-primary)] [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm [&_h1]:font-bold [&_h2]:font-semibold [&_h3]:font-medium [&_strong]:text-[var(--text-primary)] [&_p]:text-[var(--text-secondary)] [&_li]:text-[var(--text-secondary)] [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
-              dangerouslySetInnerHTML={{ __html: renderMarkdown(selectedDream.analysis) }}
-            />
-          </Card>
-        ) : (
-          <Card>
-            <div className="text-center py-4">
-              <p className="text-[var(--text-muted)] mb-4">
-                Bu rüya henüz analiz edilmedi.
-              </p>
-              {error && (
-                <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
-                  <p className="text-sm text-red-400">{error}</p>
-                </div>
-              )}
-              <Button onClick={handleAnalyze} disabled={analyzing}>
-                {analyzing ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Analiz ediliyor...
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4" />
-                    Analiz Et
-                  </span>
-                )}
-              </Button>
-            </div>
-          </Card>
-        )}
+          )}
+        </Modal>
 
         {/* Delete confirmation modal */}
         <Modal isOpen={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} title="Rüyayı Sil">
@@ -411,35 +475,4 @@ export default function DreamsPage() {
       )}
     </div>
   );
-}
-
-/** Simple markdown to HTML renderer for dream analysis */
-function renderMarkdown(text: string): string {
-  let html = text
-    // Escape HTML first
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    // Headers
-    .replace(/^### (.+)$/gm, "<h3>$1</h3>")
-    .replace(/^## (.+)$/gm, "<h2>$1</h2>")
-    .replace(/^# (.+)$/gm, "<h1>$1</h1>")
-    // Bold and italic
-    .replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>")
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*(.+?)\*/g, "<em>$1</em>")
-    // Unordered lists
-    .replace(/^- (.+)$/gm, "<li>$1</li>")
-    // Paragraphs: split by double newline
-    .replace(/\n\n/g, "</p><p>")
-    // Single newlines within paragraphs
-    .replace(/\n/g, "<br>");
-
-  // Wrap consecutive <li> elements in <ul>
-  html = html.replace(/(<li>.*?<\/li>(?:<br>)?)+/g, (match) => {
-    const cleaned = match.replace(/<br>/g, "");
-    return `<ul>${cleaned}</ul>`;
-  });
-
-  return `<p>${html}</p>`;
 }

@@ -81,8 +81,6 @@ export function PastSessionDetail({ sessionId, onBack }: PastSessionDetailProps)
           </div>
           <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
             {durationMin != null && <span>{durationMin} dakika</span>}
-            {session.mood_before != null && <span>Ruh hali: {session.mood_before}/10</span>}
-            {session.mood_after != null && <span>→ {session.mood_after}/10</span>}
           </div>
         </div>
         <div className="flex items-center gap-2">

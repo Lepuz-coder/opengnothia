@@ -1,7 +1,7 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Card } from "@/components/ui/Card";
-import { Slider } from "@/components/ui/Slider";
+
 import { Button } from "@/components/ui/Button";
 import { Loader2 } from "lucide-react";
 
@@ -9,8 +9,6 @@ interface SessionEndSummaryProps {
   summaryNarrative: string;
   isSummaryStreaming: boolean;
   isSummaryParsing: boolean;
-  moodAfter: number;
-  onMoodChange: (mood: number) => void;
   onSave: () => void;
   saving?: boolean;
 }
@@ -19,8 +17,6 @@ export function SessionEndSummary({
   summaryNarrative,
   isSummaryStreaming,
   isSummaryParsing,
-  moodAfter,
-  onMoodChange,
   onSave,
   saving,
 }: SessionEndSummaryProps) {
@@ -58,19 +54,6 @@ export function SessionEndSummary({
           </div>
         )}
       </Card>
-
-      {/* Mood slider - show after streaming is done */}
-      {!isSummaryStreaming && (
-        <Card>
-          <Slider
-            label="Şu anki ruh halin"
-            value={moodAfter}
-            onChange={onMoodChange}
-            min={1}
-            max={10}
-          />
-        </Card>
-      )}
 
       {/* Save button */}
       <Button

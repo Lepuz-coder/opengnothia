@@ -3,10 +3,12 @@ import { useNavigate } from "react-router";
 import { useSessionStore } from "@/stores/useSessionStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useAppStore } from "@/stores/useAppStore";
-import { Slider } from "@/components/ui/Slider";
+
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
+import { Select } from "@/components/ui/Select";
+import { Toggle } from "@/components/ui/Toggle";
 import { ChatContainer } from "@/components/chat/ChatContainer";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { SessionTimer } from "@/components/chat/SessionTimer";
@@ -19,9 +21,9 @@ import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildRecomm
 import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
 import { createSession, updateSessionMessages, completeSession, deleteSession, getUserProfile, getTodayCheckIn, getRecentSessions, getPatientNotes, saveTokenUsage } from "@/services/db/queries";
 import { therapySchools, getTherapySchool, getTherapySchoolName } from "@/constants/therapySchools";
-import { getProvider } from "@/constants/providers";
+import { providers, getProvider, modelSupportsThinking } from "@/constants/providers";
 import { Square, Loader2 } from "lucide-react";
-import type { AIProvider, ChatMessage, SessionSummary, TokenUsage } from "@/types";
+import type { AIProvider, ChatMessage, SessionSummary, ThinkingLevel, TokenUsage } from "@/types";
 
 async function trackUsage(
   provider: AIProvider,
@@ -70,7 +72,6 @@ export default function SessionPage() {
   const session = useSessionStore();
   const settings = useSettingsStore();
   const setSidebarHidden = useAppStore((s) => s.setSidebarHidden);
-  const [preMood, setPreMood] = useState(5);
   const [saving, setSaving] = useState(false);
   const [startModalOpen, setStartModalOpen] = useState(false);
   const [schoolPickerOpen, setSchoolPickerOpen] = useState(false);
@@ -88,11 +89,11 @@ export default function SessionPage() {
 
   const handleStartSession = useCallback(async () => {
     setSidebarHidden(true);
-    session.startSession(preMood);
+    session.startSession(5);
     const id = useSessionStore.getState().sessionId!;
     const startedAt = useSessionStore.getState().startedAt!;
-    await createSession({ id, started_at: startedAt, mood_before: preMood });
-  }, [preMood, setSidebarHidden]);
+    await createSession({ id, started_at: startedAt, mood_before: 5 });
+  }, [setSidebarHidden]);
 
   const handleGreeting = useCallback(async () => {
     try {
@@ -479,7 +480,7 @@ export default function SessionPage() {
     const state = useSessionStore.getState();
     if (state.sessionId && state.summary) {
       await completeSession(state.sessionId, {
-        mood_after: state.moodAfter ?? 5,
+        mood_after: 5,
         summary: state.summary,
         summary_narrative: state.summaryNarrative || undefined,
       });
@@ -558,8 +559,58 @@ export default function SessionPage() {
             )}
           </div>
 
-          {/* Mood slider */}
-          <Slider label="Ruh Hali" value={preMood} onChange={setPreMood} min={1} max={10} />
+          {/* AI Settings */}
+          <div className="mb-6 space-y-4">
+            <label className="block text-sm font-medium mb-2">AI Ayarları</label>
+            <Select
+              label="Sağlayıcı"
+              options={providers.map((p) => ({ value: p.id, label: p.name }))}
+              value={settings.provider}
+              onChange={(e) => {
+                settings.setProvider(e.target.value as AIProvider);
+                const prov = getProvider(e.target.value);
+                if (prov?.models[0]) settings.setModel(prov.models[0].id);
+              }}
+            />
+            <Select
+              label="Model"
+              options={getProvider(settings.provider)?.models.map((m) => ({ value: m.id, label: m.name })) ?? []}
+              value={settings.model}
+              onChange={(e) => {
+                settings.setModel(e.target.value);
+                if (!modelSupportsThinking(settings.provider, e.target.value)) {
+                  settings.setThinkingEnabled(false);
+                }
+              }}
+            />
+            {modelSupportsThinking(settings.provider, settings.model) && (
+              <>
+                <div className="pt-1">
+                  <Toggle
+                    checked={settings.thinkingEnabled}
+                    onChange={settings.setThinkingEnabled}
+                    label="Düşünce Modu"
+                  />
+                  <p className="text-xs text-[var(--text-muted)] mt-1 ml-14">
+                    AI'ın düşünce sürecini görmeni sağlar. Daha yavaş ama daha derinlemesine yanıtlar.
+                  </p>
+                </div>
+                {settings.thinkingEnabled && (
+                  <Select
+                    label="Düşünce Seviyesi"
+                    options={[
+                      { value: "low", label: "Hızlı — Kısa düşünür, çabuk yanıt verir" },
+                      { value: "medium", label: "Dengeli — Yeterince düşünür, makul hızda" },
+                      { value: "high", label: "Derinlemesine — Uzun düşünür, detaylı analiz" },
+                      ...(settings.provider !== "openai" ? [{ value: "max", label: "Kapsamlı — En derin analiz, en yavaş yanıt" }] : []),
+                    ]}
+                    value={settings.thinkingLevel}
+                    onChange={(e) => settings.setThinkingLevel(e.target.value as ThinkingLevel)}
+                  />
+                )}
+              </>
+            )}
+          </div>
 
           {/* API error message */}
           {apiError && (
@@ -620,8 +671,6 @@ export default function SessionPage() {
         summaryNarrative={session.summaryNarrative}
         isSummaryStreaming={session.isSummaryStreaming}
         isSummaryParsing={session.isSummaryParsing}
-        moodAfter={session.moodAfter ?? 5}
-        onMoodChange={session.setMoodAfter}
         onSave={handleSaveAndClose}
         saving={saving}
       />

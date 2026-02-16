@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { useSessionStore } from "@/stores/useSessionStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useAppStore } from "@/stores/useAppStore";
+import { loadSettings } from "@/lib/store";
 
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -582,9 +583,12 @@ export default function SessionPage() {
             {therapySchools.map((school) => (
               <button
                 key={school.id}
-                onClick={() => {
+                onClick={async () => {
                   settings.setTherapySchool(school.id);
                   setSchoolPickerOpen(false);
+                  const store = await loadSettings();
+                  await store.set("therapySchool", school.id);
+                  await store.save();
                 }}
                 className={`text-left p-3 rounded-xl border transition-all duration-200 ${
                   school.id === "general" ? "col-span-2" : ""

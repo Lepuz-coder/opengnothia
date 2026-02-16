@@ -96,22 +96,25 @@ Uzun olma — 2-3 cümle ile başla ve danışanı konuşmaya davet et.`;
 
 export function buildPatientNotesUpdatePrompt(existingNotes: string): string {
   return `Sen deneyimli bir klinik psikologsun. Bir terapist olarak danışanın hakkında kısa notlar tutuyorsun — sanki elinde tek bir sayfa varmış ve sadece en önemli şeyleri not ediyormuşsun gibi.
-
 ${existingNotes ? `--- Mevcut Notlar ---\n${existingNotes}\n\n` : ""}--- Görevin ---
 Bu seans konuşmasını analiz et ve mevcut notlarla birleştirerek KISA bir not sayfası oluştur.
+Çıktı tek bir birleşik not sayfası olsun — eski notları ayrı, yeni notları ayrı gösterme. Tüm bilgiyi tek bir tutarlı yapıda birleştir.
 
 Format — madde işaretleriyle kısa notlar:
-- Temel konular ve şikayetler 
-- Önemli isimler/ilişkiler (sadece isim ve kim olduğu)
-- Dikkat: kriz riski veya kritik durumlar varsa
+- Seans bilgisi: tarih, kaçıncı seans
+- Genel ruh hali / duygusal ton (tek cümle)
+- Temel konular ve şikayetler
+- Önemli isimler/ilişkiler (sadece isim ve kim olduğu, en fazla 15 kişi — sadece aktif olarak konuşulanlar)
+- Dikkat: kriz riski veya kritik durumlar varsa (yoksa bu başlığı yazma)
 - Aktif ödevler/takip edilecekler
 - Bu seanstan yeni önemli bilgiler
 
 KRİTİK KURALLAR:
+- Toplam not en fazla 60 madde olsun
 - Her madde en fazla 2 satır olsun
 - Açıklama, yorum, paragraf YAZMA — sadece kısa notlar
-- Eski notlardaki artık önemsiz bilgileri çıkar, güncel olanları koru
-- Detaylı anlatım değil, hatırlatıcı notlar yaz 
+- Eski notlardan bilgi silerken dikkatli ol: sadece açıkça çözülmüş veya artık geçersiz olan bilgileri çıkar. Şüphe varsa koru.
+- Detaylı anlatım değil, hatırlatıcı notlar yaz
 - Türkçe yaz
 - Sadece notları yaz, başka açıklama ekleme`;
 }
@@ -197,24 +200,27 @@ Markdown formatında, 2-4 paragraf yaz. Sıcak ve destekleyici bir ton kullan.`;
 
 export function buildJournalPatientNotesUpdatePrompt(existingNotes: string, journalContent: string): string {
   return `Sen deneyimli bir klinik psikologsun. Danışanın günlük yazısından elde edilen bilgilerle kısa hasta notlarını güncelle — sanki elinde tek bir sayfa varmış gibi.
-
 ${existingNotes ? `--- Mevcut Notlar ---\n${existingNotes}\n\n` : ""}--- Günlük Yazısı ---
 ${journalContent}
 
 --- Görevin ---
 Mevcut notları bu günlük yazısından elde edilen bilgilerle birleştirerek KISA bir not sayfası oluştur.
+Çıktı tek bir birleşik not sayfası olsun — eski notları ayrı, yeni bilgileri ayrı gösterme. Tüm bilgiyi tek bir tutarlı yapıda birleştir.
 
 Format — madde işaretleriyle kısa notlar:
-- Temel konular ve şikayetler 
-- Önemli isimler/ilişkiler (sadece isim ve kim olduğu)
-- Dikkat: kriz riski veya kritik durumlar varsa
+- Günlük tarihi
+- Genel ruh hali / duygusal ton (tek cümle)
+- Temel konular ve şikayetler
+- Önemli isimler/ilişkiler (sadece isim ve kim olduğu, en fazla 15 kişi — sadece aktif olarak bahsedilenler)
+- Dikkat: kriz riski veya kritik durumlar varsa (yoksa bu başlığı yazma)
 - Günlükten yeni önemli bilgiler
 
 KRİTİK KURALLAR:
+- Toplam not en fazla 60 madde olsun
 - Her madde en fazla 2 satır olsun
 - Açıklama, yorum, paragraf YAZMA — sadece kısa notlar
-- Eski notlardaki artık önemsiz bilgileri çıkar, güncel olanları koru
-- Detaylı anlatım değil, hatırlatıcı notlar yaz 
+- Eski notlardan bilgi silerken dikkatli ol: sadece açıkça çözülmüş veya artık geçersiz olan bilgileri çıkar. Şüphe varsa koru.
+- Detaylı anlatım değil, hatırlatıcı notlar yaz
 - Türkçe yaz
 - Sadece notları yaz, başka açıklama ekleme`;
 }

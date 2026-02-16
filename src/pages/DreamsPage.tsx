@@ -264,7 +264,7 @@ export default function DreamsPage() {
       takeBackgroundNotes({
         provider: settings.provider,
         apiKey: settings.apiKey,
-        model: settings.model,
+        model: settings.memoryModel,
         messages: [
           {
             id: crypto.randomUUID(),

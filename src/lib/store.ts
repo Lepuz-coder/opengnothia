@@ -13,6 +13,10 @@ const STORE_DEFAULTS = {
   thinkingLevel: "medium",
   providerApiKeys: {} as Record<string, string>,
   providerThinkingSettings: {} as Record<string, { enabled: boolean; level: string }>,
+  memoryModel: "gpt-4o-mini",
+  memoryThinkingEnabled: false,
+  memoryThinkingLevel: "medium",
+  providerMemoryThinkingSettings: {} as Record<string, { enabled: boolean; level: string }>,
 };
 
 export function loadSettings() {

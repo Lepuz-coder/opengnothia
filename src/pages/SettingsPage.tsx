@@ -40,6 +40,7 @@ export default function SettingsPage() {
   const providerOptions = providers.map((p) => ({ value: p.id, label: p.name }));
   const modelOptions = currentProvider?.models.map((m) => ({ value: m.id, label: m.name })) ?? [];
   const showThinkingToggle = modelSupportsThinking(settings.provider, settings.model);
+  const showMemoryThinkingToggle = modelSupportsThinking(settings.provider, settings.memoryModel);
 
   async function handleSave() {
     const store = await loadSettings();
@@ -51,6 +52,10 @@ export default function SettingsPage() {
     await store.set("thinkingEnabled", settings.thinkingEnabled);
     await store.set("thinkingLevel", settings.thinkingLevel);
     await store.set("providerThinkingSettings", settings.providerThinkingSettings);
+    await store.set("memoryModel", settings.memoryModel);
+    await store.set("memoryThinkingEnabled", settings.memoryThinkingEnabled);
+    await store.set("memoryThinkingLevel", settings.memoryThinkingLevel);
+    await store.set("providerMemoryThinkingSettings", settings.providerMemoryThinkingSettings);
     await store.set("therapySchool", settings.therapySchool);
     await store.save();
 
@@ -116,7 +121,7 @@ export default function SettingsPage() {
         </div>
       </Card>
 
-      {/* AI Settings */}
+      {/* AI Connection */}
       <Card>
         <h2 className="font-semibold mb-4">AI Bağlantısı</h2>
         <div className="space-y-4">
@@ -126,8 +131,6 @@ export default function SettingsPage() {
             value={settings.provider}
             onChange={(e) => {
               settings.setProvider(e.target.value as AIProvider);
-              const prov = getProvider(e.target.value);
-              if (prov?.models[0]) settings.setModel(prov.models[0].id);
             }}
           />
 
@@ -147,7 +150,16 @@ export default function SettingsPage() {
               onBlur={() => setApiKeyFocused(false)}
             />
           )}
+        </div>
+      </Card>
 
+      {/* Chat Model */}
+      <Card>
+        <h2 className="font-semibold mb-4">Genel Chat Modeli</h2>
+        <p className="text-xs text-[var(--text-muted)] mb-3">
+          Seans, özet, rüya analizi ve günlük analizi için kullanılır.
+        </p>
+        <div className="space-y-4">
           {modelOptions.length > 0 && (
             <Select
               label="Model"
@@ -186,6 +198,56 @@ export default function SettingsPage() {
               ]}
               value={settings.thinkingLevel}
               onChange={(e) => settings.setThinkingLevel(e.target.value as ThinkingLevel)}
+            />
+          )}
+        </div>
+      </Card>
+
+      {/* Memory Model */}
+      <Card>
+        <h2 className="font-semibold mb-4">Hafıza Modeli</h2>
+        <p className="text-xs text-[var(--text-muted)] mb-3">
+          Hasta notları çıkarımı için kullanılır. Daha küçük/ucuz bir model seçebilirsin.
+        </p>
+        <div className="space-y-4">
+          {modelOptions.length > 0 && (
+            <Select
+              label="Model"
+              options={modelOptions}
+              value={settings.memoryModel}
+              onChange={(e) => {
+                settings.setMemoryModel(e.target.value);
+                if (!modelSupportsThinking(settings.provider, e.target.value)) {
+                  settings.setMemoryThinkingEnabled(false);
+                }
+              }}
+            />
+          )}
+
+          {showMemoryThinkingToggle && (
+            <div className="pt-1">
+              <Toggle
+                checked={settings.memoryThinkingEnabled}
+                onChange={settings.setMemoryThinkingEnabled}
+                label="Düşünce Modu"
+              />
+              <p className="text-xs text-[var(--text-muted)] mt-1 ml-14">
+                Hasta notları çıkarımında düşünce modunu kullanır.
+              </p>
+            </div>
+          )}
+
+          {showMemoryThinkingToggle && settings.memoryThinkingEnabled && (
+            <Select
+              label="Düşünce Seviyesi"
+              options={[
+                { value: "low", label: "Hızlı — Kısa düşünür, çabuk yanıt verir" },
+                { value: "medium", label: "Dengeli — Yeterince düşünür, makul hızda" },
+                { value: "high", label: "Derinlemesine — Uzun düşünür, detaylı analiz" },
+                ...(settings.provider !== "openai" ? [{ value: "max", label: "Kapsamlı — En derin analiz, en yavaş yanıt" }] : []),
+              ]}
+              value={settings.memoryThinkingLevel}
+              onChange={(e) => settings.setMemoryThinkingLevel(e.target.value as ThinkingLevel)}
             />
           )}
         </div>

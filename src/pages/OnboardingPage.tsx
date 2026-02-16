@@ -12,7 +12,7 @@ import { ReadyStep } from "@/components/onboarding/ReadyStep";
 export default function OnboardingPage() {
   const [step, setStep] = useState(0);
   const { setOnboarded } = useAppStore();
-  const { provider, apiKey, model, approach, preferredSessionTime, sessionDurationMinutes } = useSettingsStore();
+  const { provider, apiKey, model, approach, preferredSessionTime, sessionDurationMinutes, memoryModel, memoryThinkingEnabled, memoryThinkingLevel } = useSettingsStore();
 
   async function handleComplete() {
     // Save settings to store
@@ -22,6 +22,9 @@ export default function OnboardingPage() {
     await store.set("apiKey", apiKey);
     await store.set("providerApiKeys", { [provider]: apiKey });
     await store.set("model", model);
+    await store.set("memoryModel", memoryModel);
+    await store.set("memoryThinkingEnabled", memoryThinkingEnabled);
+    await store.set("memoryThinkingLevel", memoryThinkingLevel);
     await store.save();
 
     // Save user profile to DB

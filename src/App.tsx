@@ -47,6 +47,10 @@ function AppContent() {
         const thinkingLevel = await store.get<string>("thinkingLevel");
         let providerApiKeys = await store.get<Record<string, string>>("providerApiKeys");
         const providerThinkingSettings = await store.get<Record<string, { enabled: boolean; level: string }>>("providerThinkingSettings");
+        const memoryModel = await store.get<string>("memoryModel");
+        const memoryThinkingEnabled = await store.get<boolean>("memoryThinkingEnabled");
+        const memoryThinkingLevel = await store.get<string>("memoryThinkingLevel");
+        const providerMemoryThinkingSettings = await store.get<Record<string, { enabled: boolean; level: string }>>("providerMemoryThinkingSettings");
 
         // Migrate: if providerApiKeys is empty but apiKey exists, seed it
         if ((!providerApiKeys || Object.keys(providerApiKeys).length === 0) && apiKey && provider) {
@@ -65,6 +69,10 @@ function AppContent() {
           ...(thinkingLevel && { thinkingLevel: thinkingLevel as any }),
           ...(providerApiKeys && { providerApiKeys }),
           ...(providerThinkingSettings && { providerThinkingSettings: providerThinkingSettings as any }),
+          ...(memoryModel && { memoryModel }),
+          ...(memoryThinkingEnabled != null && { memoryThinkingEnabled }),
+          ...(memoryThinkingLevel && { memoryThinkingLevel: memoryThinkingLevel as any }),
+          ...(providerMemoryThinkingSettings && { providerMemoryThinkingSettings: providerMemoryThinkingSettings as any }),
         });
       } catch {
         // Store not available yet, use defaults

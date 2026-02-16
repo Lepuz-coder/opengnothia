@@ -378,7 +378,7 @@ export default function SessionPage() {
       takeBackgroundNotes({
         provider: settings.provider,
         apiKey: settings.apiKey,
-        model: settings.model,
+        model: settings.memoryModel,
         messages: conversationForNotes,
         systemPrompt: "Sen deneyimli bir klinik psikolog. Hasta notlarını güncelle.",
         customBaseUrl: settings.customBaseUrl || undefined,
@@ -525,59 +525,6 @@ export default function SessionPage() {
                 Değiştir
               </Button>
             </div>
-          </div>
-
-          {/* AI Settings */}
-          <div className="mb-6 space-y-4">
-            <label className="block text-sm font-medium mb-2">AI Ayarları</label>
-            <Select
-              label="Sağlayıcı"
-              options={providers.map((p) => ({ value: p.id, label: p.name }))}
-              value={settings.provider}
-              onChange={(e) => {
-                settings.setProvider(e.target.value as AIProvider);
-                const prov = getProvider(e.target.value);
-                if (prov?.models[0]) settings.setModel(prov.models[0].id);
-              }}
-            />
-            <Select
-              label="Model"
-              options={getProvider(settings.provider)?.models.map((m) => ({ value: m.id, label: m.name })) ?? []}
-              value={settings.model}
-              onChange={(e) => {
-                settings.setModel(e.target.value);
-                if (!modelSupportsThinking(settings.provider, e.target.value)) {
-                  settings.setThinkingEnabled(false);
-                }
-              }}
-            />
-            {modelSupportsThinking(settings.provider, settings.model) && (
-              <>
-                <div className="pt-1">
-                  <Toggle
-                    checked={settings.thinkingEnabled}
-                    onChange={settings.setThinkingEnabled}
-                    label="Düşünce Modu"
-                  />
-                  <p className="text-xs text-[var(--text-muted)] mt-1 ml-14">
-                    AI'ın düşünce sürecini görmeni sağlar. Daha yavaş ama daha derinlemesine yanıtlar.
-                  </p>
-                </div>
-                {settings.thinkingEnabled && (
-                  <Select
-                    label="Düşünce Seviyesi"
-                    options={[
-                      { value: "low", label: "Hızlı — Kısa düşünür, çabuk yanıt verir" },
-                      { value: "medium", label: "Dengeli — Yeterince düşünür, makul hızda" },
-                      { value: "high", label: "Derinlemesine — Uzun düşünür, detaylı analiz" },
-                      ...(settings.provider !== "openai" ? [{ value: "max", label: "Kapsamlı — En derin analiz, en yavaş yanıt" }] : []),
-                    ]}
-                    value={settings.thinkingLevel}
-                    onChange={(e) => settings.setThinkingLevel(e.target.value as ThinkingLevel)}
-                  />
-                )}
-              </>
-            )}
           </div>
 
           {/* API error message */}

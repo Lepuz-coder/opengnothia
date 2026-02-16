@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { getProvider } from "@/constants/providers";
 import type { AIProvider, Approach, TherapySchool, ThinkingLevel } from "@/types";
 
 interface SettingsState {
@@ -14,6 +15,10 @@ interface SettingsState {
   thinkingLevel: ThinkingLevel;
   providerApiKeys: Record<string, string>;
   providerThinkingSettings: Record<string, { enabled: boolean; level: ThinkingLevel }>;
+  memoryModel: string;
+  memoryThinkingEnabled: boolean;
+  memoryThinkingLevel: ThinkingLevel;
+  providerMemoryThinkingSettings: Record<string, { enabled: boolean; level: ThinkingLevel }>;
   setProvider: (provider: AIProvider) => void;
   setApiKey: (key: string) => void;
   setModel: (model: string) => void;
@@ -24,6 +29,9 @@ interface SettingsState {
   setThinkingEnabled: (enabled: boolean) => void;
   setTherapySchool: (school: TherapySchool) => void;
   setThinkingLevel: (level: ThinkingLevel) => void;
+  setMemoryModel: (model: string) => void;
+  setMemoryThinkingEnabled: (enabled: boolean) => void;
+  setMemoryThinkingLevel: (level: ThinkingLevel) => void;
   loadFromStore: (data: Partial<SettingsState>) => void;
 }
 
@@ -40,32 +48,58 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   thinkingLevel: "medium",
   providerApiKeys: {},
   providerThinkingSettings: {},
+  memoryModel: "gpt-4o-mini",
+  memoryThinkingEnabled: false,
+  memoryThinkingLevel: "medium",
+  providerMemoryThinkingSettings: {},
   setProvider: (provider) => {
     const state = get();
     const updatedKeys = { ...state.providerApiKeys, [state.provider]: state.apiKey };
     const newApiKey = updatedKeys[provider] ?? "";
 
-    // Save current provider's thinking settings
+    // Save current provider's chat thinking settings
     const updatedThinking = {
       ...state.providerThinkingSettings,
       [state.provider]: { enabled: state.thinkingEnabled, level: state.thinkingLevel },
     };
 
-    // Restore new provider's thinking settings (or defaults)
+    // Save current provider's memory thinking settings
+    const updatedMemoryThinking = {
+      ...state.providerMemoryThinkingSettings,
+      [state.provider]: { enabled: state.memoryThinkingEnabled, level: state.memoryThinkingLevel },
+    };
+
+    // Restore new provider's chat thinking settings (or defaults)
     const restored = updatedThinking[provider] ?? { enabled: false, level: "medium" as ThinkingLevel };
     let restoredLevel = restored.level;
-    // OpenAI doesn't support "max" thinking level
     if (provider === "openai" && restoredLevel === "max") {
       restoredLevel = "high";
     }
 
+    // Restore new provider's memory thinking settings (or defaults)
+    const restoredMemory = updatedMemoryThinking[provider] ?? { enabled: false, level: "medium" as ThinkingLevel };
+    let restoredMemoryLevel = restoredMemory.level;
+    if (provider === "openai" && restoredMemoryLevel === "max") {
+      restoredMemoryLevel = "high";
+    }
+
+    // Reset models to new provider's first model
+    const newProvider = getProvider(provider);
+    const newModel = newProvider?.models[0]?.id ?? state.model;
+    const newMemoryModel = newProvider?.models[0]?.id ?? state.memoryModel;
+
     set({
       provider,
       apiKey: newApiKey,
+      model: newModel,
+      memoryModel: newMemoryModel,
       providerApiKeys: updatedKeys,
       thinkingEnabled: restored.enabled,
       thinkingLevel: restoredLevel,
       providerThinkingSettings: updatedThinking,
+      memoryThinkingEnabled: restoredMemory.enabled,
+      memoryThinkingLevel: restoredMemoryLevel,
+      providerMemoryThinkingSettings: updatedMemoryThinking,
     });
   },
   setApiKey: (apiKey) => {
@@ -83,5 +117,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setThinkingEnabled: (thinkingEnabled) => set({ thinkingEnabled }),
   setTherapySchool: (therapySchool) => set({ therapySchool }),
   setThinkingLevel: (thinkingLevel) => set({ thinkingLevel }),
+  setMemoryModel: (memoryModel) => set({ memoryModel }),
+  setMemoryThinkingEnabled: (memoryThinkingEnabled) => set({ memoryThinkingEnabled }),
+  setMemoryThinkingLevel: (memoryThinkingLevel) => set({ memoryThinkingLevel }),
   loadFromStore: (data) => set(data),
 }));

@@ -15,7 +15,11 @@ interface ApiSetupStepProps {
 }
 
 export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
-  const { provider, setProvider, apiKey, setApiKey, model, setModel, thinkingEnabled, setThinkingEnabled, thinkingLevel, setThinkingLevel } = useSettingsStore();
+  const {
+    provider, setProvider, apiKey, setApiKey,
+    model, setModel, thinkingEnabled, setThinkingEnabled, thinkingLevel, setThinkingLevel,
+    memoryModel, setMemoryModel, memoryThinkingEnabled, setMemoryThinkingEnabled, memoryThinkingLevel, setMemoryThinkingLevel,
+  } = useSettingsStore();
   const [testStatus, setTestStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [testError, setTestError] = useState("");
 
@@ -23,6 +27,7 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
   const providerOptions = providers.map((p) => ({ value: p.id, label: p.name }));
   const modelOptions = currentProvider?.models.map((m) => ({ value: m.id, label: m.name })) ?? [];
   const showThinkingToggle = modelSupportsThinking(provider, model);
+  const showMemoryThinkingToggle = modelSupportsThinking(provider, memoryModel);
 
   async function handleTest() {
     setTestStatus("loading");
@@ -58,8 +63,6 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
         onChange={(e) => {
           setProvider(e.target.value as any);
           setTestStatus("idle");
-          const prov = getProvider(e.target.value);
-          if (prov?.models[0]) setModel(prov.models[0].id);
         }}
       />
 
@@ -72,6 +75,14 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
           placeholder={provider === "openai" ? "sk-..." : provider === "anthropic" ? "sk-ant-..." : "API anahtarını gir"}
         />
       )}
+
+      {/* Chat Model */}
+      <div className="border-t border-[var(--border-color)] pt-4 mt-2">
+        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1">Genel Chat Modeli</h3>
+        <p className="text-xs text-[var(--text-muted)] mb-3">
+          Seans, özet, rüya analizi ve günlük analizi için kullanılır.
+        </p>
+      </div>
 
       {modelOptions.length > 0 && (
         <Select
@@ -111,6 +122,55 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
           ]}
           value={thinkingLevel}
           onChange={(e) => setThinkingLevel(e.target.value as ThinkingLevel)}
+        />
+      )}
+
+      {/* Memory Model */}
+      <div className="border-t border-[var(--border-color)] pt-4 mt-2">
+        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1">Hafıza Modeli</h3>
+        <p className="text-xs text-[var(--text-muted)] mb-3">
+          Hasta notları çıkarımı için kullanılır. Daha küçük/ucuz bir model yeterli olabilir.
+        </p>
+      </div>
+
+      {modelOptions.length > 0 && (
+        <Select
+          label="Model"
+          options={modelOptions}
+          value={memoryModel}
+          onChange={(e) => {
+            setMemoryModel(e.target.value);
+            if (!modelSupportsThinking(provider, e.target.value)) {
+              setMemoryThinkingEnabled(false);
+            }
+          }}
+        />
+      )}
+
+      {showMemoryThinkingToggle && (
+        <div>
+          <Toggle
+            checked={memoryThinkingEnabled}
+            onChange={setMemoryThinkingEnabled}
+            label="Düşünce Modu"
+          />
+          <p className="text-xs text-[var(--text-muted)] mt-1 ml-14">
+            Hasta notları çıkarımında düşünce modunu kullanır.
+          </p>
+        </div>
+      )}
+
+      {showMemoryThinkingToggle && memoryThinkingEnabled && (
+        <Select
+          label="Düşünce Seviyesi"
+          options={[
+            { value: "low", label: "Hızlı — Kısa düşünür, çabuk yanıt verir" },
+            { value: "medium", label: "Dengeli — Yeterince düşünür, makul hızda" },
+            { value: "high", label: "Derinlemesine — Uzun düşünür, detaylı analiz" },
+            ...(provider !== "openai" ? [{ value: "max", label: "Kapsamlı — En derin analiz, en yavaş yanıt" }] : []),
+          ]}
+          value={memoryThinkingLevel}
+          onChange={(e) => setMemoryThinkingLevel(e.target.value as ThinkingLevel)}
         />
       )}
 

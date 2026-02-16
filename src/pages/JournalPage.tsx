@@ -307,7 +307,7 @@ export default function JournalPage() {
       takeBackgroundNotes({
         provider: settings.provider,
         apiKey: settings.apiKey,
-        model: settings.model,
+        model: settings.memoryModel,
         messages: [{ id: "journal-notes", role: "user", content: notesPrompt, timestamp: new Date().toISOString() }],
         systemPrompt: "Sen deneyimli bir klinik psikolog. Hasta notlarını güncelle.",
         customBaseUrl: settings.customBaseUrl || undefined,

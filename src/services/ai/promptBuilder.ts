@@ -95,22 +95,25 @@ Uzun olma — 2-3 cümle ile başla ve danışanı konuşmaya davet et.`;
 }
 
 export function buildPatientNotesUpdatePrompt(existingNotes: string): string {
-  return `Sen deneyimli bir klinik psikologsun. Aşağıda danışanla ilgili mevcut kümülatif notların var. Bu seans konuşmasını analiz ederek notları güncelle.
+  return `Sen deneyimli bir klinik psikologsun. Bir terapist olarak danışanın hakkında kısa notlar tutuyorsun — sanki elinde tek bir sayfa varmış ve sadece en önemli şeyleri not ediyormuşsun gibi.
 
 ${existingNotes ? `--- Mevcut Notlar ---\n${existingNotes}\n\n` : ""}--- Görevin ---
-Mevcut notları bu seansın bilgileriyle birleştirerek güncel bir kümülatif not belgesi oluştur. Şunları içermeli:
-- Danışanın genel profili ve temel konuları
-- Önemli isimler, ilişkiler, olaylar
-- Tekrarlayan temalar ve örüntüler
-- Dirençli olduğu alanlar
-- Verilen ödevler ve takip edilecek konular
-- Kriz riski veya dikkat edilmesi gereken durumlar
-- Bu seanstaki yeni bilgiler ve gelişmeler
+Bu seans konuşmasını analiz et ve mevcut notlarla birleştirerek KISA bir not sayfası oluştur.
 
-Önemli:
-- Sadece güncellenmiş notları yaz, başka açıklama ekleme
-- Notlar düzenli, okunabilir ve özlü olsun — gereksiz tekrarlardan kaçın
-- Türkçe yaz`;
+Format — madde işaretleriyle kısa notlar:
+- Temel konular ve şikayetler 
+- Önemli isimler/ilişkiler (sadece isim ve kim olduğu)
+- Dikkat: kriz riski veya kritik durumlar varsa
+- Aktif ödevler/takip edilecekler
+- Bu seanstan yeni önemli bilgiler
+
+KRİTİK KURALLAR:
+- Her madde en fazla 2 satır olsun
+- Açıklama, yorum, paragraf YAZMA — sadece kısa notlar
+- Eski notlardaki artık önemsiz bilgileri çıkar, güncel olanları koru
+- Detaylı anlatım değil, hatırlatıcı notlar yaz 
+- Türkçe yaz
+- Sadece notları yaz, başka açıklama ekleme`;
 }
 
 export function buildDreamAnalysisPrompt(patientNotes: string): string {
@@ -193,24 +196,27 @@ Markdown formatında, 2-4 paragraf yaz. Sıcak ve destekleyici bir ton kullan.`;
 }
 
 export function buildJournalPatientNotesUpdatePrompt(existingNotes: string, journalContent: string): string {
-  return `Sen deneyimli bir klinik psikologsun. Danışanın günlük yazısından elde edilen bilgilerle hasta notlarını güncelle.
+  return `Sen deneyimli bir klinik psikologsun. Danışanın günlük yazısından elde edilen bilgilerle kısa hasta notlarını güncelle — sanki elinde tek bir sayfa varmış gibi.
 
 ${existingNotes ? `--- Mevcut Notlar ---\n${existingNotes}\n\n` : ""}--- Günlük Yazısı ---
 ${journalContent}
 
 --- Görevin ---
-Mevcut notları bu günlük yazısından elde edilen bilgilerle birleştirerek güncel bir kümülatif not belgesi oluştur. Şunları içermeli:
-- Danışanın genel profili ve temel konuları
-- Önemli isimler, ilişkiler, olaylar
-- Tekrarlayan temalar ve örüntüler
-- Dirençli olduğu alanlar
-- Kriz riski veya dikkat edilmesi gereken durumlar
-- Günlük yazısından elde edilen yeni bilgiler
+Mevcut notları bu günlük yazısından elde edilen bilgilerle birleştirerek KISA bir not sayfası oluştur.
 
-Önemli:
-- Sadece güncellenmiş notları yaz, başka açıklama ekleme
-- Notlar düzenli, okunabilir ve özlü olsun — gereksiz tekrarlardan kaçın
-- Türkçe yaz`;
+Format — madde işaretleriyle kısa notlar:
+- Temel konular ve şikayetler 
+- Önemli isimler/ilişkiler (sadece isim ve kim olduğu)
+- Dikkat: kriz riski veya kritik durumlar varsa
+- Günlükten yeni önemli bilgiler
+
+KRİTİK KURALLAR:
+- Her madde en fazla 2 satır olsun
+- Açıklama, yorum, paragraf YAZMA — sadece kısa notlar
+- Eski notlardaki artık önemsiz bilgileri çıkar, güncel olanları koru
+- Detaylı anlatım değil, hatırlatıcı notlar yaz 
+- Türkçe yaz
+- Sadece notları yaz, başka açıklama ekleme`;
 }
 
 

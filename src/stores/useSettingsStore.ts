@@ -36,20 +36,20 @@ interface SettingsState {
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
-  provider: "openai",
+  provider: "anthropic",
   apiKey: "",
-  model: "gpt-4o",
+  model: "claude-opus-4-6",
   customBaseUrl: "",
   approach: "balanced",
   preferredSessionTime: "20:00",
   sessionDurationMinutes: 50,
   therapySchool: "general",
-  thinkingEnabled: false,
+  thinkingEnabled: true,
   thinkingLevel: "medium",
   providerApiKeys: {},
   providerThinkingSettings: {},
-  memoryModel: "gpt-4o-mini",
-  memoryThinkingEnabled: false,
+  memoryModel: "claude-sonnet-4-5-20250929",
+  memoryThinkingEnabled: true,
   memoryThinkingLevel: "medium",
   providerMemoryThinkingSettings: {},
   setProvider: (provider) => {

@@ -17,6 +17,7 @@ import {
   updateDreamContent,
   deleteDream,
   getPatientNotes,
+  getPatientNotesUpdatedAt,
   saveTokenUsage,
 } from "@/services/db/queries";
 import { Plus, ArrowLeft, Sparkles, Trash2, Loader2, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
@@ -260,7 +261,8 @@ export default function DreamsPage() {
       await trackUsage(settings.provider, settings.model, "dream_analysis", streamUsage);
 
       // 2. Update patient notes in background
-      const notesPrompt = buildPatientNotesUpdatePrompt(patientNotes);
+      const notesUpdatedAt = await getPatientNotesUpdatedAt();
+      const notesPrompt = buildPatientNotesUpdatePrompt(patientNotes, notesUpdatedAt);
       takeBackgroundNotes({
         provider: settings.provider,
         apiKey: settings.apiKey,

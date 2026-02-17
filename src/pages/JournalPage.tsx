@@ -19,6 +19,7 @@ import {
   deleteJournalEntry,
   getUserProfile,
   getPatientNotes,
+  getPatientNotesUpdatedAt,
   saveTokenUsage,
 } from "@/services/db/queries";
 import { Plus, ArrowLeft, Trash2, Sparkles, Loader2, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
@@ -302,8 +303,8 @@ export default function JournalPage() {
       await trackUsage(settings.provider, settings.model, "journal_analysis", streamUsage);
 
       // Update patient notes in background
-      const existingNotes = await getPatientNotes();
-      const notesPrompt = buildPatientNotesUpdatePrompt(existingNotes);
+      const [existingNotes, notesUpdatedAt] = await Promise.all([getPatientNotes(), getPatientNotesUpdatedAt()]);
+      const notesPrompt = buildPatientNotesUpdatePrompt(existingNotes, notesUpdatedAt);
       takeBackgroundNotes({
         provider: settings.provider,
         apiKey: settings.apiKey,

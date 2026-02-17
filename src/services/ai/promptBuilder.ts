@@ -8,8 +8,10 @@ export function buildSystemPrompt(params: {
   lastSessionNarrative?: string | null;
   therapySchool?: TherapySchool;
   patientNotes?: string;
+  lastSessionDate?: string | null;
+  totalSessionCount?: number;
 }): string {
-  const { profile, todayCheckIn, lastSessionSummary, lastSessionNarrative, therapySchool, patientNotes } = params;
+  const { profile, todayCheckIn, lastSessionSummary, lastSessionNarrative, therapySchool, patientNotes, lastSessionDate, totalSessionCount } = params;
 
   let prompt = `Sen OpenGnothia'nın yapay zeka destekli psikolojik destek asistanısın. Türkçe konuşuyorsun.
 
@@ -21,6 +23,21 @@ Temel ilkeler:
 - Profesyonel sınırları koru — sen bir terapist değilsin, bir destek aracısın
 - Kriz durumlarında profesyonel yardım almayı öner
 - Yanıtlarını kısa ve öz tut, paragraflar halinde konuş`;
+
+  // Temporal context
+  const today = new Date();
+  const todayStr = today.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric", weekday: "long" });
+  prompt += `\n\nZaman bilgisi:`;
+  prompt += `\n- Bugünün tarihi: ${todayStr}`;
+  if (lastSessionDate) {
+    const lastDate = new Date(lastSessionDate);
+    const lastDateStr = lastDate.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
+    const diffDays = Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+    prompt += `\n- Son seans tarihi: ${lastDateStr} (${diffDays} gün önce)`;
+  }
+  if (totalSessionCount !== undefined) {
+    prompt += `\n- Toplam tamamlanmış seans sayısı: ${totalSessionCount}`;
+  }
 
   if (therapySchool) {
     const school = getTherapySchool(therapySchool);
@@ -82,6 +99,8 @@ export function buildGreetingPrompt(params: {
   lastSessionNarrative?: string | null;
   therapySchool?: TherapySchool;
   patientNotes?: string;
+  lastSessionDate?: string | null;
+  totalSessionCount?: number;
 }): string {
   let prompt = buildSystemPrompt(params);
 
@@ -94,9 +113,20 @@ Uzun olma — 2-3 cümle ile başla ve danışanı konuşmaya davet et.`;
   return prompt;
 }
 
-export function buildPatientNotesUpdatePrompt(existingNotes: string): string {
+export function buildPatientNotesUpdatePrompt(existingNotes: string, lastUpdatedAt?: string | null): string {
+  let memorySection = "";
+  if (existingNotes) {
+    memorySection = `--- Mevcut Hafıza ---\n`;
+    if (lastUpdatedAt) {
+      const updatedDate = new Date(lastUpdatedAt);
+      const updatedStr = updatedDate.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
+      memorySection += `(Son güncelleme: ${updatedStr})\n`;
+    }
+    memorySection += `${existingNotes}\n\n`;
+  }
+
   return `Sen deneyimli bir klinik psikologsun. Danışanın hakkında uzun süreli bir hafıza dosyası tutuyorsun. Bu dosya seanstan seansa, günlükten günlüğe taşınan ve danışanı gerçekten tanımanı sağlayan kalıcı bilgileri içerir.
-${existingNotes ? `--- Mevcut Hafıza ---\n${existingNotes}\n\n` : ""}--- Görevin ---
+${memorySection}--- Görevin ---
 Verilen içeriği analiz et ve mevcut hafızayla birleştirerek güncel bir hafıza dosyası oluştur.
 Çıktı tek bir birleşik dosya olsun — eski ve yeni bilgiyi ayırma, tek bir tutarlı yapıda birleştir.
 

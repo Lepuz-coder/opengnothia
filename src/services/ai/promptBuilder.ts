@@ -95,28 +95,51 @@ Uzun olma — 2-3 cümle ile başla ve danışanı konuşmaya davet et.`;
 }
 
 export function buildPatientNotesUpdatePrompt(existingNotes: string): string {
-  return `Sen deneyimli bir klinik psikologsun. Bir terapist olarak danışanın hakkında kısa notlar tutuyorsun — sanki elinde tek bir sayfa varmış ve sadece en önemli şeyleri not ediyormuşsun gibi.
-${existingNotes ? `--- Mevcut Notlar ---\n${existingNotes}\n\n` : ""}--- Görevin ---
-Bu seans konuşmasını analiz et ve mevcut notlarla birleştirerek bir not sayfası oluştur.
-Çıktı tek bir birleşik not sayfası olsun — eski notları ayrı, yeni notları ayrı gösterme. Tüm bilgiyi tek bir tutarlı yapıda birleştir.
+  return `Sen deneyimli bir klinik psikologsun. Danışanın hakkında uzun süreli bir hafıza dosyası tutuyorsun. Bu dosya seanstan seansa, günlükten günlüğe taşınan ve danışanı gerçekten tanımanı sağlayan kalıcı bilgileri içerir.
+${existingNotes ? `--- Mevcut Hafıza ---\n${existingNotes}\n\n` : ""}--- Görevin ---
+Verilen içeriği analiz et ve mevcut hafızayla birleştirerek güncel bir hafıza dosyası oluştur.
+Çıktı tek bir birleşik dosya olsun — eski ve yeni bilgiyi ayırma, tek bir tutarlı yapıda birleştir.
 
-Format — madde işaretleriyle kısa notlar:
-- Seans bilgisi: tarih, kaçıncı seans
-- Genel ruh hali / duygusal ton (tek cümle)
-- Temel konular ve şikayetler
-- Önemli isimler/ilişkiler (sadece isim ve kim olduğu, en fazla 15 kişi — sadece aktif olarak konuşulanlar)
-- Dikkat: kriz riski veya kritik durumlar varsa (yoksa bu başlığı yazma)
-- Aktif ödevler/takip edilecekler
-- Bu seanstan yeni önemli bilgiler
+Format — madde işaretleriyle kısa notlar, şu başlıklar altında:
+
+## Danışan Profili
+- Kişilik özellikleri, değerler, dünya görüşü
+- Güçlü yanları ve başa çıkma mekanizmaları
+- Hassas noktalar, tetikleyiciler, savunma mekanizmaları
+
+## İlişki Haritası
+- Hayatındaki önemli kişiler (isim — kim olduğu — ilişkinin niteliği)
+- En fazla 15 kişi, sadece gerçekten önemli olanlar
+
+## Tekrarlayan Temalar ve Örüntüler
+- Seanslarda/günlüklerde tekrar eden konular
+- Fark edilen davranış ve düşünce kalıpları
+- Duygusal örüntüler
+
+## Aktif Konular
+- Şu an hayatında gündemde olan durumlar
+- Devam eden sorunlar veya süreçler
+
+## İçgörüler ve İlerleme
+- Danışanın elde ettiği farkındalıklar
+- Gözlemlenen olumlu değişimler
+- Dirençli veya takılı kalan alanlar
+
+## Takip Edilecekler
+- Verilen ödevler veya öneriler
+- Bir sonraki seansta sorulacak/kontrol edilecek konular
+
+## Dikkat (sadece varsa)
+- Kriz riski, intihar/kendine zarar düşünceleri
+- Acil müdahale gerektiren durumlar
 
 KRİTİK KURALLAR:
-- Toplam not en fazla 120 madde olsun
 - Her madde en fazla 2 satır olsun
-- Açıklama, yorum, paragraf YAZMA — sadece kısa notlar
-- Eski notlardan da önemli olan bilgileri bırak. Hasta hakkında önemli tüm notları hatırlamaya çalışman lazım.
-- Detaylı anlatım değil, hatırlatıcı notlar yaz
+- Açıklama, yorum, paragraf YAZMA — sadece kısa, hatırlatıcı notlar
+- Kalıcı bilgileri koru: kişilik özellikleri, ilişkiler, örüntüler silinmemeli
+- Güncelliğini yitirmiş geçici bilgileri (çözülmüş sorunlar, tamamlanmış ödevler) çıkar
 - Türkçe yaz
-- Sadece notları yaz, başka açıklama ekleme`;
+- Sadece hafıza dosyasını yaz, başka açıklama ekleme`;
 }
 
 export function buildDreamAnalysisPrompt(patientNotes: string): string {
@@ -196,33 +219,6 @@ Bu günlük yazısını analiz et. Şunlara odaklan:
 Markdown formatında, 2-4 paragraf yaz. Sıcak ve destekleyici bir ton kullan.`;
 
   return prompt;
-}
-
-export function buildJournalPatientNotesUpdatePrompt(existingNotes: string, journalContent: string): string {
-  return `Sen deneyimli bir klinik psikologsun. Danışanın günlük yazısından elde edilen bilgilerle kısa hasta notlarını güncelle — sanki elinde tek bir sayfa varmış gibi.
-${existingNotes ? `--- Mevcut Notlar ---\n${existingNotes}\n\n` : ""}--- Günlük Yazısı ---
-${journalContent}
-
---- Görevin ---
-Mevcut notları bu günlük yazısından elde edilen bilgilerle birleştirerek bir not sayfası oluştur.
-Çıktı tek bir birleşik not sayfası olsun — eski notları ayrı, yeni bilgileri ayrı gösterme. Tüm bilgiyi tek bir tutarlı yapıda birleştir.
-
-Format — madde işaretleriyle kısa notlar:
-- Günlük tarihi
-- Genel ruh hali / duygusal ton (tek cümle)
-- Temel konular ve şikayetler
-- Önemli isimler/ilişkiler (sadece isim ve kim olduğu, en fazla 15 kişi — sadece aktif olarak bahsedilenler)
-- Dikkat: kriz riski veya kritik durumlar varsa (yoksa bu başlığı yazma)
-- Günlükten yeni önemli bilgiler
-
-KRİTİK KURALLAR:
-- Toplam not en fazla 120 madde olsun
-- Her madde en fazla 2 satır olsun
-- Açıklama, yorum, paragraf YAZMA — sadece kısa notlar
-- Eski notlardan da önemli olan bilgileri bırak. Hasta hakkında önemli tüm notları hatırlamaya çalışman lazım.
-- Detaylı anlatım değil, hatırlatıcı notlar yaz
-- Türkçe yaz
-- Sadece notları yaz, başka açıklama ekleme`;
 }
 
 

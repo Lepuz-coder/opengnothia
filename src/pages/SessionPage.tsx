@@ -21,7 +21,7 @@ import { sendMessage, streamMessage, testApiKey } from "@/services/ai/aiService"
 import { calculateCost } from "@/services/ai/costCalculator";
 import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildPatientNotesUpdatePrompt, buildCompactionPrompt } from "@/services/ai/promptBuilder";
 import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
-import { createSession, updateSessionMessages, completeSession, deleteSession, getUserProfile, getTodayCheckIn, getRecentSessions, getPatientNotes, saveTokenUsage } from "@/services/db/queries";
+import { createSession, updateSessionMessages, completeSession, deleteSession, getUserProfile, getTodayCheckIn, getRecentSessions, getPatientNotes, getPatientNotesUpdatedAt, getCompletedSessionCount, saveTokenUsage } from "@/services/db/queries";
 import { therapySchools, getTherapySchool, getTherapySchoolName } from "@/constants/therapySchools";
 import { providers, getProvider, modelSupportsThinking } from "@/constants/providers";
 import { Square, Loader2, FileText, Sparkles } from "lucide-react";
@@ -102,14 +102,16 @@ export default function SessionPage() {
 
   const handleGreeting = useCallback(async () => {
     try {
-      const [profile, checkIn, recentSessions, patientNotes] = await Promise.all([
+      const [profile, checkIn, recentSessions, patientNotes, sessionCount] = await Promise.all([
         getUserProfile(),
         getTodayCheckIn(),
         getRecentSessions(1),
         getPatientNotes(),
+        getCompletedSessionCount(),
       ]);
       const lastSummary = recentSessions[0]?.summary ?? null;
       const lastNarrative = recentSessions[0]?.summary_narrative ?? null;
+      const lastSessionDate = recentSessions[0]?.started_at ?? null;
 
       const greetingPrompt = buildGreetingPrompt({
         profile,
@@ -118,6 +120,8 @@ export default function SessionPage() {
         lastSessionNarrative: lastNarrative,
         therapySchool: settings.therapySchool,
         patientNotes,
+        lastSessionDate,
+        totalSessionCount: sessionCount,
       });
 
       const abortController = new AbortController();
@@ -182,11 +186,12 @@ export default function SessionPage() {
     store.startCompaction();
 
     try {
-      const [profile, checkIn, recentSessions, patientNotes] = await Promise.all([
+      const [profile, checkIn, recentSessions, patientNotes, sessionCount] = await Promise.all([
         getUserProfile(),
         getTodayCheckIn(),
         getRecentSessions(1),
         getPatientNotes(),
+        getCompletedSessionCount(),
       ]);
 
       const systemPrompt = buildSystemPrompt({
@@ -196,6 +201,8 @@ export default function SessionPage() {
         lastSessionNarrative: recentSessions[0]?.summary_narrative ?? null,
         therapySchool: settings.therapySchool,
         patientNotes,
+        lastSessionDate: recentSessions[0]?.started_at ?? null,
+        totalSessionCount: sessionCount,
       });
 
       const compactionPrompt = buildCompactionPrompt();
@@ -253,14 +260,16 @@ export default function SessionPage() {
     session.addMessage(userMsg);
 
     try {
-      const [profile, checkIn, recentSessions, patientNotes] = await Promise.all([
+      const [profile, checkIn, recentSessions, patientNotes, sessionCount] = await Promise.all([
         getUserProfile(),
         getTodayCheckIn(),
         getRecentSessions(1),
         getPatientNotes(),
+        getCompletedSessionCount(),
       ]);
       const lastSummary = recentSessions[0]?.summary ?? null;
       const lastNarrative = recentSessions[0]?.summary_narrative ?? null;
+      const lastSessionDate = recentSessions[0]?.started_at ?? null;
 
       const systemPrompt = buildSystemPrompt({
         profile,
@@ -269,6 +278,8 @@ export default function SessionPage() {
         lastSessionNarrative: lastNarrative,
         therapySchool: settings.therapySchool,
         patientNotes,
+        lastSessionDate,
+        totalSessionCount: sessionCount,
       });
 
       const state = useSessionStore.getState();
@@ -365,8 +376,8 @@ export default function SessionPage() {
     session.startSummaryStream();
 
     // Fire-and-forget: update patient notes in background
-    getPatientNotes().then((existingNotes) => {
-      const patientNotesPrompt = buildPatientNotesUpdatePrompt(existingNotes);
+    Promise.all([getPatientNotes(), getPatientNotesUpdatedAt()]).then(([existingNotes, notesUpdatedAt]) => {
+      const patientNotesPrompt = buildPatientNotesUpdatePrompt(existingNotes, notesUpdatedAt);
       const conversationForNotes: ChatMessage[] = [
         ...messages,
         {

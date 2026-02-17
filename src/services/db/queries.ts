@@ -121,6 +121,13 @@ export async function getPatientNotes(): Promise<string> {
   return rows[0].notes;
 }
 
+export async function getPatientNotesUpdatedAt(): Promise<string | null> {
+  const db = await getDatabase();
+  const rows = await db.select<{ updated_at: string }[]>("SELECT updated_at FROM patient_notes WHERE id = 1");
+  if (rows.length === 0) return null;
+  return rows[0].updated_at;
+}
+
 export async function upsertPatientNotes(notes: string): Promise<void> {
   const db = await getDatabase();
   await db.execute(

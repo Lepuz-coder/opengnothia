@@ -8,7 +8,7 @@ const STORE_DEFAULTS = {
   model: "gpt-4o",
   customBaseUrl: "",
   theme: "system",
-  therapySchool: "cbt",
+  therapySchool: "psychodynamic",
   thinkingEnabled: false,
   thinkingLevel: "medium",
   providerApiKeys: {} as Record<string, string>,

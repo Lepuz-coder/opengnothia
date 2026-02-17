@@ -95,7 +95,7 @@ export default function SettingsPage() {
     await store.set("providerApiKeys", {});
     await store.set("model", "gpt-4o");
     await store.set("customBaseUrl", "");
-    await store.set("therapySchool", "cbt");
+    await store.set("therapySchool", "psychodynamic");
     await store.set("thinkingEnabled", false);
     await store.set("thinkingLevel", "medium");
     await store.set("providerThinkingSettings", {});
@@ -111,7 +111,7 @@ export default function SettingsPage() {
       providerApiKeys: {},
       model: "gpt-4o",
       customBaseUrl: "",
-      therapySchool: "cbt" as TherapySchool,
+      therapySchool: "psychodynamic" as TherapySchool,
       thinkingEnabled: false,
       thinkingLevel: "medium" as ThinkingLevel,
       providerThinkingSettings: {},

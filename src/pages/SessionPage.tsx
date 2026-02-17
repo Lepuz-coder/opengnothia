@@ -602,8 +602,6 @@ export default function SessionPage() {
                   await store.save();
                 }}
                 className={`text-left p-3 rounded-xl border transition-all duration-200 ${
-                  school.id === "general" ? "col-span-2" : ""
-                } ${
                   settings.therapySchool === school.id
                     ? "border-primary-500 bg-primary-500/10"
                     : "border-[var(--border-color)] hover:border-[var(--text-muted)]"

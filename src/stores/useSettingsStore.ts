@@ -43,7 +43,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   approach: "balanced",
   preferredSessionTime: "20:00",
   sessionDurationMinutes: 50,
-  therapySchool: "general",
+  therapySchool: "psychodynamic",
   thinkingEnabled: true,
   thinkingLevel: "medium",
   providerApiKeys: {},

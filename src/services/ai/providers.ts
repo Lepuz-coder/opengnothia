@@ -112,7 +112,7 @@ const openaiAdapter: ProviderAdapter = {
         input: messages.map((m) => ({ role: m.role, content: m.content })),
         reasoning: {
           effort: OPENAI_REASONING_EFFORT[thinkingLevel ?? "medium"],
-          summary: "auto",
+          summary: "concise",
         },
         max_output_tokens: OPENAI_THINKING_TOKENS[thinkingLevel ?? "medium"],
       };

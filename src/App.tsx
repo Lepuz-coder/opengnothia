@@ -7,6 +7,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useCloseGuard } from "@/hooks/useCloseGuard";
 import { useDatabase } from "@/hooks/useDatabase";
 import { MainLayout } from "@/components/layout/MainLayout";
+import logoImg from "@/assets/logo.png";
 import OnboardingPage from "@/pages/OnboardingPage";
 import { LockScreen } from "@/components/LockScreen";
 import DashboardPage from "@/pages/DashboardPage";
@@ -96,7 +97,7 @@ function AppContent() {
   if (isLoading) {
     return (
       <div className="h-screen flex items-center justify-center">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-accent-500 animate-pulse" />
+        <img src={logoImg} alt="OpenGnothia" className="w-8 h-8 animate-pulse" />
       </div>
     );
   }
@@ -143,7 +144,7 @@ export default function App() {
   if (!isReady) {
     return (
       <div className="h-screen flex items-center justify-center">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-accent-500 animate-pulse" />
+        <img src={logoImg} alt="OpenGnothia" className="w-8 h-8 animate-pulse" />
       </div>
     );
   }

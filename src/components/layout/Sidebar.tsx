@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Brain, PanelLeftClose, PanelLeft, FileText, Loader2, X } from "lucide-react";
+import { PanelLeftClose, PanelLeft, FileText, Loader2, X } from "lucide-react";
+import logoImg from "@/assets/logo.png";
 import { useAppStore } from "@/stores/useAppStore";
 import { loadSettings } from "@/lib/store";
 import { navItems } from "@/constants/navigation";
@@ -35,13 +36,16 @@ export function Sidebar() {
     >
       {/* Logo */}
       <div className={cn("flex items-center gap-3 px-4 py-5 border-b border-[var(--border-color)]", sidebarCollapsed && "justify-center px-2")}>
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center shrink-0">
-          <Brain className="w-5 h-5 text-white" />
-        </div>
+        <img src={logoImg} alt="OpenGnothia" className="w-8 h-8 shrink-0" />
         {!sidebarCollapsed && (
-          <span className="text-lg font-bold bg-gradient-to-r from-primary-500 to-accent-500 bg-clip-text text-transparent">
-            OpenGnothia
-          </span>
+          <div className="flex flex-col items-center">
+            <span className="text-lg font-bold bg-gradient-to-r from-primary-500 to-accent-500 bg-clip-text text-transparent leading-tight">
+              OpenGnothia
+            </span>
+            <span className="text-[10px] tracking-[0.2em] uppercase text-[var(--text-muted)] font-medium">
+              Know Thyself
+            </span>
+          </div>
         )}
       </div>
 

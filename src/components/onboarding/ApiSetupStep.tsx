@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Toggle } from "@/components/ui/Toggle";
 import { useSettingsStore } from "@/stores/useSettingsStore";
+import { useTranslation } from "@/i18n";
 import { providers, getProvider, modelSupportsThinking } from "@/constants/providers";
 import { testApiKey } from "@/services/ai/aiService";
 import type { ThinkingLevel } from "@/types";
@@ -15,6 +16,7 @@ interface ApiSetupStepProps {
 }
 
 export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
+  const { t } = useTranslation();
   const {
     provider, setProvider, apiKey, setApiKey,
     model, setModel, thinkingEnabled, setThinkingEnabled, thinkingLevel, setThinkingLevel,
@@ -28,7 +30,7 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
   const modelOptions = currentProvider?.models.map((m) => ({ value: m.id, label: m.name })) ?? [];
   const memoryModelOptions = currentProvider?.models.map((m) => ({
     value: m.id,
-    label: m.id === "claude-sonnet-4-5-20250929" ? `${m.name} (Önerilen)` : m.name,
+    label: m.id === "claude-sonnet-4-5-20250929" ? `${m.name} (${t.settings.recommended})` : m.name,
   })) ?? [];
   const showThinkingToggle = modelSupportsThinking(provider, model);
   const showMemoryThinkingToggle = modelSupportsThinking(provider, memoryModel);
@@ -45,7 +47,7 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
       setTestStatus("success");
     } else {
       setTestStatus("error");
-      setTestError(result.error ?? "Bağlantı başarısız");
+      setTestError(result.error ?? t.settings.connectionFailed);
     }
   }
 
@@ -54,14 +56,14 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-bold text-[var(--text-primary)]">AI Bağlantısı</h2>
+        <h2 className="text-xl font-bold text-[var(--text-primary)]">{t.onboarding.aiConnection}</h2>
         <p className="text-sm text-[var(--text-muted)] mt-1">
-          Kullanmak istediğin AI sağlayıcısını seç ve API anahtarını gir.
+          {t.onboarding.aiConnectionDescription}
         </p>
       </div>
 
       <Select
-        label="Sağlayıcı"
+        label={t.settings.provider}
         options={providerOptions}
         value={provider}
         onChange={(e) => {
@@ -72,25 +74,25 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
 
       {currentProvider?.requiresKey && (
         <Input
-          label="API Anahtarı"
+          label={t.settings.apiKey}
           type="password"
           value={apiKey}
           onChange={(e) => { setApiKey(e.target.value); setTestStatus("idle"); }}
-          placeholder={provider === "openai" ? "sk-..." : provider === "anthropic" ? "sk-ant-..." : "API anahtarını gir"}
+          placeholder={provider === "openai" ? "sk-..." : provider === "anthropic" ? "sk-ant-..." : t.onboarding.apiKeyPlaceholder}
         />
       )}
 
       {/* Chat Model */}
       <div className="border-t border-[var(--border-color)] pt-4 mt-2">
-        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1">Genel Chat Modeli</h3>
+        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1">{t.onboarding.chatModelOnboarding}</h3>
         <p className="text-xs text-[var(--text-muted)] mb-3">
-          Seans, özet, rüya analizi ve günlük analizi için kullanılır.
+          {t.onboarding.chatModelOnboardingDescription}
         </p>
       </div>
 
       {modelOptions.length > 0 && (
         <Select
-          label="Model"
+          label={t.settings.model}
           options={modelOptions}
           value={model}
           onChange={(e) => {
@@ -107,22 +109,22 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
           <Toggle
             checked={thinkingEnabled}
             onChange={setThinkingEnabled}
-            label="Düşünce Modu"
+            label={t.settings.thinkingMode}
           />
           <p className="text-xs text-[var(--text-muted)] mt-1 ml-14">
-            AI'ın düşünce sürecini görmeni sağlar. Daha yavaş ama daha derinlemesine yanıtlar.
+            {t.settings.thinkingModeDescription}
           </p>
         </div>
       )}
 
       {showThinkingToggle && thinkingEnabled && (
         <Select
-          label="Düşünce Seviyesi"
+          label={t.settings.thinkingLevel}
           options={[
-            { value: "low", label: "Hızlı — Kısa düşünür, çabuk yanıt verir" },
-            { value: "medium", label: "Dengeli — Yeterince düşünür, makul hızda" },
-            { value: "high", label: "Derinlemesine — Uzun düşünür, detaylı analiz" },
-            ...(provider !== "openai" ? [{ value: "max", label: "Kapsamlı — En derin analiz, en yavaş yanıt" }] : []),
+            { value: "low", label: t.settings.thinkingLow },
+            { value: "medium", label: t.settings.thinkingMedium },
+            { value: "high", label: t.settings.thinkingHigh },
+            ...(provider !== "openai" ? [{ value: "max", label: t.settings.thinkingMax }] : []),
           ]}
           value={thinkingLevel}
           onChange={(e) => setThinkingLevel(e.target.value as ThinkingLevel)}
@@ -131,15 +133,15 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
 
       {/* Memory Model */}
       <div className="border-t border-[var(--border-color)] pt-4 mt-2">
-        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1">Hafıza Modeli</h3>
+        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1">{t.onboarding.memoryModelOnboarding}</h3>
         <p className="text-xs text-[var(--text-muted)] mb-3">
-          Hasta notları çıkarımı için kullanılır. Daha küçük/ucuz bir model yeterli olabilir.
+          {t.onboarding.memoryModelOnboardingDescription}
         </p>
       </div>
 
       {modelOptions.length > 0 && (
         <Select
-          label="Model"
+          label={t.settings.model}
           options={memoryModelOptions}
           value={memoryModel}
           onChange={(e) => {
@@ -156,22 +158,22 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
           <Toggle
             checked={memoryThinkingEnabled}
             onChange={setMemoryThinkingEnabled}
-            label="Düşünce Modu"
+            label={t.settings.thinkingMode}
           />
           <p className="text-xs text-[var(--text-muted)] mt-1 ml-14">
-            Hasta notları çıkarımında düşünce modunu kullanır.
+            {t.settings.memoryThinkingDescription}
           </p>
         </div>
       )}
 
       {showMemoryThinkingToggle && memoryThinkingEnabled && (
         <Select
-          label="Düşünce Seviyesi"
+          label={t.settings.thinkingLevel}
           options={[
-            { value: "low", label: "Hızlı — Kısa düşünür, çabuk yanıt verir" },
-            { value: "medium", label: "Dengeli — Yeterince düşünür, makul hızda" },
-            { value: "high", label: "Derinlemesine — Uzun düşünür, detaylı analiz" },
-            ...(provider !== "openai" ? [{ value: "max", label: "Kapsamlı — En derin analiz, en yavaş yanıt" }] : []),
+            { value: "low", label: t.settings.thinkingLow },
+            { value: "medium", label: t.settings.thinkingMedium },
+            { value: "high", label: t.settings.thinkingHigh },
+            ...(provider !== "openai" ? [{ value: "max", label: t.settings.thinkingMax }] : []),
           ]}
           value={memoryThinkingLevel}
           onChange={(e) => setMemoryThinkingLevel(e.target.value as ThinkingLevel)}
@@ -182,11 +184,11 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
       <div className="flex items-center gap-3">
         <Button variant="secondary" onClick={handleTest} disabled={!canProceed || testStatus === "loading"}>
           {testStatus === "loading" && <Loader2 className="w-4 h-4 animate-spin" />}
-          Test Et
+          {t.common.test}
         </Button>
         {testStatus === "success" && (
           <span className="flex items-center gap-1.5 text-sm text-green-600">
-            <CheckCircle className="w-4 h-4" /> Bağlantı başarılı
+            <CheckCircle className="w-4 h-4" /> {t.settings.connectionSuccess}
           </span>
         )}
         {testStatus === "error" && (
@@ -198,10 +200,10 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
 
       <div className="flex gap-3 pt-2">
         <Button variant="ghost" onClick={onBack} className="flex-1">
-          Geri
+          {t.common.back}
         </Button>
         <Button onClick={onNext} disabled={!canProceed} className="flex-1">
-          Devam
+          {t.common.continue}
         </Button>
       </div>
     </div>

@@ -4,6 +4,7 @@ import { useSessionStore } from "@/stores/useSessionStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useAppStore } from "@/stores/useAppStore";
 import { loadSettings } from "@/lib/store";
+import { useTranslation } from "@/i18n";
 
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -19,10 +20,10 @@ import type { PastSessionsListHandle, WeekSummaryInfo } from "@/components/sessi
 import { PastSessionDetail } from "@/components/session/PastSessionDetail";
 import { sendMessage, streamMessage, testApiKey } from "@/services/ai/aiService";
 import { calculateCost } from "@/services/ai/costCalculator";
-import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildPatientNotesUpdatePrompt, buildCompactionPrompt } from "@/services/ai/promptBuilder";
+import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildPatientNotesUpdatePrompt, buildCompactionPrompt, GREETING_TRIGGER, BACKGROUND_NOTES_SYSTEM_PROMPT, SESSION_SUMMARY_SYSTEM_PROMPT } from "@/services/ai/promptBuilder";
 import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
 import { createSession, updateSessionMessages, completeSession, deleteSession, getUserProfile, getTodayCheckIn, getRecentSessions, getPatientNotes, getPatientNotesUpdatedAt, getCompletedSessionCount, saveTokenUsage } from "@/services/db/queries";
-import { therapySchools, getTherapySchool, getTherapySchoolName } from "@/constants/therapySchools";
+import { getTherapySchools, getTherapySchool, getTherapySchoolName } from "@/constants/therapySchools";
 import { providers, getProvider, modelSupportsThinking } from "@/constants/providers";
 import { Square, Loader2, FileText, Sparkles } from "lucide-react";
 import type { AIProvider, ChatMessage, ThinkingLevel, TokenUsage } from "@/types";
@@ -73,6 +74,7 @@ export default function SessionPage() {
   const navigate = useNavigate();
   const session = useSessionStore();
   const settings = useSettingsStore();
+  const { t, language } = useTranslation();
   const setSidebarHidden = useAppStore((s) => s.setSidebarHidden);
   const [saving, setSaving] = useState(false);
   const [startModalOpen, setStartModalOpen] = useState(false);
@@ -122,6 +124,7 @@ export default function SessionPage() {
         patientNotes,
         lastSessionDate,
         totalSessionCount: sessionCount,
+        language,
       });
 
       const abortController = new AbortController();
@@ -132,7 +135,7 @@ export default function SessionPage() {
         provider: settings.provider,
         apiKey: settings.apiKey,
         model: settings.model,
-        messages: [{ id: "greeting-trigger", role: "user", content: "Merhaba, seansa başlayalım.", timestamp: new Date().toISOString() }],
+        messages: [{ id: "greeting-trigger", role: "user", content: GREETING_TRIGGER, timestamp: new Date().toISOString() }],
         systemPrompt: greetingPrompt,
         customBaseUrl: settings.customBaseUrl || undefined,
         thinkingEnabled: settings.thinkingEnabled,
@@ -160,7 +163,7 @@ export default function SessionPage() {
           const store = useSessionStore.getState();
           if (store.streamingMessageId) {
             store.updateMessage(store.streamingMessageId, {
-              content: `Bir hata oluştu: ${error.message}`,
+              content: `${t.errors.generic}: ${error.message}`,
               isStreaming: false,
             });
           }
@@ -171,7 +174,7 @@ export default function SessionPage() {
       const errorMsg: ChatMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: `Bir hata oluştu: ${err instanceof Error ? err.message : "Bilinmeyen hata"}`,
+        content: `${t.errors.generic}: ${err instanceof Error ? err.message : t.errors.unknown}`,
         timestamp: new Date().toISOString(),
       };
       session.addMessage(errorMsg);
@@ -203,9 +206,10 @@ export default function SessionPage() {
         patientNotes,
         lastSessionDate: recentSessions[0]?.started_at ?? null,
         totalSessionCount: sessionCount,
+        language,
       });
 
-      const compactionPrompt = buildCompactionPrompt();
+      const compactionPrompt = buildCompactionPrompt(language);
       const effectiveMsgs = getEffectiveMessages(
         store.messages.filter((m) => !m.isStreaming),
         store.compactedContext,
@@ -239,7 +243,7 @@ export default function SessionPage() {
       const errorMsg: ChatMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: `Kompaktlama sırasında bir hata oluştu: ${err instanceof Error ? err.message : "Bilinmeyen hata"}`,
+        content: `${t.errors.compaction}: ${err instanceof Error ? err.message : t.errors.unknown}`,
         timestamp: new Date().toISOString(),
       };
       useSessionStore.getState().addMessage(errorMsg);
@@ -280,6 +284,7 @@ export default function SessionPage() {
         patientNotes,
         lastSessionDate,
         totalSessionCount: sessionCount,
+        language,
       });
 
       const state = useSessionStore.getState();
@@ -324,7 +329,7 @@ export default function SessionPage() {
           const store = useSessionStore.getState();
           if (store.streamingMessageId) {
             store.updateMessage(store.streamingMessageId, {
-              content: `Bir hata oluştu: ${error.message}. Lütfen ayarlarından API bağlantını kontrol et.`,
+              content: `${t.errors.generic}: ${error.message}. ${t.errors.checkApiSettings}`,
               isStreaming: false,
             });
           }
@@ -344,7 +349,7 @@ export default function SessionPage() {
       const errorMsg: ChatMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: `Bir hata oluştu: ${err instanceof Error ? err.message : "Bilinmeyen hata"}. Lütfen ayarlarından API bağlantını kontrol et.`,
+        content: `${t.errors.generic}: ${err instanceof Error ? err.message : t.errors.unknown}. ${t.errors.checkApiSettings}`,
         timestamp: new Date().toISOString(),
       };
       session.addMessage(errorMsg);
@@ -392,7 +397,7 @@ export default function SessionPage() {
         apiKey: settings.apiKey,
         model: settings.memoryModel,
         messages: conversationForNotes,
-        systemPrompt: "Sen deneyimli bir klinik psikolog. Hasta notlarını güncelle.",
+        systemPrompt: BACKGROUND_NOTES_SYSTEM_PROMPT,
         customBaseUrl: settings.customBaseUrl || undefined,
         callType: "patient_notes",
         sessionId: useSessionStore.getState().sessionId,
@@ -402,7 +407,7 @@ export default function SessionPage() {
     // Stream session summary
     try {
       const patientNotes = await getPatientNotes();
-      const summaryPrompt = buildSummaryPrompt(patientNotes);
+      const summaryPrompt = buildSummaryPrompt(patientNotes, language);
       const conversationForSummary: ChatMessage[] = [
         ...messages,
         {
@@ -418,7 +423,7 @@ export default function SessionPage() {
         apiKey: settings.apiKey,
         model: settings.model,
         messages: conversationForSummary,
-        systemPrompt: "Sen deneyimli bir klinik psikologsun ve bu danışanın terapistisin. Seansın sonunda danışanla konuşuyorsun.",
+        systemPrompt: SESSION_SUMMARY_SYSTEM_PROMPT,
         customBaseUrl: settings.customBaseUrl || undefined,
         thinkingEnabled: false,
         abortSignal: new AbortController().signal,
@@ -436,7 +441,7 @@ export default function SessionPage() {
         },
         onError: (error) => {
           useSessionStore.getState().appendSummaryNarrative(
-            `\n\nBir hata oluştu: ${error.message}`
+            `\n\n${t.errors.generic}: ${error.message}`
           );
           session.setSummary({ themes: [], defenses: [], insights: [], homework: [] });
           useSessionStore.getState().finishSummaryStream();
@@ -444,7 +449,7 @@ export default function SessionPage() {
       });
     } catch (err) {
       useSessionStore.getState().appendSummaryNarrative(
-        `Bir hata oluştu: ${err instanceof Error ? err.message : "Bilinmeyen hata"}`
+        `${t.errors.generic}: ${err instanceof Error ? err.message : t.errors.unknown}`
       );
       session.setSummary({ themes: [], defenses: [], insights: [], homework: [] });
       useSessionStore.getState().finishSummaryStream();
@@ -484,8 +489,8 @@ export default function SessionPage() {
         {/* Header with Start button */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold">Seanslar</h1>
-            <p className="text-sm text-[var(--text-muted)]">Geçmiş seanslarını görüntüle veya yeni bir seans başlat</p>
+            <h1 className="text-2xl font-bold">{t.session.title}</h1>
+            <p className="text-sm text-[var(--text-muted)]">{t.session.description}</p>
           </div>
           <div className="flex items-center gap-3">
             {/* Weekly Summary Button */}
@@ -494,7 +499,7 @@ export default function SessionPage() {
                 <Button variant="secondary" size="lg" onClick={() => pastSessionsRef.current?.showSummary()}>
                   <span className="flex items-center gap-2">
                     <FileText className="w-4 h-4" />
-                    Haftalık Özeti Göster
+                    {t.session.showWeeklySummary}
                   </span>
                 </Button>
               ) : isSunday ? (
@@ -503,12 +508,12 @@ export default function SessionPage() {
                     {weekSummaryInfo.generating ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        Özet hazırlanıyor...
+                        {t.session.generatingSummary}
                       </>
                     ) : (
                       <>
                         <Sparkles className="w-4 h-4" />
-                        Haftalık Özet Çıkar
+                        {t.session.generateWeeklySummary}
                       </>
                     )}
                   </span>
@@ -516,7 +521,7 @@ export default function SessionPage() {
               ) : null
             )}
             <Button onClick={() => { setApiError(null); setStartModalOpen(true); }} size="lg">
-              Seans Başlat
+              {t.session.startSession}
             </Button>
           </div>
         </div>
@@ -525,16 +530,16 @@ export default function SessionPage() {
         <PastSessionsList ref={pastSessionsRef} onViewSession={setViewingSessionId} onWeekSummaryInfoChange={setWeekSummaryInfo} />
 
         {/* Start session modal */}
-        <Modal isOpen={startModalOpen} onClose={() => { setStartModalOpen(false); setSchoolPickerOpen(false); }} title="Seansa Başla">
+        <Modal isOpen={startModalOpen} onClose={() => { setStartModalOpen(false); setSchoolPickerOpen(false); }} title={t.session.startSessionModal}>
           {/* Therapy school display */}
           <div className="mb-6">
-            <label className="block text-sm font-medium mb-2">Terapi Ekolü</label>
+            <label className="block text-sm font-medium mb-2">{t.session.therapySchool}</label>
             <div className="flex items-center gap-2">
               <div className="flex-1 px-4 py-2.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)]">
                 <span className="text-sm font-medium">{getTherapySchool(settings.therapySchool)?.name ?? "BDT"}</span>
               </div>
               <Button variant="secondary" size="sm" onClick={() => setSchoolPickerOpen(true)}>
-                Değiştir
+                {t.common.change}
               </Button>
             </div>
           </div>
@@ -547,7 +552,7 @@ export default function SessionPage() {
                 onClick={() => { setStartModalOpen(false); setApiError(null); navigate("/settings"); }}
                 className="text-sm text-primary-400 hover:text-primary-300 underline"
               >
-                Ayarlara Git
+                {t.session.goToSettings}
               </button>
             </div>
           )}
@@ -566,7 +571,7 @@ export default function SessionPage() {
               });
               setApiTesting(false);
               if (!result.success) {
-                setApiError(result.error ?? "API bağlantısı başarısız. Lütfen ayarlarını kontrol et.");
+                setApiError(result.error ?? t.errors.apiConnection);
                 return;
               }
               setStartModalOpen(false);
@@ -580,18 +585,18 @@ export default function SessionPage() {
             {apiTesting ? (
               <span className="flex items-center justify-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Bağlantı kontrol ediliyor...
+                {t.session.checkingConnection}
               </span>
             ) : (
-              "Seansı Başlat"
+              t.session.startSessionButton
             )}
           </Button>
         </Modal>
 
         {/* School picker modal */}
-        <Modal isOpen={schoolPickerOpen} onClose={() => setSchoolPickerOpen(false)} title="Terapi Ekolü Seç">
+        <Modal isOpen={schoolPickerOpen} onClose={() => setSchoolPickerOpen(false)} title={t.session.selectTherapySchool}>
           <div className="grid grid-cols-2 gap-2">
-            {therapySchools.map((school) => (
+            {getTherapySchools().map((school) => (
               <button
                 key={school.id}
                 onClick={async () => {
@@ -642,9 +647,9 @@ export default function SessionPage() {
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-3 border-b border-[var(--border-color)]/50 bg-[var(--bg-primary)]">
         <div className="flex items-center gap-2">
-          <h2 className="font-semibold">Seans</h2>
+          <h2 className="font-semibold">{t.session.sessionTitle}</h2>
           <Badge variant="primary">
-            Psikolog · {getTherapySchoolName(settings.therapySchool)}
+            {t.session.psychologist} · {getTherapySchoolName(settings.therapySchool)}
           </Badge>
         </div>
         <div className="flex items-center gap-3">
@@ -670,7 +675,7 @@ export default function SessionPage() {
             disabled={session.isCompacting}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Seansı Bitir
+            {t.session.endSession}
           </button>
         </div>
       </div>
@@ -682,19 +687,19 @@ export default function SessionPage() {
       <ChatInput onSend={handleSendMessage} disabled={session.isLoading || session.isStreaming || session.isCompacting} />
 
       {/* End session confirmation modal */}
-      <Modal isOpen={endConfirmOpen} onClose={() => setEndConfirmOpen(false)} title="Seansı Bitir">
+      <Modal isOpen={endConfirmOpen} onClose={() => setEndConfirmOpen(false)} title={t.session.endSession}>
         <p className="text-[var(--text-secondary)] mb-6">
-          Seansı bitirmek istediğinden emin misin?
+          {t.session.endSessionConfirm}
         </p>
         <div className="flex gap-3 justify-end">
           <Button variant="secondary" onClick={() => setEndConfirmOpen(false)}>
-            İptal
+            {t.common.cancel}
           </Button>
           <Button variant="danger" onClick={() => {
             setEndConfirmOpen(false);
             handleEndSession();
           }}>
-            Evet, Bitir
+            {t.session.yesEnd}
           </Button>
         </div>
       </Modal>

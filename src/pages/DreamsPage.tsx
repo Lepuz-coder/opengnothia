@@ -5,9 +5,10 @@ import { Modal } from "@/components/ui/Modal";
 import { cn } from "@/lib/cn";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useAppStore } from "@/stores/useAppStore";
+import { useTranslation, getDayNames, getDateLocale } from "@/i18n";
 import { streamMessage } from "@/services/ai/aiService";
 import { calculateCost } from "@/services/ai/costCalculator";
-import { buildDreamAnalysisPrompt, buildPatientNotesUpdatePrompt } from "@/services/ai/promptBuilder";
+import { buildDreamAnalysisPrompt, buildPatientNotesUpdatePrompt, dreamPatientNotesMessage } from "@/services/ai/promptBuilder";
 import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
 import {
   getDreamsByDateRange,
@@ -27,7 +28,7 @@ import type { Dream, AIProvider, TokenUsage } from "@/types";
 
 type View = "calendar" | "new" | "detail";
 
-const DAY_NAMES = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
+// DAY_NAMES moved to component level using getDayNames(language)
 
 function getCalendarDays(year: number, month: number): Date[] {
   const firstOfMonth = new Date(year, month, 1);
@@ -59,9 +60,9 @@ function formatYMD(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-function formatMonthYear(year: number, month: number): string {
+function formatMonthYear(year: number, month: number, locale: string): string {
   const date = new Date(year, month, 1);
-  return date.toLocaleDateString("tr-TR", { month: "long", year: "numeric" });
+  return date.toLocaleDateString(locale, { month: "long", year: "numeric" });
 }
 
 async function trackUsage(
@@ -86,6 +87,9 @@ async function trackUsage(
 export default function DreamsPage() {
   const settings = useSettingsStore();
   const setSidebarHidden = useAppStore((s) => s.setSidebarHidden);
+  const { t, language } = useTranslation();
+  const DAY_NAMES = getDayNames(language);
+  const locale = getDateLocale(language);
 
   const [view, setView] = useState<View>("calendar");
   const [dreams, setDreams] = useState<Dream[]>([]);
@@ -216,7 +220,7 @@ export default function DreamsPage() {
       const patientNotes = await getPatientNotes();
 
       // 1. Dream analysis (streaming)
-      const analysisPrompt = buildDreamAnalysisPrompt(patientNotes);
+      const analysisPrompt = buildDreamAnalysisPrompt(patientNotes, language);
       let fullAnalysis = "";
       let streamUsage: TokenUsage | null = null;
       let streamError: Error | null = null;
@@ -271,7 +275,7 @@ export default function DreamsPage() {
           {
             id: crypto.randomUUID(),
             role: "user",
-            content: `Danışan şu rüyayı paylaştı: ${selectedDream.content}\n\nRüya analizi: ${fullAnalysis}`,
+            content: dreamPatientNotesMessage(selectedDream.content, fullAnalysis),
             timestamp: new Date().toISOString(),
           },
         ],
@@ -285,7 +289,7 @@ export default function DreamsPage() {
       if (updated) setSelectedDream(updated);
       await loadDreams();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Bir hata oluştu. Lütfen API ayarlarını kontrol et.");
+      setError(err instanceof Error ? err.message : t.errors.analysisError);
     } finally {
       setAnalyzing(false);
     }
@@ -313,10 +317,10 @@ export default function DreamsPage() {
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Rüyalar</h1>
+        <h1 className="text-2xl font-bold mb-6">{t.dreams.title}</h1>
         <div className="flex items-center gap-2 text-[var(--text-muted)]">
           <Loader2 className="w-4 h-4 animate-spin" />
-          <span>Yükleniyor...</span>
+          <span>{t.common.loading}</span>
         </div>
       </div>
     );
@@ -327,7 +331,7 @@ export default function DreamsPage() {
     const wordCount = newContent.trim() ? newContent.trim().split(/\s+/).length : 0;
     const dateLabel = (() => {
       const d = selectedDate ? new Date(selectedDate + "T00:00:00") : new Date();
-      return d.toLocaleDateString("tr-TR", {
+      return d.toLocaleDateString(locale, {
         weekday: "long",
         day: "numeric",
         month: "long",
@@ -344,7 +348,7 @@ export default function DreamsPage() {
             className="flex items-center gap-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Geri
+            {t.common.back}
           </button>
           <span className="text-sm text-[var(--text-muted)] capitalize">{dateLabel}</span>
           <Button
@@ -355,10 +359,10 @@ export default function DreamsPage() {
             {saving ? (
               <span className="flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Kaydediliyor...
+                {t.common.saving}
               </span>
             ) : (
-              "Kaydet"
+              t.common.save
             )}
           </Button>
         </div>
@@ -369,7 +373,7 @@ export default function DreamsPage() {
             <textarea
               value={newContent}
               onChange={(e) => setNewContent(e.target.value)}
-              placeholder="Rüyanda neler gördün..."
+              placeholder={t.dreams.placeholder}
               autoFocus
               className="w-full bg-transparent text-[var(--text-primary)] text-lg leading-relaxed placeholder:text-[var(--text-muted)]/40 resize-none focus:outline-none"
               style={{ minHeight: "calc(100vh - 180px)" }}
@@ -380,7 +384,7 @@ export default function DreamsPage() {
         {/* Bottom bar */}
         <div className="flex items-center justify-end px-6 py-3 border-t border-[var(--border-color)]">
           <span className="text-xs text-[var(--text-muted)]">
-            {wordCount} kelime
+            {wordCount} {t.common.words}
           </span>
         </div>
       </div>
@@ -397,14 +401,14 @@ export default function DreamsPage() {
           className={`flex items-center gap-1.5 text-sm transition-colors mb-6 ${analyzing ? "text-[var(--text-muted)] opacity-50 cursor-not-allowed" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}
         >
           <ArrowLeft className="w-4 h-4" />
-          Geri
+          {t.common.back}
         </button>
 
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold">Rüya Detayı</h1>
+            <h1 className="text-2xl font-bold">{t.dreams.detail}</h1>
             <p className="text-sm text-[var(--text-muted)]">
-              {new Date(selectedDream.created_at + "Z").toLocaleString("tr-TR", {
+              {new Date(selectedDream.created_at + "Z").toLocaleString(locale, {
                 day: "2-digit",
                 month: "long",
                 year: "numeric",
@@ -421,7 +425,7 @@ export default function DreamsPage() {
               disabled={analyzing}
             >
               <Pencil className="w-4 h-4" />
-              Düzenle
+              {t.common.edit}
             </Button>
             <Button
               size="sm"
@@ -437,12 +441,12 @@ export default function DreamsPage() {
               {analyzing ? (
                 <span className="flex items-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Analiz ediliyor...
+                  {t.dreams.analyzing}
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4" />
-                  {selectedDream.analysis ? "Analizi Göster" : "Analiz Et"}
+                  {selectedDream.analysis ? t.dreams.showAnalysis : t.dreams.analyze}
                 </span>
               )}
             </Button>
@@ -453,7 +457,7 @@ export default function DreamsPage() {
               disabled={analyzing}
             >
               <Trash2 className="w-4 h-4" />
-              Sil
+              {t.common.delete}
             </Button>
           </div>
         </div>
@@ -467,7 +471,7 @@ export default function DreamsPage() {
         <Modal
           isOpen={analysisModalOpen}
           onClose={() => { if (!analyzing) setAnalysisModalOpen(false); }}
-          title="AI Analizi"
+          title={t.dreams.aiAnalysis}
           className="max-w-2xl max-h-[80vh] flex flex-col"
         >
           <div className="overflow-y-auto flex-1 -mx-6 px-6">
@@ -494,16 +498,16 @@ export default function DreamsPage() {
         </Modal>
 
         {/* Delete confirmation modal */}
-        <Modal isOpen={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} title="Rüyayı Sil">
+        <Modal isOpen={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} title={t.dreams.deleteDream}>
           <p className="text-[var(--text-secondary)] mb-6">
-            Bu rüyayı silmek istediğinden emin misin? Bu işlem geri alınamaz.
+            {t.dreams.deleteDreamConfirm}
           </p>
           <div className="flex gap-3 justify-end">
             <Button variant="secondary" onClick={() => setDeleteConfirmOpen(false)}>
-              İptal
+              {t.common.cancel}
             </Button>
             <Button variant="danger" onClick={handleDelete}>
-              Evet, Sil
+              {t.dreams.yesDelete}
             </Button>
           </div>
         </Modal>
@@ -519,12 +523,12 @@ export default function DreamsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Rüyalar</h1>
-          <p className="text-sm text-[var(--text-muted)]">Rüya günlüğün</p>
+          <h1 className="text-2xl font-bold">{t.dreams.title}</h1>
+          <p className="text-sm text-[var(--text-muted)]">{t.dreams.description}</p>
         </div>
         <Button onClick={() => handleDayClick(todayStr)}>
           <Plus className="w-4 h-4" />
-          Bugün Yaz
+          {t.dreams.writeToday}
         </Button>
       </div>
 
@@ -540,7 +544,7 @@ export default function DreamsPage() {
           onClick={handleGoToToday}
           className="text-sm font-semibold text-[var(--text-secondary)] capitalize hover:text-[var(--text-primary)] transition-colors"
         >
-          {formatMonthYear(currentYear, currentMonth)}
+          {formatMonthYear(currentYear, currentMonth, locale)}
         </button>
         <button
           onClick={handleNextMonth}

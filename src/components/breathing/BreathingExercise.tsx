@@ -1,6 +1,7 @@
 import { useReducer, useEffect } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { useTranslation } from "@/i18n";
 import type { BreathingTechnique } from "@/constants/breathingTechniques";
 
 interface BreathingExerciseProps {
@@ -20,6 +21,7 @@ export function BreathingExercise({
   totalDuration,
   onStop,
 }: BreathingExerciseProps) {
+  const { t } = useTranslation();
   const [elapsed, tick] = useReducer((s: number) => s + 1, 0);
 
   const remaining = Math.max(0, totalDuration - elapsed);
@@ -62,15 +64,15 @@ export function BreathingExercise({
         </div>
         <div className="text-center space-y-2">
           <p className="text-2xl font-bold text-[var(--text-primary)]">
-            Tebrikler!
+            {t.breathing.congratulations}
           </p>
-          <p className="text-[var(--text-muted)]">Egzersizini tamamladın.</p>
+          <p className="text-[var(--text-muted)]">{t.breathing.completed}</p>
           <p className="text-sm text-[var(--text-muted)]">
-            {cycleNumber - 1} döngü tamamlandı
+            {cycleNumber - 1} {t.breathing.cyclesCompleted}
           </p>
         </div>
         <Button onClick={onStop} variant="primary" size="lg">
-          Kapat
+          {t.common.close}
         </Button>
       </div>
     );

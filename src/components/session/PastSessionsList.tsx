@@ -4,9 +4,10 @@ import remarkGfm from "remark-gfm";
 import { Clock, ChevronLeft, ChevronRight, MessageCircle, Loader2 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { useSettingsStore } from "@/stores/useSettingsStore";
+import { useTranslation, getDayNames, getDateLocale } from "@/i18n";
 import { streamMessage } from "@/services/ai/aiService";
 import { calculateCost } from "@/services/ai/costCalculator";
-import { buildWeeklySummaryPrompt } from "@/services/ai/promptBuilder";
+import { buildWeeklySummaryPrompt, WEEKLY_SUMMARY_TRIGGER } from "@/services/ai/promptBuilder";
 import { getCompletedSessions, getWeeklySummary, saveWeeklySummary, getUserProfile, getPatientNotes, saveTokenUsage } from "@/services/db/queries";
 import type { Session, AIProvider, TokenUsage, WeeklySummary } from "@/types";
 
@@ -27,8 +28,6 @@ interface PastSessionsListProps {
   onWeekSummaryInfoChange?: (info: WeekSummaryInfo) => void;
 }
 
-const DAY_NAMES = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
-
 function getWeekMonday(weekOffset: number): Date {
   const now = new Date();
   const day = now.getDay(); // 0=Sun, 1=Mon, ...
@@ -38,14 +37,14 @@ function getWeekMonday(weekOffset: number): Date {
   return monday;
 }
 
-function formatWeekRange(monday: Date): string {
+function formatWeekRange(monday: Date, locale: string): string {
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
 
   const mDay = monday.getDate();
-  const mMonth = monday.toLocaleDateString("tr-TR", { month: "long" });
+  const mMonth = monday.toLocaleDateString(locale, { month: "long" });
   const sDay = sunday.getDate();
-  const sMonth = sunday.toLocaleDateString("tr-TR", { month: "long" });
+  const sMonth = sunday.toLocaleDateString(locale, { month: "long" });
   const year = sunday.getFullYear();
 
   if (mMonth === sMonth) {
@@ -81,6 +80,9 @@ async function trackWeeklySummaryUsage(
 
 export const PastSessionsList = forwardRef<PastSessionsListHandle, PastSessionsListProps>(
   function PastSessionsList({ onViewSession, onWeekSummaryInfoChange }, ref) {
+    const { t, language } = useTranslation();
+    const locale = getDateLocale(language);
+    const DAY_NAMES = getDayNames(language);
     const [sessions, setSessions] = useState<Omit<Session, "messages">[]>([]);
     const [weekOffset, setWeekOffset] = useState(0);
     const settings = useSettingsStore();
@@ -183,19 +185,20 @@ export const PastSessionsList = forwardRef<PastSessionsListHandle, PastSessionsL
           for (const s of sessionsByDay[i]) {
             const sessionDate = new Date(s.started_at);
             allWeekSessions.push({
-              date: sessionDate.toLocaleDateString("tr-TR", { day: "numeric", month: "long", weekday: "long" }),
+              date: sessionDate.toLocaleDateString(locale, { day: "numeric", month: "long", weekday: "long" }),
               summary: s.summary,
               summaryNarrative: s.summary_narrative ?? null,
             });
           }
         }
 
-        const weekRange = formatWeekRange(monday);
+        const weekRange = formatWeekRange(monday, locale);
         const prompt = buildWeeklySummaryPrompt({
           weekRange,
           sessions: allWeekSessions,
           patientNotes,
           profile,
+          language,
         });
 
         let fullContent = "";
@@ -209,7 +212,7 @@ export const PastSessionsList = forwardRef<PastSessionsListHandle, PastSessionsL
             {
               id: crypto.randomUUID(),
               role: "user",
-              content: "Haftalık özet oluştur.",
+              content: WEEKLY_SUMMARY_TRIGGER,
               timestamp: new Date().toISOString(),
             },
           ],
@@ -242,7 +245,7 @@ export const PastSessionsList = forwardRef<PastSessionsListHandle, PastSessionsL
           });
         }
       } catch (err) {
-        setSummaryError(err instanceof Error ? err.message : "Bir hata oluştu. Lütfen API ayarlarını kontrol et.");
+        setSummaryError(err instanceof Error ? err.message : t.errors.analysisError);
       } finally {
         setGenerating(false);
       }
@@ -267,9 +270,9 @@ export const PastSessionsList = forwardRef<PastSessionsListHandle, PastSessionsL
           <div className="w-16 h-16 rounded-2xl bg-[var(--bg-tertiary)] flex items-center justify-center mb-4">
             <MessageCircle className="w-8 h-8 text-[var(--text-muted)]" />
           </div>
-          <h3 className="text-lg font-semibold mb-1">Henüz hiç seansın yok</h3>
+          <h3 className="text-lg font-semibold mb-1">{t.session.noSessionsYet}</h3>
           <p className="text-sm text-[var(--text-muted)] text-center max-w-xs">
-            İlk seansını başlatarak kendini keşfetmeye adım at. Seansların burada listelenecek.
+            {t.session.noSessionsDescription}
           </p>
         </div>
       );
@@ -288,7 +291,7 @@ export const PastSessionsList = forwardRef<PastSessionsListHandle, PastSessionsL
             <ChevronLeft className="w-5 h-5" />
           </button>
           <span className="text-sm font-semibold text-[var(--text-secondary)]">
-            {formatWeekRange(monday)}
+            {formatWeekRange(monday, locale)}
           </span>
           <button
             onClick={() => setWeekOffset((o) => o + 1)}
@@ -335,7 +338,7 @@ export const PastSessionsList = forwardRef<PastSessionsListHandle, PastSessionsL
                     const durationMin = endDate
                       ? Math.round((endDate.getTime() - startDate.getTime()) / 60000)
                       : null;
-                    const timeStr = startDate.toLocaleTimeString("tr-TR", {
+                    const timeStr = startDate.toLocaleTimeString(locale, {
                       hour: "2-digit",
                       minute: "2-digit",
                     });
@@ -350,7 +353,7 @@ export const PastSessionsList = forwardRef<PastSessionsListHandle, PastSessionsL
                         {durationMin != null && (
                           <div className="flex items-center justify-center gap-1 text-xs text-[var(--text-muted)] mt-0.5">
                             <Clock className="w-3 h-3" />
-                            {durationMin} dk
+                            {durationMin} {t.common.minutesShort}
                           </div>
                         )}
                       </button>
@@ -365,7 +368,7 @@ export const PastSessionsList = forwardRef<PastSessionsListHandle, PastSessionsL
         {/* Empty week message */}
         {!hasSessionsThisWeek && (
           <p className="text-center text-sm text-[var(--text-muted)] mt-6">
-            Bu hafta seans yok
+            {t.session.noSessionsThisWeek}
           </p>
         )}
 
@@ -373,7 +376,7 @@ export const PastSessionsList = forwardRef<PastSessionsListHandle, PastSessionsL
         <Modal
           isOpen={summaryModalOpen}
           onClose={() => { if (!generating) setSummaryModalOpen(false); }}
-          title={`Haftalık Özet — ${formatWeekRange(monday)}`}
+          title={`${t.session.weeklySummary} — ${formatWeekRange(monday, locale)}`}
         >
           <div className="max-h-[60vh] overflow-y-auto">
             {streamContent ? (

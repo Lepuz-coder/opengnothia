@@ -4,6 +4,7 @@ import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { getTokenUsageRecords, getTokenUsageSummaryByProvider } from "@/services/db/queries";
 import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslation, getDateLocale } from "@/i18n";
 import type { TokenUsageRecord } from "@/types";
 
 interface ProviderSummary {
@@ -17,17 +18,6 @@ interface ProviderSummary {
 
 const PAGE_SIZE = 20;
 
-const CALL_TYPE_LABELS: Record<string, string> = {
-  greeting: "Karşılama",
-  chat: "Mesaj",
-  recommendation: "Öneri",
-  summary: "Özet",
-  patient_notes: "Notlar",
-  dream_analysis: "Rüya Analizi",
-  journal_analysis: "Günlük Analizi",
-  weekly_summary: "Haftalık Özet",
-};
-
 const PROVIDER_NAMES: Record<string, string> = {
   openai: "OpenAI",
   anthropic: "Anthropic",
@@ -38,6 +28,8 @@ function formatCost(cost: number): string {
 }
 
 export default function ExpensesPage() {
+  const { t, language } = useTranslation();
+  const locale = getDateLocale(language);
   const [records, setRecords] = useState<TokenUsageRecord[]>([]);
   const [summaries, setSummaries] = useState<ProviderSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,7 +52,7 @@ export default function ExpensesPage() {
   const modelOptions = useMemo(() => {
     const models = [...new Set(records.map((r) => r.model))].sort();
     return [
-      { value: "all", label: "Tüm Modeller" },
+      { value: "all", label: t.expenses.allModels },
       ...models.map((m) => ({ value: m, label: m })),
     ];
   }, [records]);
@@ -106,10 +98,10 @@ export default function ExpensesPage() {
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Harcamalar</h1>
+        <h1 className="text-2xl font-bold mb-6">{t.expenses.title}</h1>
         <div className="flex items-center gap-2 text-[var(--text-muted)]">
           <Loader2 className="w-4 h-4 animate-spin" />
-          <span>Yükleniyor...</span>
+          <span>{t.common.loading}</span>
         </div>
       </div>
     );
@@ -119,11 +111,11 @@ export default function ExpensesPage() {
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Harcamalar</h1>
-          <p className="text-sm text-[var(--text-muted)]">AI model kullanım maliyetleri</p>
+          <h1 className="text-2xl font-bold">{t.expenses.title}</h1>
+          <p className="text-sm text-[var(--text-muted)]">{t.expenses.description}</p>
         </div>
         <div className="text-right">
-          <p className="text-sm text-[var(--text-muted)]">Toplam Harcama</p>
+          <p className="text-sm text-[var(--text-muted)]">{t.expenses.totalExpense}</p>
           <p className="text-xl font-bold">{formatCost(totalCost)}</p>
         </div>
       </div>
@@ -145,7 +137,7 @@ export default function ExpensesPage() {
                     <span className="text-[var(--text-secondary)] truncate mr-2">{m.model}</span>
                     <div className="flex items-center gap-3 shrink-0">
                       <span className="text-[var(--text-muted)] text-xs">
-                        {m.call_count} çağrı
+                        {m.call_count} {t.common.call}
                       </span>
                       <span className="font-medium">{formatCost(m.total_cost)}</span>
                     </div>
@@ -161,7 +153,7 @@ export default function ExpensesPage() {
       {records.length === 0 && (
         <Card>
           <p className="text-center text-[var(--text-muted)] py-8">
-            Henüz kullanım verisi yok. Bir seans başlattığında burada görünecek.
+            {t.expenses.noUsageData}
           </p>
         </Card>
       )}
@@ -179,7 +171,7 @@ export default function ExpensesPage() {
               />
             </div>
             <span className="text-sm text-[var(--text-muted)]">
-              {filteredRecords.length} kayıt
+              {filteredRecords.length} {t.common.record}
             </span>
           </div>
 
@@ -189,19 +181,19 @@ export default function ExpensesPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-[var(--border-color)] text-left text-[var(--text-muted)]">
-                    <th className="px-4 py-3 font-medium">Tarih</th>
+                    <th className="px-4 py-3 font-medium">{t.expenses.date}</th>
                     <th className="px-4 py-3 font-medium">Model</th>
-                    <th className="px-4 py-3 font-medium">Tür</th>
-                    <th className="px-4 py-3 font-medium text-right">Girdi</th>
-                    <th className="px-4 py-3 font-medium text-right">Çıktı</th>
-                    <th className="px-4 py-3 font-medium text-right">Maliyet</th>
+                    <th className="px-4 py-3 font-medium">{t.expenses.type}</th>
+                    <th className="px-4 py-3 font-medium text-right">{t.expenses.input}</th>
+                    <th className="px-4 py-3 font-medium text-right">{t.expenses.output}</th>
+                    <th className="px-4 py-3 font-medium text-right">{t.expenses.cost}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginatedRecords.map((r) => (
                     <tr key={r.id} className="border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] transition-colors">
                       <td className="px-4 py-3 text-[var(--text-muted)] whitespace-nowrap">
-                        {new Date(r.created_at + "Z").toLocaleString("tr-TR", {
+                        {new Date(r.created_at + "Z").toLocaleString(locale, {
                           day: "2-digit",
                           month: "2-digit",
                           hour: "2-digit",
@@ -210,10 +202,10 @@ export default function ExpensesPage() {
                       </td>
                       <td className="px-4 py-3 truncate max-w-[160px]">{r.model}</td>
                       <td className="px-4 py-3 text-[var(--text-secondary)]">
-                        {CALL_TYPE_LABELS[r.call_type] ?? r.call_type}
+                        {(t.expenses.callTypes as Record<string, string>)[r.call_type] ?? r.call_type}
                       </td>
-                      <td className="px-4 py-3 text-right tabular-nums">{r.input_tokens.toLocaleString("tr-TR")}</td>
-                      <td className="px-4 py-3 text-right tabular-nums">{r.output_tokens.toLocaleString("tr-TR")}</td>
+                      <td className="px-4 py-3 text-right tabular-nums">{r.input_tokens.toLocaleString(locale)}</td>
+                      <td className="px-4 py-3 text-right tabular-nums">{r.output_tokens.toLocaleString(locale)}</td>
                       <td className="px-4 py-3 text-right font-medium tabular-nums">{formatCost(r.cost)}</td>
                     </tr>
                   ))}

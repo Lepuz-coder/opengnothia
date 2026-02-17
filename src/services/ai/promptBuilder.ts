@@ -1,5 +1,33 @@
-import type { UserProfile, CheckIn, SessionSummary, TherapySchool } from "@/types";
+import type { UserProfile, CheckIn, SessionSummary, TherapySchool, Language } from "@/types";
 import { getTherapySchool } from "@/constants/therapySchools";
+import { getCurrentLanguage } from "@/i18n";
+
+function getLanguageInstruction(lang?: Language): string {
+  const l = lang ?? getCurrentLanguage();
+  if (l === "tr") return "\n\nIMPORTANT: Always respond to the user in Turkish (Türkçe).";
+  return "\n\nIMPORTANT: Always respond to the user in English.";
+}
+
+// --- Trigger messages & helpers used by pages ---
+
+export const TEST_MESSAGE = "Hello, test message.";
+export const TEST_SYSTEM_PROMPT = "Say a short hello.";
+export const GREETING_TRIGGER = "Hello, let's start the session.";
+export const WEEKLY_SUMMARY_TRIGGER = "Generate weekly summary.";
+export const JOURNAL_ANALYSIS_TRIGGER = "Analyze my journal entry.";
+export const DREAM_ANALYSIS_TRIGGER = "Analyze my dream.";
+export const BACKGROUND_NOTES_SYSTEM_PROMPT = "You are an experienced clinical psychologist. Update the patient notes.";
+export const SESSION_SUMMARY_SYSTEM_PROMPT = "You are an experienced clinical psychologist and you are this client's therapist. You are talking with the client at the end of the session.";
+
+export function journalPatientNotesMessage(content: string, analysis: string): string {
+  return `The client shared this journal entry: ${content}\n\nJournal analysis: ${analysis}`;
+}
+
+export function dreamPatientNotesMessage(content: string, analysis: string): string {
+  return `The client shared this dream: ${content}\n\nDream analysis: ${analysis}`;
+}
+
+// --- Prompt builders ---
 
 export function buildSystemPrompt(params: {
   profile: UserProfile | null;
@@ -10,82 +38,85 @@ export function buildSystemPrompt(params: {
   patientNotes?: string;
   lastSessionDate?: string | null;
   totalSessionCount?: number;
+  language?: Language;
 }): string {
   const { profile, todayCheckIn, lastSessionSummary, lastSessionNarrative, therapySchool, patientNotes, lastSessionDate, totalSessionCount } = params;
 
-  let prompt = `Sen OpenGnothia'nın yapay zeka destekli psikolojik destek asistanısın. Türkçe konuşuyorsun.
+  let prompt = `You are OpenGnothia's AI-powered psychological support assistant.
 
-Temel ilkeler:
-- Empatik, sıcak ve yargılamayan bir yaklaşım sergile
-- Danışanın duygularını yansıt ve doğrula
-- Açık uçlu sorular sor
-- Gerektiğinde nazikçe yüzleştir
-- Profesyonel sınırları koru — sen bir terapist değilsin, bir destek aracısın
-- Kriz durumlarında profesyonel yardım almayı öner
-- Yanıtlarını kısa ve öz tut, paragraflar halinde konuş`;
+Core principles:
+- Display an empathetic, warm, and non-judgmental approach
+- Reflect and validate the client's emotions
+- Ask open-ended questions
+- Gently confront when necessary
+- Maintain professional boundaries — you are not a therapist, you are a support agent
+- Suggest seeking professional help in crisis situations
+- Keep your responses short and concise, speak in paragraphs`;
+
+  prompt += getLanguageInstruction(params.language);
 
   // Temporal context
   const today = new Date();
-  const todayStr = today.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric", weekday: "long" });
-  prompt += `\n\nZaman bilgisi:`;
-  prompt += `\n- Bugünün tarihi: ${todayStr}`;
+  const todayStr = today.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric", weekday: "long" });
+  prompt += `\n\nTemporal context:`;
+  prompt += `\n- Today's date: ${todayStr}`;
   if (lastSessionDate) {
     const lastDate = new Date(lastSessionDate);
-    const lastDateStr = lastDate.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
+    const lastDateStr = lastDate.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
     const diffDays = Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
-    prompt += `\n- Son seans tarihi: ${lastDateStr} (${diffDays} gün önce)`;
+    prompt += `\n- Last session date: ${lastDateStr} (${diffDays} days ago)`;
   }
   if (totalSessionCount !== undefined) {
-    prompt += `\n- Toplam tamamlanmış seans sayısı: ${totalSessionCount}`;
+    prompt += `\n- Total completed sessions: ${totalSessionCount}`;
   }
 
   if (therapySchool) {
     const school = getTherapySchool(therapySchool);
     if (school) {
-      prompt += `\n\n--- Terapi Ekolü ---\n${school.promptInstructions}`;
+      prompt += `\n\n--- Therapy School ---\n${school.promptInstructions}`;
     }
   }
 
   if (profile) {
-    prompt += `\n\nDanışan bilgileri:`;
-    if (profile.name) prompt += `\n- İsim: ${profile.name}`;
-    if (profile.age) prompt += `\n- Yaş: ${profile.age}`;
-    if (profile.gender) prompt += `\n- Cinsiyet: ${profile.gender}`;
-    if (profile.occupation) prompt += `\n- Meslek/Okul: ${profile.occupation}`;
-    if (profile.goals.length > 0) prompt += `\n- Hedefler: ${profile.goals.join(", ")}`;
-    prompt += `\n- Tercih edilen yaklaşım: ${
-      profile.approach === "practical" ? "Pratik ve çözüm odaklı" :
-      profile.approach === "depth" ? "Derinlikli ve keşif odaklı" :
-      "Dengeli"
+    prompt += `\n\nClient information:`;
+    if (profile.name) prompt += `\n- Name: ${profile.name}`;
+    if (profile.age) prompt += `\n- Age: ${profile.age}`;
+    if (profile.gender) prompt += `\n- Gender: ${profile.gender}`;
+    if (profile.occupation) prompt += `\n- Occupation/School: ${profile.occupation}`;
+    if (profile.goals.length > 0) prompt += `\n- Goals: ${profile.goals.join(", ")}`;
+    prompt += `\n- Preferred approach: ${
+      profile.approach === "practical" ? "Practical and solution-oriented" :
+      profile.approach === "depth" ? "In-depth and exploration-oriented" :
+      "Balanced"
     }`;
   }
 
   if (todayCheckIn) {
-    prompt += `\n\nBugünkü check-in:`;
-    prompt += `\n- Ruh hali: ${todayCheckIn.mood}/10`;
-    prompt += `\n- Enerji: ${todayCheckIn.energy}/10`;
-    prompt += `\n- Uyku: ${todayCheckIn.sleep}/5`;
+    prompt += `\n\nToday's check-in:`;
+    prompt += `\n- Mood: ${todayCheckIn.mood}/10`;
+    prompt += `\n- Energy: ${todayCheckIn.energy}/10`;
+    prompt += `\n- Sleep: ${todayCheckIn.sleep}/5`;
     if (todayCheckIn.had_dream && todayCheckIn.dream_note) {
-      prompt += `\n- Rüya: ${todayCheckIn.dream_note}`;
+      prompt += `\n- Dream: ${todayCheckIn.dream_note}`;
     }
     if (todayCheckIn.tags.length > 0) {
-      prompt += `\n- Etiketler: ${todayCheckIn.tags.join(", ")}`;
+      prompt += `\n- Tags: ${todayCheckIn.tags.join(", ")}`;
     }
   }
 
   const hasStructuredSummary = lastSessionSummary && (lastSessionSummary.themes.length > 0 || lastSessionSummary.insights.length > 0 || lastSessionSummary.homework.length > 0);
   if (hasStructuredSummary) {
-    prompt += `\n\nSon seans özeti:`;
-    if (lastSessionSummary.themes.length > 0) prompt += `\n- Temalar: ${lastSessionSummary.themes.join(", ")}`;
-    if (lastSessionSummary.insights.length > 0) prompt += `\n- İçgörüler: ${lastSessionSummary.insights.join(", ")}`;
-    if (lastSessionSummary.homework.length > 0) prompt += `\n- Ödev: ${lastSessionSummary.homework.join(", ")}`;
+    prompt += `\n\nLast session summary:`;
+    if (lastSessionSummary.themes.length > 0) prompt += `\n- Themes: ${lastSessionSummary.themes.join(", ")}`;
+    if (lastSessionSummary.insights.length > 0) prompt += `\n- Insights: ${lastSessionSummary.insights.join(", ")}`;
+    if (lastSessionSummary.homework.length > 0) prompt += `\n- Homework: ${lastSessionSummary.homework.join(", ")}`;
   } else if (lastSessionNarrative && lastSessionNarrative.trim().length > 0) {
-    prompt += `\n\nSon seans özeti:\n${lastSessionNarrative}`;
+    prompt += `\n\nLast session summary:\n${lastSessionNarrative}`;
   }
 
   if (patientNotes && patientNotes.trim().length > 0) {
-    prompt += `\n\n--- Kümülatif Hasta Notları (Terapist Olarak Kendin İçin Tuttuğun Notlar) ---`;
-    prompt += `\nBu notlar önceki seanslarda senin tuttuğun klinik notlardır. Danışanla süreklilik sağlamak için bunları dikkate al:`;
+    prompt += `\n\n--- Cumulative Patient Notes (Notes You Keep for Yourself as the Therapist) ---`;
+    prompt += `\nThese are clinical notes you kept from previous sessions. Take these into account to maintain continuity with the client:`;
     prompt += `\n${patientNotes}`;
   }
 
@@ -101,14 +132,15 @@ export function buildGreetingPrompt(params: {
   patientNotes?: string;
   lastSessionDate?: string | null;
   totalSessionCount?: number;
+  language?: Language;
 }): string {
   let prompt = buildSystemPrompt(params);
 
-  prompt += `\n\n--- Seans Açılışı ---
-Bu seansın ilk mesajını sen gönderiyorsun. Danışanı sıcak ve kısa bir şekilde selamla.
-Eğer hasta notların varsa, önceki seanslardaki konulara veya ödevlere kısaca atıfta bulunabilirsin.
-ÖNEMLİ: Check-in verilerini (ruh hali puanı, enerji puanı, uyku puanı gibi sayısal değerleri) danışana söyleme. Bu veriler sadece senin arka plan bilgin olarak kullan — konuşmanın tonunu ve yaklaşımını buna göre ayarla ama skorları açıkça belirtme.
-Uzun olma — 2-3 cümle ile başla ve danışanı konuşmaya davet et.`;
+  prompt += `\n\n--- Session Opening ---
+You are sending the first message of this session. Greet the client warmly and briefly.
+If you have patient notes, you may briefly reference topics or homework from previous sessions.
+IMPORTANT: Do not tell the client check-in data (numerical values such as mood score, energy score, sleep score). Use this data only as your background information — adjust the tone and approach of the conversation accordingly but do not explicitly state the scores.
+Keep it short — start with 2-3 sentences and invite the client to talk.`;
 
   return prompt;
 }
@@ -116,80 +148,79 @@ Uzun olma — 2-3 cümle ile başla ve danışanı konuşmaya davet et.`;
 export function buildPatientNotesUpdatePrompt(existingNotes: string, lastUpdatedAt?: string | null): string {
   let memorySection = "";
   if (existingNotes) {
-    memorySection = `--- Mevcut Hafıza ---\n`;
+    memorySection = `--- Existing Memory ---\n`;
     if (lastUpdatedAt) {
       const updatedDate = new Date(lastUpdatedAt);
-      const updatedStr = updatedDate.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
-      memorySection += `(Son güncelleme: ${updatedStr})\n`;
+      const updatedStr = updatedDate.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
+      memorySection += `(Last updated: ${updatedStr})\n`;
     }
     memorySection += `${existingNotes}\n\n`;
   }
 
-  return `Sen deneyimli bir klinik psikologsun. Danışanın hakkında uzun süreli bir hafıza dosyası tutuyorsun. Bu dosya seanstan seansa, günlükten günlüğe taşınan ve danışanı gerçekten tanımanı sağlayan kalıcı bilgileri içerir.
-${memorySection}--- Görevin ---
-Verilen içeriği analiz et ve mevcut hafızayla birleştirerek güncel bir hafıza dosyası oluştur.
-Çıktı tek bir birleşik dosya olsun — eski ve yeni bilgiyi ayırma, tek bir tutarlı yapıda birleştir.
+  return `You are an experienced clinical psychologist. You maintain a long-term memory file about your client. This file contains persistent information carried from session to session, journal to journal, that allows you to truly know your client.
+${memorySection}--- Your Task ---
+Analyze the given content and create an updated memory file by merging it with the existing memory.
+The output should be a single unified file — do not separate old and new information, merge them into a single coherent structure.
 
-Format — madde işaretleriyle kısa notlar, şu başlıklar altında:
+Format — short notes with bullet points, under these headings:
 
-## Danışan Profili
-- Kişilik özellikleri, değerler, dünya görüşü
-- Güçlü yanları ve başa çıkma mekanizmaları
-- Hassas noktalar, tetikleyiciler, savunma mekanizmaları
+## Client Profile
+- Personality traits, values, worldview
+- Strengths and coping mechanisms
+- Sensitive points, triggers, defense mechanisms
 
-## İlişki Haritası
-- Hayatındaki önemli kişiler (isim — kim olduğu — ilişkinin niteliği)
-- En fazla 15 kişi, sadece gerçekten önemli olanlar
+## Relationship Map
+- Important people in their life (name — who they are — nature of the relationship)
+- Maximum 15 people, only those who are truly significant
 
-## Tekrarlayan Temalar ve Örüntüler
-- Seanslarda/günlüklerde tekrar eden konular
-- Fark edilen davranış ve düşünce kalıpları
-- Duygusal örüntüler
+## Recurring Themes and Patterns
+- Topics that recur in sessions/journals
+- Observed behavioral and thought patterns
+- Emotional patterns
 
-## Aktif Konular
-- Şu an hayatında gündemde olan durumlar
-- Devam eden sorunlar veya süreçler
+## Active Topics
+- Current situations on the agenda in their life
+- Ongoing problems or processes
 
-## İçgörüler ve İlerleme
-- Danışanın elde ettiği farkındalıklar
-- Gözlemlenen olumlu değişimler
-- Dirençli veya takılı kalan alanlar
+## Insights and Progress
+- Awareness gained by the client
+- Observed positive changes
+- Resistant or stuck areas
 
-## Takip Edilecekler
-- Verilen ödevler veya öneriler
-- Bir sonraki seansta sorulacak/kontrol edilecek konular
+## Follow-Up Items
+- Assigned homework or suggestions
+- Topics to ask about/check in the next session
 
-## Dikkat (sadece varsa)
-- Kriz riski, intihar/kendine zarar düşünceleri
-- Acil müdahale gerektiren durumlar
+## Attention (only if applicable)
+- Crisis risk, suicidal/self-harm thoughts
+- Situations requiring immediate intervention
 
-KRİTİK KURALLAR:
-- Her madde en fazla 2 satır olsun
-- Açıklama, yorum, paragraf YAZMA — sadece kısa, hatırlatıcı notlar
-- Kalıcı bilgileri koru: kişilik özellikleri, ilişkiler, örüntüler silinmemeli
-- Güncelliğini yitirmiş geçici bilgileri (çözülmüş sorunlar, tamamlanmış ödevler) çıkar
-- Türkçe yaz
-- Sadece hafıza dosyasını yaz, başka açıklama ekleme`;
+CRITICAL RULES:
+- Each item should be at most 2 lines
+- Do NOT write explanations, commentary, or paragraphs — only short, reminder notes
+- Preserve persistent information: personality traits, relationships, patterns should not be deleted
+- Remove outdated temporary information (resolved issues, completed homework)
+- Write in English
+- Only write the memory file, do not add any other explanation`;
 }
 
-export function buildDreamAnalysisPrompt(patientNotes: string): string {
-  let prompt = `Sen rüya analizi konusunda uzmanlaşmış deneyimli bir klinik psikologsun. Danışanın paylaştığı rüyayı derinlemesine analiz et.
+export function buildDreamAnalysisPrompt(patientNotes: string, language?: Language): string {
+  let prompt = `You are an experienced clinical psychologist specializing in dream analysis. Analyze in depth the dream shared by the client.${getLanguageInstruction(language)}
 
-Analizinde şu başlıkları ele al:
-- **Semboller ve Metaforlar**: Rüyadaki önemli semboller ve olası anlamları
-- **Duygusal Temalar**: Rüyada öne çıkan duygusal örüntüler
-- **Uyanık Yaşamla Bağlantılar**: Rüyanın günlük yaşam deneyimleriyle olası ilişkileri
-- **Bilinçdışı Malzeme**: Rüyanın işaret edebileceği bilinçdışı süreçler ve bastırılmış içerikler
+Address these headings in your analysis:
+- **Symbols and Metaphors**: Important symbols in the dream and their possible meanings
+- **Emotional Themes**: Prominent emotional patterns in the dream
+- **Connections to Waking Life**: Possible relationships between the dream and daily life experiences
+- **Unconscious Material**: Unconscious processes and repressed content the dream may point to
 
-Kurallar:
-- Markdown formatında yaz
-- Empatik ve anlaşılır bir dil kullan, aşırı klinik jargondan kaçın
-- Danışana doğrudan hitap et ("sen" dili kullan)
-- Kesin yargılardan kaçın, olasılıklar ve yorumlar sun
-- Türkçe yaz`;
+Rules:
+- Write in Markdown format
+- Use empathetic and understandable language, avoid excessive clinical jargon
+- Address the client directly (use "you" language)
+- Avoid definitive judgments, offer possibilities and interpretations`;
 
   if (patientNotes && patientNotes.trim().length > 0) {
-    prompt += `\n\n--- Danışan Hakkında Klinik Notlar ---\nBu notlar danışanın psikolojik profilini anlamana yardımcı olacaktır. Rüya analizinde bu bağlamı dikkate al:\n${patientNotes}`;
+    prompt += `\n\n--- Clinical Notes About the Client ---\nThese notes will help you understand the client's psychological profile. Take this context into account in the dream analysis:\n${patientNotes}`;
   }
 
   return prompt;
@@ -202,71 +233,72 @@ export function buildJournalAnalysisPrompt(params: {
   patientNotes: string;
   profile: UserProfile | null;
   therapySchool?: TherapySchool;
+  language?: Language;
 }): string {
   const { journalContent, mood, tags, patientNotes, profile, therapySchool } = params;
 
-  let prompt = `Sen deneyimli bir klinik psikologsun. Danışanın günlük yazısını analiz edeceksin.
+  let prompt = `You are an experienced clinical psychologist. You will analyze the client's journal entry.
 
-Temel ilkeler:
-- Empatik, destekleyici ve içgörü odaklı bir analiz yap
-- Danışana doğrudan hitap et ("sen" dili kullan)
-- Yazıdaki duyguları, temaları ve örüntüleri belirle
-- Farkındalık ve içgörü geliştirmeye yardımcı ol
-- Gerekirse nazikçe yeni bakış açıları öner
-- Markdown formatında, 2-4 paragraf yaz
-- Türkçe yaz`;
+Core principles:
+- Provide an empathetic, supportive, and insight-oriented analysis
+- Address the client directly (use "you" language)
+- Identify emotions, themes, and patterns in the writing
+- Help develop awareness and insight
+- Gently suggest new perspectives when needed
+- Write in Markdown format, 2-4 paragraphs`;
+
+  prompt += getLanguageInstruction(params.language);
 
   if (therapySchool) {
     const school = getTherapySchool(therapySchool);
     if (school) {
-      prompt += `\n\nTerapi ekolü: ${school.name}\n${school.promptInstructions}`;
+      prompt += `\n\nTherapy school: ${school.name}\n${school.promptInstructions}`;
     }
   }
 
   if (profile) {
-    prompt += `\n\nDanışan bilgileri:`;
-    if (profile.name) prompt += `\n- İsim: ${profile.name}`;
-    if (profile.age) prompt += `\n- Yaş: ${profile.age}`;
-    if (profile.goals.length > 0) prompt += `\n- Hedefler: ${profile.goals.join(", ")}`;
+    prompt += `\n\nClient information:`;
+    if (profile.name) prompt += `\n- Name: ${profile.name}`;
+    if (profile.age) prompt += `\n- Age: ${profile.age}`;
+    if (profile.goals.length > 0) prompt += `\n- Goals: ${profile.goals.join(", ")}`;
   }
 
   if (patientNotes && patientNotes.trim().length > 0) {
-    prompt += `\n\n--- Kümülatif Hasta Notları ---\n${patientNotes}`;
+    prompt += `\n\n--- Cumulative Patient Notes ---\n${patientNotes}`;
   }
 
-  prompt += `\n\n--- Günlük Yazısı ---`;
-  if (mood !== null) prompt += `\nRuh hali: ${mood}/10`;
-  if (tags.length > 0) prompt += `\nEtiketler: ${tags.join(", ")}`;
+  prompt += `\n\n--- Journal Entry ---`;
+  if (mood !== null) prompt += `\nMood: ${mood}/10`;
+  if (tags.length > 0) prompt += `\nTags: ${tags.join(", ")}`;
   prompt += `\n\n${journalContent}`;
 
-  prompt += `\n\n--- Görevin ---
-Bu günlük yazısını analiz et. Şunlara odaklan:
-- Yazıdaki temel duyguları ve temaları belirle
-- Danışanın farkında olmayabileceği örüntülere dikkat çek
-- Destekleyici ve içgörü geliştirici geri bildirim ver
-- Gerekirse düşünmeye davet eden sorular sor
+  prompt += `\n\n--- Your Task ---
+Analyze this journal entry. Focus on:
+- Identify the core emotions and themes in the writing
+- Point out patterns the client may not be aware of
+- Provide supportive and insight-developing feedback
+- Ask thought-provoking questions when needed
 
-Markdown formatında, 2-4 paragraf yaz. Sıcak ve destekleyici bir ton kullan.`;
+Write in Markdown format, 2-4 paragraphs. Use a warm and supportive tone.`;
 
   return prompt;
 }
 
+export function buildCompactionPrompt(language?: Language): string {
+  return `Analyze the entire session conversation and create a comprehensive summary that ensures therapeutic continuity.
 
-export function buildCompactionPrompt(): string {
-  return `Bu seans konuşmasının tamamını analiz et ve terapötik sürekliliği sağlayacak kapsamlı bir özet oluştur.
+This summary will REPLACE the conversation history, so it must preserve all therapeutically important information.
 
-Bu özet konuşma geçmişinin YERİNE geçecek, bu yüzden tüm terapötik açıdan önemli bilgileri korumalıdır.
+It should include:
+1. Topics covered and complaints presented from the beginning of the session to now
+2. Emotional themes, mood shifts
+3. Important people, events, and situations mentioned
+4. Emerging insights, observed defense mechanisms
+5. WHERE WE ARE NOW in the conversation — the most recently discussed topic and its direction
+6. Natural continuation point — where the active question or topic left off
 
-İçermesi gerekenler:
-1. Seansın başlangıcından bu ana kadar ele alınan konular ve sunulan şikayetler
-2. Duygusal temalar, duygu değişimleri
-3. Bahsedilen önemli kişiler, olaylar ve durumlar
-4. Ortaya çıkan içgörüler, gözlemlenen savunma mekanizmaları
-5. ŞU AN konuşmada neredeyiz — en son konuşulan konu ve yönü
-6. Doğal devam noktası — aktif olan soru veya konunun nerede kaldığı
-
-KRİTİK: Özet, tam konuşma geçmişine hâlâ sahipmiş gibi seansa doğal bir şekilde devam edebilmeni sağlamalıdır.
-Terapist notu tarzında, birinci tekil şahıs ile yaz. Kapsamlı ama öz ol. Türkçe yaz.`;
+CRITICAL: The summary should enable you to naturally continue the session as if you still had the full conversation history.
+Write in therapist note style, in first person singular. Be comprehensive but concise.${getLanguageInstruction(language)}`;
 }
 
 export function buildWeeklySummaryPrompt(params: {
@@ -278,73 +310,74 @@ export function buildWeeklySummaryPrompt(params: {
   }[];
   patientNotes: string;
   profile: UserProfile | null;
+  language?: Language;
 }): string {
   const { weekRange, sessions, patientNotes, profile } = params;
 
-  let prompt = `Sen deneyimli bir klinik psikologsun. Danışanının ${weekRange} tarihleri arasındaki haftalık terapi sürecini değerlendireceksin.
+  let prompt = `You are an experienced clinical psychologist. You will evaluate your client's weekly therapy process between the dates ${weekRange}.\n\n${sessions.length} sessions took place this week. Below is the summary of each session:`;
 
-Bu hafta ${sessions.length} seans gerçekleşti. Aşağıda her seansın özeti bulunmaktadır:`;
+  prompt += getLanguageInstruction(params.language);
 
   for (let i = 0; i < sessions.length; i++) {
     const s = sessions[i];
-    prompt += `\n\n--- Seans ${i + 1} (${s.date}) ---`;
+    prompt += `\n\n--- Session ${i + 1} (${s.date}) ---`;
     if (s.summary) {
-      if (s.summary.themes.length > 0) prompt += `\nTemalar: ${s.summary.themes.join(", ")}`;
-      if (s.summary.defenses.length > 0) prompt += `\nSavunma mekanizmaları: ${s.summary.defenses.join(", ")}`;
-      if (s.summary.insights.length > 0) prompt += `\nİçgörüler: ${s.summary.insights.join(", ")}`;
-      if (s.summary.homework.length > 0) prompt += `\nÖdevler: ${s.summary.homework.join(", ")}`;
+      if (s.summary.themes.length > 0) prompt += `\nThemes: ${s.summary.themes.join(", ")}`;
+      if (s.summary.defenses.length > 0) prompt += `\nDefense mechanisms: ${s.summary.defenses.join(", ")}`;
+      if (s.summary.insights.length > 0) prompt += `\nInsights: ${s.summary.insights.join(", ")}`;
+      if (s.summary.homework.length > 0) prompt += `\nHomework: ${s.summary.homework.join(", ")}`;
     }
     if (s.summaryNarrative) {
-      prompt += `\nSeans anlatısı: ${s.summaryNarrative}`;
+      prompt += `\nSession narrative: ${s.summaryNarrative}`;
     }
   }
 
   if (profile) {
-    prompt += `\n\nDanışan bilgileri:`;
-    if (profile.name) prompt += `\n- İsim: ${profile.name}`;
-    if (profile.age) prompt += `\n- Yaş: ${profile.age}`;
-    if (profile.goals.length > 0) prompt += `\n- Hedefler: ${profile.goals.join(", ")}`;
+    prompt += `\n\nClient information:`;
+    if (profile.name) prompt += `\n- Name: ${profile.name}`;
+    if (profile.age) prompt += `\n- Age: ${profile.age}`;
+    if (profile.goals.length > 0) prompt += `\n- Goals: ${profile.goals.join(", ")}`;
   }
 
   if (patientNotes && patientNotes.trim().length > 0) {
-    prompt += `\n\n--- Kümülatif Hasta Notları ---\n${patientNotes}`;
+    prompt += `\n\n--- Cumulative Patient Notes ---\n${patientNotes}`;
   }
 
-  prompt += `\n\n--- Görevin ---
-Haftalık bir değerlendirme raporu oluştur. Şunları içermeli:
+  prompt += `\n\n--- Your Task ---
+Create a weekly evaluation report. It should include:
 
-1. **Haftanın Genel Değerlendirmesi**: Bu haftaki seansların genel bir özeti ve danışanın genel durumu
-2. **Öne Çıkan Temalar**: Hafta boyunca tekrarlayan veya belirgin olan temalar
-3. **Gözlemlenen İlerleme**: Olumlu gelişmeler, içgörüler ve fark edilen değişimler
-4. **Dikkat Edilmesi Gerekenler**: Dirençli alanlar, risk faktörleri veya derinleştirilmesi gereken konular
-5. **Gelecek Hafta İçin Öneriler**: Danışana yönelik somut öneriler ve odaklanılması gereken konular
+1. **Overall Assessment of the Week**: A general summary of this week's sessions and the client's overall state
+2. **Prominent Themes**: Recurring or notable themes throughout the week
+3. **Observed Progress**: Positive developments, insights, and noticed changes
+4. **Points of Attention**: Resistant areas, risk factors, or topics that need deeper exploration
+5. **Recommendations for Next Week**: Concrete suggestions for the client and areas to focus on
 
-Kurallar:
-- Markdown formatında yaz (başlıklar, kalın metin, listeler kullanabilirsin)
-- Danışana doğrudan hitap et ("sen" dili kullan)
-- Sıcak, destekleyici ve motive edici bir ton kullan
-- Klinik jargondan kaçın, anlaşılır ol
-- Türkçe yaz
-- KRİTİK: Gelecek seanslarda ele alınacak konular, terapist planları veya öncelik listeleri gibi klinik içerikler YAZMA. Danışan gelecek seanslarda nelerin konuşulacağını önceden bilmemeli — bu terapötik süreci olumsuz etkiler. Sadece danışanın kendi hayatında uygulayabileceği öneriler ver.`;
+Rules:
+- Write in Markdown format (you can use headings, bold text, lists)
+- Address the client directly (use "you" language)
+- Use a warm, supportive, and motivating tone
+- Avoid clinical jargon, be understandable
+- CRITICAL: Do NOT write clinical content such as topics to be addressed in future sessions, therapist plans, or priority lists. The client should not know in advance what will be discussed in future sessions — this negatively affects the therapeutic process. Only give recommendations the client can apply in their own life.`;
 
   return prompt;
 }
 
-export function buildSummaryPrompt(patientNotes?: string): string {
-  let prompt = `Yukarıdaki seans konuşmasını değerlendir ve danışanla birebir konuşuyormuş gibi bir seans özeti yaz.
+export function buildSummaryPrompt(patientNotes?: string, language?: Language): string {
+  let prompt = `Evaluate the session conversation above and write a session summary as if you were speaking one-on-one with the client.
 
-Kurallar:
-- Danışanla sohbet eder gibi yaz, klinik rapor formatı KULLANMA (tarih, danışan adı, başlık gibi meta bilgiler yazma)
-- Doğrudan "sen" dili kullan, sanki seansın sonunda danışanla yüz yüze konuşuyormuşsun gibi
-- Bu seansta neler konuştuğunuzu, hangi konuların öne çıktığını ve varsa elde edilen içgörüleri özetle
-- Varsa somut bir öneri veya düşünce pratiği öner
-- Sıcak, destekleyici ve motive edici bir ton kullan
-- Klinik jargondan kaçın, anlaşılır ol
-- Markdown formatında yaz
-- Türkçe yaz`;
+Rules:
+- Write as if chatting with the client, do NOT use clinical report format (do not write meta information such as date, client name, titles)
+- Use direct "you" language, as if you are speaking face-to-face with the client at the end of the session
+- Summarize what was discussed in this session, which topics stood out, and any insights gained
+- If applicable, suggest a concrete recommendation or thought exercise
+- Use a warm, supportive, and motivating tone
+- Avoid clinical jargon, be understandable
+- Write in Markdown format`;
+
+  prompt += getLanguageInstruction(language);
 
   if (patientNotes && patientNotes.trim().length > 0) {
-    prompt += `\n\n--- Kümülatif Hasta Notları (Arka Plan Bilgisi) ---\nBu notlar önceki seanslardan derlenen klinik notlardır. Özet yazarken sürekliliği sağlamak ve danışanın genel durumunu göz önünde bulundurmak için kullan:\n${patientNotes}`;
+    prompt += `\n\n--- Cumulative Patient Notes (Background Information) ---\nThese are clinical notes compiled from previous sessions. Use them to maintain continuity and consider the client's overall state when writing the summary:\n${patientNotes}`;
   }
 
   return prompt;

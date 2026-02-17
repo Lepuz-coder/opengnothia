@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { useSettingsStore } from "@/stores/useSettingsStore";
+import { useTranslation } from "@/i18n";
+import type { Translations } from "@/i18n";
 
 interface InterviewStepProps {
   onNext: (data: {
@@ -18,28 +20,21 @@ interface InterviewStepProps {
   onBack: () => void;
 }
 
-const goalOptions = [
-  "Stres ve kaygı yönetimi",
-  "Kendini daha iyi tanıma",
-  "İlişki sorunları",
-  "Özsaygı ve özgüven",
-  "Yas ve kayıp",
-  "İş/okul stresi",
-  "Uyku sorunları",
-  "Motivasyon eksikliği",
-  "Duygu düzenleme",
-  "Genel destek",
-];
-
-const genderOptions = [
-  { value: "", label: "Seçiniz" },
-  { value: "Kadın", label: "Kadın" },
-  { value: "Erkek", label: "Erkek" },
-  { value: "Diğer", label: "Diğer" },
-  { value: "Belirtmek istemiyorum", label: "Belirtmek istemiyorum" },
+const goalKeys: (keyof Translations["goals"])[] = [
+  "stress_management",
+  "self_discovery",
+  "relationships",
+  "self_esteem",
+  "grief",
+  "work_stress",
+  "sleep",
+  "motivation",
+  "emotion_regulation",
+  "general_support",
 ];
 
 export function InterviewStep({ onNext, onBack }: InterviewStepProps) {
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
@@ -56,56 +51,62 @@ export function InterviewStep({ onNext, onBack }: InterviewStepProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-[var(--text-primary)]">Seni Tanıyalım</h2>
+        <h2 className="text-xl font-bold text-[var(--text-primary)]">{t.onboarding.getToKnow}</h2>
         <p className="text-sm text-[var(--text-muted)] mt-1">
-          Deneyimini kişiselleştirmek için birkaç soru.
+          {t.onboarding.getToKnowDescription}
         </p>
       </div>
 
       {/* Personal Info */}
       <div className="grid grid-cols-2 gap-4">
         <Input
-          label="Adın"
+          label={t.onboarding.yourName}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Adını gir"
+          placeholder={t.onboarding.yourNamePlaceholder}
         />
         <Input
-          label="Yaş"
+          label={t.settings.age}
           type="number"
           value={age}
           onChange={(e) => setAge(e.target.value)}
-          placeholder="25"
+          placeholder={t.settings.agePlaceholder}
           min={1}
           max={120}
         />
         <Select
-          label="Cinsiyet"
-          options={genderOptions}
+          label={t.settings.genderLabel}
+          options={[
+            { value: "", label: t.gender.select },
+            { value: "female", label: t.gender.female },
+            { value: "male", label: t.gender.male },
+            { value: "other", label: t.gender.other },
+            { value: "preferNot", label: t.gender.preferNot },
+          ]}
           value={gender}
           onChange={(e) => setGender(e.target.value)}
         />
         <Input
-          label="Meslek / Okul Durumu"
+          label={t.settings.occupation}
           value={occupation}
           onChange={(e) => setOccupation(e.target.value)}
-          placeholder="Öğrenci, Mühendis, vb."
+          placeholder={t.settings.occupationPlaceholder}
         />
       </div>
 
       {/* Goals */}
       <div>
         <p className="text-sm font-medium text-[var(--text-secondary)] mb-2">
-          Seni buraya ne getirdi? (birden fazla seçebilirsin)
+          {t.onboarding.whatBroughtYou}
         </p>
         <div className="flex flex-wrap gap-2">
-          {goalOptions.map((goal) => (
+          {goalKeys.map((key) => (
             <Badge
-              key={goal}
-              selected={selectedGoals.includes(goal)}
-              onClick={() => toggleGoal(goal)}
+              key={key}
+              selected={selectedGoals.includes(key)}
+              onClick={() => toggleGoal(key)}
             >
-              {goal}
+              {t.goals[key]}
             </Badge>
           ))}
         </div>
@@ -114,7 +115,7 @@ export function InterviewStep({ onNext, onBack }: InterviewStepProps) {
       {/* Session time */}
       <div>
         <p className="text-sm font-medium text-[var(--text-secondary)] mb-2">
-          Tercih ettiğin seans saati
+          {t.onboarding.preferredSessionTime}
         </p>
         <input
           type="time"
@@ -126,7 +127,7 @@ export function InterviewStep({ onNext, onBack }: InterviewStepProps) {
 
       <div className="flex gap-3 pt-2">
         <Button variant="ghost" onClick={onBack} className="flex-1">
-          Geri
+          {t.common.back}
         </Button>
         <Button
           onClick={() => onNext({
@@ -141,7 +142,7 @@ export function InterviewStep({ onNext, onBack }: InterviewStepProps) {
           disabled={selectedGoals.length === 0 || !name.trim()}
           className="flex-1"
         >
-          Devam
+          {t.common.continue}
         </Button>
       </div>
     </div>

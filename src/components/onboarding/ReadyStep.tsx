@@ -1,6 +1,7 @@
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useSettingsStore } from "@/stores/useSettingsStore";
+import { useTranslation } from "@/i18n";
 
 interface ReadyStepProps {
   onComplete: () => void;
@@ -8,6 +9,7 @@ interface ReadyStepProps {
 
 export function ReadyStep({ onComplete }: ReadyStepProps) {
   const { preferredSessionTime } = useSettingsStore();
+  const { t } = useTranslation();
 
   return (
     <div className="text-center space-y-6">
@@ -16,20 +18,20 @@ export function ReadyStep({ onComplete }: ReadyStepProps) {
       </div>
 
       <div>
-        <h2 className="text-2xl font-bold text-[var(--text-primary)]">Her şey hazır!</h2>
+        <h2 className="text-2xl font-bold text-[var(--text-primary)]">{t.onboarding.ready}</h2>
         <p className="text-[var(--text-secondary)] mt-2">
-          Seni her gün <span className="font-semibold text-primary-400">{preferredSessionTime}</span>'de bekliyorum.
+          {t.onboarding.readyDescription.replace("{time}", preferredSessionTime)}
         </p>
       </div>
 
       <div className="p-4 rounded-xl bg-primary-900/20 text-sm text-[var(--text-secondary)]">
         <p>
-          Unutma, ben bir profesyonel terapist değilim. Ciddi psikolojik sorunlarda mutlaka bir uzmana başvur. Ben sana günlük destek ve farkındalık konusunda yardımcı olabilirim.
+          {t.onboarding.readyDisclaimer}
         </p>
       </div>
 
       <Button onClick={onComplete} size="lg" className="w-full">
-        Başlayalım
+        {t.onboarding.letsStart}
       </Button>
     </div>
   );

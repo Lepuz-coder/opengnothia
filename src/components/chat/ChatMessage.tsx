@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Sparkles, ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { useTranslation, getDateLocale } from "@/i18n";
 import type { ChatMessage as ChatMessageType } from "@/types";
 
 interface ChatMessageProps {
@@ -13,6 +14,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === "user";
   const hasThinking = Boolean(message.thinking && message.thinking.length > 0);
   const isThinkingPhase = message.isStreaming && hasThinking && !message.content;
+  const { t, language } = useTranslation();
+  const locale = getDateLocale(language);
 
   const [thinkingOpen, setThinkingOpen] = useState(false);
   const showThinkingExpanded = thinkingOpen;
@@ -38,7 +41,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 "w-3 h-3 transition-all duration-300",
                 isThinkingPhase && "text-accent-400 animate-pulse drop-shadow-[0_0_6px_rgba(232,168,56,0.6)]"
               )} />
-              <span>{isThinkingPhase ? "Düşünüyor..." : "Düşünce süreci"}</span>
+              <span>{isThinkingPhase ? t.chat.thinking : t.chat.thinkingProcess}</span>
               {showThinkingExpanded ? (
                 <ChevronDown className="w-3 h-3" />
               ) : (
@@ -92,7 +95,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
           <p
             className="text-[10px] mt-1 text-[var(--text-muted)]"
           >
-            {new Date(message.timestamp).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
+            {new Date(message.timestamp).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
           </p>
         )}
       </div>

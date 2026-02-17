@@ -192,7 +192,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     if (streamingMessageId) {
       set((s) => ({
         messages: s.messages.map((m) =>
-          m.id === streamingMessageId ? { ...m, isStreaming: false, content: m.content || "İptal edildi." } : m
+          m.id === streamingMessageId ? { ...m, isStreaming: false, content: m.content || "" } : m
         ),
         isStreaming: false,
         streamingMessageId: null,

@@ -1,3 +1,4 @@
+export type Language = "tr" | "en";
 export type Theme = "light" | "dark" | "system";
 export type Approach = "practical" | "depth" | "balanced";
 export type SessionStatus = "idle" | "pre" | "active" | "post";

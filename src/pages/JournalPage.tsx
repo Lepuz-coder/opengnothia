@@ -6,9 +6,10 @@ import { Modal } from "@/components/ui/Modal";
 import { cn } from "@/lib/cn";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useAppStore } from "@/stores/useAppStore";
+import { useTranslation, getDayNames, getDateLocale } from "@/i18n";
 import { streamMessage } from "@/services/ai/aiService";
 import { calculateCost } from "@/services/ai/costCalculator";
-import { buildJournalAnalysisPrompt, buildPatientNotesUpdatePrompt } from "@/services/ai/promptBuilder";
+import { buildJournalAnalysisPrompt, buildPatientNotesUpdatePrompt, JOURNAL_ANALYSIS_TRIGGER, journalPatientNotesMessage } from "@/services/ai/promptBuilder";
 import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
 import {
   createJournalEntry,
@@ -29,7 +30,7 @@ import type { JournalEntry, AIProvider, TokenUsage } from "@/types";
 
 type View = "calendar" | "write" | "detail";
 
-const DAY_NAMES = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
+// DAY_NAMES moved to component level using getDayNames(language)
 
 function getCalendarDays(year: number, month: number): Date[] {
   const firstOfMonth = new Date(year, month, 1);
@@ -61,9 +62,9 @@ function formatYMD(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-function formatMonthYear(year: number, month: number): string {
+function formatMonthYear(year: number, month: number, locale: string): string {
   const date = new Date(year, month, 1);
-  return date.toLocaleDateString("tr-TR", { month: "long", year: "numeric" });
+  return date.toLocaleDateString(locale, { month: "long", year: "numeric" });
 }
 
 async function trackUsage(
@@ -88,6 +89,9 @@ async function trackUsage(
 export default function JournalPage() {
   const settings = useSettingsStore();
   const setSidebarHidden = useAppStore((s) => s.setSidebarHidden);
+  const { t, language } = useTranslation();
+  const DAY_NAMES = getDayNames(language);
+  const locale = getDateLocale(language);
 
   // View state
   const [view, setView] = useState<View>("calendar");
@@ -262,6 +266,7 @@ export default function JournalPage() {
         patientNotes,
         profile,
         therapySchool: settings.therapySchool,
+        language,
       });
 
       let fullAnalysis = "";
@@ -272,7 +277,7 @@ export default function JournalPage() {
         provider: settings.provider,
         apiKey: settings.apiKey,
         model: settings.model,
-        messages: [{ id: "journal-analysis", role: "user", content: "Günlük yazımı analiz et.", timestamp: new Date().toISOString() }],
+        messages: [{ id: "journal-analysis", role: "user", content: JOURNAL_ANALYSIS_TRIGGER, timestamp: new Date().toISOString() }],
         systemPrompt: analysisPrompt,
         customBaseUrl: settings.customBaseUrl || undefined,
         thinkingEnabled: settings.thinkingEnabled,
@@ -309,7 +314,7 @@ export default function JournalPage() {
         provider: settings.provider,
         apiKey: settings.apiKey,
         model: settings.memoryModel,
-        messages: [{ id: "journal-notes", role: "user", content: `Danışan şu günlük yazısını paylaştı: ${selectedEntry.content}\n\nGünlük analizi: ${fullAnalysis}`, timestamp: new Date().toISOString() }],
+        messages: [{ id: "journal-notes", role: "user", content: journalPatientNotesMessage(selectedEntry.content, fullAnalysis), timestamp: new Date().toISOString() }],
         systemPrompt: notesPrompt,
         customBaseUrl: settings.customBaseUrl || undefined,
         callType: "patient_notes",
@@ -320,7 +325,7 @@ export default function JournalPage() {
       if (updated) setSelectedEntry(updated);
       await loadEntries();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Bir hata oluştu. Lütfen API ayarlarını kontrol et.");
+      setError(err instanceof Error ? err.message : t.errors.analysisError);
     } finally {
       setIsAnalyzing(false);
     }
@@ -330,10 +335,10 @@ export default function JournalPage() {
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Günlük</h1>
+        <h1 className="text-2xl font-bold mb-6">{t.journal.title}</h1>
         <div className="flex items-center gap-2 text-[var(--text-muted)]">
           <Loader2 className="w-4 h-4 animate-spin" />
-          <span>Yükleniyor...</span>
+          <span>{t.common.loading}</span>
         </div>
       </div>
     );
@@ -344,7 +349,7 @@ export default function JournalPage() {
     const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
     const dateLabel = (() => {
       const d = selectedDate ? new Date(selectedDate + "T00:00:00") : new Date();
-      return d.toLocaleDateString("tr-TR", {
+      return d.toLocaleDateString(locale, {
         weekday: "long",
         day: "numeric",
         month: "long",
@@ -361,7 +366,7 @@ export default function JournalPage() {
             className="flex items-center gap-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Geri
+            {t.common.back}
           </button>
           <span className="text-sm text-[var(--text-muted)] capitalize">{dateLabel}</span>
           <Button
@@ -372,10 +377,10 @@ export default function JournalPage() {
             {saving ? (
               <span className="flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Kaydediliyor...
+                {t.common.saving}
               </span>
             ) : (
-              "Kaydet"
+              t.common.save
             )}
           </Button>
         </div>
@@ -386,7 +391,7 @@ export default function JournalPage() {
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="Bugün neler hissettin, neler yaşadın?"
+              placeholder={t.journal.placeholder}
               autoFocus
               className="w-full bg-transparent text-[var(--text-primary)] text-lg leading-relaxed placeholder:text-[var(--text-muted)]/40 resize-none focus:outline-none"
               style={{ minHeight: "calc(100vh - 180px)" }}
@@ -397,7 +402,7 @@ export default function JournalPage() {
         {/* Bottom bar */}
         <div className="flex items-center justify-end px-6 py-3 border-t border-[var(--border-color)]">
           <span className="text-xs text-[var(--text-muted)]">
-            {wordCount} kelime
+            {wordCount} {t.common.words}
           </span>
         </div>
       </div>
@@ -416,14 +421,14 @@ export default function JournalPage() {
           className={`flex items-center gap-1.5 text-sm transition-colors mb-6 ${isBusy ? "text-[var(--text-muted)] opacity-50 cursor-not-allowed" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}
         >
           <ArrowLeft className="w-4 h-4" />
-          Geri
+          {t.common.back}
         </button>
 
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold">Günlük Detayı</h1>
+            <h1 className="text-2xl font-bold">{t.journal.detail}</h1>
             <p className="text-sm text-[var(--text-muted)]">
-              {new Date(selectedEntry.created_at.includes("T") ? selectedEntry.created_at : selectedEntry.created_at + "Z").toLocaleString("tr-TR", {
+              {new Date(selectedEntry.created_at.includes("T") ? selectedEntry.created_at : selectedEntry.created_at + "Z").toLocaleString(locale, {
                 day: "2-digit",
                 month: "long",
                 year: "numeric",
@@ -440,7 +445,7 @@ export default function JournalPage() {
               disabled={isBusy}
             >
               <Pencil className="w-4 h-4" />
-              Düzenle
+              {t.common.edit}
             </Button>
             <Button
               size="sm"
@@ -456,12 +461,12 @@ export default function JournalPage() {
               {isAnalyzing ? (
                 <span className="flex items-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Analiz ediliyor...
+                  {t.journal.analyzing}
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4" />
-                  {selectedEntry.ai_analysis ? "Analizi Göster" : "Analiz Et"}
+                  {selectedEntry.ai_analysis ? t.journal.showAnalysis : t.journal.analyze}
                 </span>
               )}
             </Button>
@@ -472,7 +477,7 @@ export default function JournalPage() {
               disabled={isBusy}
             >
               <Trash2 className="w-4 h-4" />
-              Sil
+              {t.common.delete}
             </Button>
           </div>
         </div>
@@ -482,7 +487,7 @@ export default function JournalPage() {
           {(selectedEntry.mood !== null || selectedEntry.tags.length > 0) && (
             <div className="flex flex-wrap items-center gap-2 mb-3">
               {selectedEntry.mood !== null && (
-                <Badge variant="default">Ruh Hali: {selectedEntry.mood}/10</Badge>
+                <Badge variant="default">{t.journal.mood}: {selectedEntry.mood}/10</Badge>
               )}
               {selectedEntry.tags.map((tag) => (
                 <span
@@ -501,7 +506,7 @@ export default function JournalPage() {
         <Modal
           isOpen={analysisModalOpen}
           onClose={() => { if (!isBusy) setAnalysisModalOpen(false); }}
-          title="AI Analizi"
+          title={t.journal.aiAnalysis}
           className="max-w-2xl max-h-[80vh] flex flex-col"
         >
           <div className="overflow-y-auto flex-1 -mx-6 px-6">
@@ -528,16 +533,16 @@ export default function JournalPage() {
         </Modal>
 
         {/* Delete confirmation modal */}
-        <Modal isOpen={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="Girişi Sil">
+        <Modal isOpen={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title={t.journal.deleteEntry}>
           <p className="text-[var(--text-secondary)] mb-6">
-            Bu günlük girişini silmek istediğinden emin misin? Bu işlem geri alınamaz.
+            {t.journal.deleteEntryConfirm}
           </p>
           <div className="flex gap-3 justify-end">
             <Button variant="secondary" onClick={() => setDeleteModalOpen(false)}>
-              İptal
+              {t.common.cancel}
             </Button>
             <Button variant="danger" onClick={handleDelete}>
-              Evet, Sil
+              {t.journal.yesDelete}
             </Button>
           </div>
         </Modal>
@@ -553,12 +558,12 @@ export default function JournalPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Günlük</h1>
-          <p className="text-sm text-[var(--text-muted)]">Düşüncelerini ve duygularını kaydet</p>
+          <h1 className="text-2xl font-bold">{t.journal.title}</h1>
+          <p className="text-sm text-[var(--text-muted)]">{t.journal.description}</p>
         </div>
         <Button onClick={() => handleDayClick(todayStr)}>
           <Plus className="w-4 h-4" />
-          Bugün Yaz
+          {t.journal.writeToday}
         </Button>
       </div>
 
@@ -574,7 +579,7 @@ export default function JournalPage() {
           onClick={handleGoToToday}
           className="text-sm font-semibold text-[var(--text-secondary)] capitalize hover:text-[var(--text-primary)] transition-colors"
         >
-          {formatMonthYear(currentYear, currentMonth)}
+          {formatMonthYear(currentYear, currentMonth, locale)}
         </button>
         <button
           onClick={handleNextMonth}

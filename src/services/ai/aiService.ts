@@ -1,5 +1,7 @@
 import type { AIProvider, ChatMessage, ThinkingLevel, TokenUsage } from "@/types";
 import { getAdapter } from "./providers";
+import { getCurrentLanguage, getTranslation } from "@/i18n";
+import { TEST_MESSAGE, TEST_SYSTEM_PROMPT } from "./promptBuilder";
 
 export async function sendMessage(params: {
   provider: AIProvider;
@@ -29,15 +31,17 @@ export async function testApiKey(params: {
   model: string;
   customBaseUrl?: string;
 }): Promise<{ success: boolean; error?: string }> {
+  const lang = getCurrentLanguage();
+  const t = getTranslation(lang);
   try {
     const result = await sendMessage({
       ...params,
-      messages: [{ id: "test", role: "user", content: "Merhaba, test mesajı.", timestamp: new Date().toISOString() }],
-      systemPrompt: "Kısa bir merhaba de.",
+      messages: [{ id: "test", role: "user", content: TEST_MESSAGE, timestamp: new Date().toISOString() }],
+      systemPrompt: TEST_SYSTEM_PROMPT,
     });
     return { success: result.content.length > 0 };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Bilinmeyen hata" };
+    return { success: false, error: err instanceof Error ? err.message : t.errors.unknown };
   }
 }
 
@@ -151,6 +155,8 @@ export async function streamMessage(params: {
       // User cancelled — don't call onError
       return;
     }
-    params.onError(err instanceof Error ? err : new Error("Stream hatası"));
+    const lang = getCurrentLanguage();
+    const t = getTranslation(lang);
+    params.onError(err instanceof Error ? err : new Error(t.errors.stream));
   }
 }

@@ -38,6 +38,7 @@ function AppContent() {
         const theme = await store.get<"light" | "dark" | "system">("theme");
         if (theme) setTheme(theme);
 
+        const language = await store.get<string>("language");
         const provider = await store.get<string>("provider");
         const apiKey = await store.get<string>("apiKey");
         const model = await store.get<string>("model");
@@ -60,6 +61,7 @@ function AppContent() {
         }
 
         loadFromStore({
+          ...(language && { language: language as any }),
           ...(provider && { provider: provider as any }),
           ...(apiKey && { apiKey }),
           ...(model && { model }),
@@ -120,7 +122,7 @@ export default function App() {
   if (error) {
     return (
       <div className="h-screen flex items-center justify-center text-red-500">
-        <p>Veritabanı hatası: {error}</p>
+        <p>Database error: {error}</p>
       </div>
     );
   }

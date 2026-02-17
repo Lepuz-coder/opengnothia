@@ -1,8 +1,9 @@
 import { create } from "zustand";
 import { getProvider } from "@/constants/providers";
-import type { AIProvider, Approach, TherapySchool, ThinkingLevel } from "@/types";
+import type { AIProvider, Approach, Language, TherapySchool, ThinkingLevel } from "@/types";
 
 interface SettingsState {
+  language: Language;
   provider: AIProvider;
   apiKey: string;
   model: string;
@@ -19,6 +20,7 @@ interface SettingsState {
   memoryThinkingEnabled: boolean;
   memoryThinkingLevel: ThinkingLevel;
   providerMemoryThinkingSettings: Record<string, { enabled: boolean; level: ThinkingLevel }>;
+  setLanguage: (language: Language) => void;
   setProvider: (provider: AIProvider) => void;
   setApiKey: (key: string) => void;
   setModel: (model: string) => void;
@@ -36,6 +38,7 @@ interface SettingsState {
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
+  language: "tr",
   provider: "anthropic",
   apiKey: "",
   model: "claude-opus-4-6",
@@ -52,6 +55,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   memoryThinkingEnabled: true,
   memoryThinkingLevel: "medium",
   providerMemoryThinkingSettings: {},
+  setLanguage: (language) => set({ language }),
   setProvider: (provider) => {
     const state = get();
     const updatedKeys = { ...state.providerApiKeys, [state.provider]: state.apiKey };

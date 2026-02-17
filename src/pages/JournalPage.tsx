@@ -8,7 +8,7 @@ import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useAppStore } from "@/stores/useAppStore";
 import { streamMessage } from "@/services/ai/aiService";
 import { calculateCost } from "@/services/ai/costCalculator";
-import { buildJournalAnalysisPrompt, buildJournalPatientNotesUpdatePrompt } from "@/services/ai/promptBuilder";
+import { buildJournalAnalysisPrompt, buildPatientNotesUpdatePrompt } from "@/services/ai/promptBuilder";
 import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
 import {
   createJournalEntry,
@@ -303,13 +303,13 @@ export default function JournalPage() {
 
       // Update patient notes in background
       const existingNotes = await getPatientNotes();
-      const notesPrompt = buildJournalPatientNotesUpdatePrompt(existingNotes, selectedEntry.content);
+      const notesPrompt = buildPatientNotesUpdatePrompt(existingNotes);
       takeBackgroundNotes({
         provider: settings.provider,
         apiKey: settings.apiKey,
         model: settings.memoryModel,
-        messages: [{ id: "journal-notes", role: "user", content: notesPrompt, timestamp: new Date().toISOString() }],
-        systemPrompt: "Sen deneyimli bir klinik psikolog. Hasta notlarını güncelle.",
+        messages: [{ id: "journal-notes", role: "user", content: `Danışan şu günlük yazısını paylaştı: ${selectedEntry.content}\n\nGünlük analizi: ${fullAnalysis}`, timestamp: new Date().toISOString() }],
+        systemPrompt: notesPrompt,
         customBaseUrl: settings.customBaseUrl || undefined,
         callType: "patient_notes",
       });

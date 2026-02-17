@@ -3,7 +3,7 @@ export type Approach = "practical" | "depth" | "balanced";
 export type SessionStatus = "idle" | "pre" | "active" | "post";
 export type ThinkingLevel = "low" | "medium" | "high" | "max";
 export type AIProvider = "openai" | "anthropic";
-export type TherapySchool = "general" | "cbt" | "psychodynamic" | "logotherapy" | "act" | "schema" | "stoic";
+export type TherapySchool = "cbt" | "psychodynamic" | "logotherapy" | "act" | "schema" | "stoic";
 
 export interface UserProfile {
   id: number;

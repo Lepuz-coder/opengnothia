@@ -107,7 +107,7 @@ export const providers: AIProviderConfig[] = [
       // Claude Opus
       {
         id: "claude-opus-4-6",
-        name: "Claude Opus 4.6",
+        name: "Claude Opus 4.6 (Önerilen)",
         contextWindow: 200000,
         costPer1kInput: 0.005,
         costPer1kOutput: 0.025,

@@ -26,6 +26,10 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
   const currentProvider = getProvider(provider);
   const providerOptions = providers.map((p) => ({ value: p.id, label: p.name }));
   const modelOptions = currentProvider?.models.map((m) => ({ value: m.id, label: m.name })) ?? [];
+  const memoryModelOptions = currentProvider?.models.map((m) => ({
+    value: m.id,
+    label: m.id === "claude-sonnet-4-5-20250929" ? `${m.name} (Önerilen)` : m.name,
+  })) ?? [];
   const showThinkingToggle = modelSupportsThinking(provider, model);
   const showMemoryThinkingToggle = modelSupportsThinking(provider, memoryModel);
 
@@ -136,7 +140,7 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
       {modelOptions.length > 0 && (
         <Select
           label="Model"
-          options={modelOptions}
+          options={memoryModelOptions}
           value={memoryModel}
           onChange={(e) => {
             setMemoryModel(e.target.value);

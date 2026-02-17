@@ -9,7 +9,7 @@ interface OnboardingShellProps {
 
 export function OnboardingShell({ step, totalSteps, children }: OnboardingShellProps) {
   return (
-    <div className="h-screen flex flex-col items-center justify-center bg-gradient-to-br from-surface-950 via-surface-900 to-surface-950">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-surface-950 via-surface-900 to-surface-950 overflow-y-auto py-8">
       {/* Logo */}
       <div className="flex items-center gap-3 mb-8">
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center">

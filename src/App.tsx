@@ -8,6 +8,7 @@ import { useCloseGuard } from "@/hooks/useCloseGuard";
 import { useDatabase } from "@/hooks/useDatabase";
 import { MainLayout } from "@/components/layout/MainLayout";
 import OnboardingPage from "@/pages/OnboardingPage";
+import { LockScreen } from "@/components/LockScreen";
 import DashboardPage from "@/pages/DashboardPage";
 import SessionPage from "@/pages/SessionPage";
 import SettingsPage from "@/pages/SettingsPage";
@@ -19,7 +20,7 @@ import ProgramsPage from "@/pages/ProgramsPage";
 import ExpensesPage from "@/pages/ExpensesPage";
 
 function AppContent() {
-  const { isOnboarded, setOnboarded, setTheme, setHasSeenNoteTutorial } = useAppStore();
+  const { isOnboarded, setOnboarded, setTheme, setHasSeenNoteTutorial, isLocked, setLocked, lockEnabled, setLockEnabled } = useAppStore();
   const { loadFromStore } = useSettingsStore();
   const [isLoading, setIsLoading] = useState(true);
   useTheme();
@@ -52,6 +53,14 @@ function AppContent() {
         const memoryThinkingEnabled = await store.get<boolean>("memoryThinkingEnabled");
         const memoryThinkingLevel = await store.get<string>("memoryThinkingLevel");
         const providerMemoryThinkingSettings = await store.get<Record<string, { enabled: boolean; level: string }>>("providerMemoryThinkingSettings");
+
+        const lockEnabledVal = await store.get<boolean>("lockEnabled");
+        if (lockEnabledVal) {
+          setLockEnabled(true);
+          setLocked(true);
+        } else {
+          setLocked(false);
+        }
 
         // Migrate: if providerApiKeys is empty but apiKey exists, seed it
         if ((!providerApiKeys || Object.keys(providerApiKeys).length === 0) && apiKey && provider) {
@@ -94,6 +103,10 @@ function AppContent() {
 
   if (!isOnboarded) {
     return <OnboardingPage />;
+  }
+
+  if (lockEnabled && isLocked) {
+    return <LockScreen />;
   }
 
   return (

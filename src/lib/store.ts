@@ -18,6 +18,11 @@ const STORE_DEFAULTS = {
   memoryThinkingEnabled: false,
   memoryThinkingLevel: "medium",
   providerMemoryThinkingSettings: {} as Record<string, { enabled: boolean; level: string }>,
+  lockEnabled: false,
+  passwordHash: "",
+  passwordSalt: "",
+  passwordHint: "",
+  biometricEnabled: false,
 };
 
 export function loadSettings() {

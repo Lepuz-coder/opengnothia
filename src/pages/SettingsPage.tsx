@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Save, CheckCircle } from "lucide-react";
+import { Save, CheckCircle, Shield, Lock } from "lucide-react";
 import { loadSettings } from "@/lib/store";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -14,11 +14,13 @@ import { providers, getProvider, modelSupportsThinking } from "@/constants/provi
 import { getTherapySchools } from "@/constants/therapySchools";
 import { getUserProfile, upsertUserProfile, clearAllData } from "@/services/db/queries";
 import { Modal } from "@/components/ui/Modal";
+import { invoke } from "@tauri-apps/api/core";
+import { generateSalt, hashPassword, verifyPassword } from "@/lib/security";
 import type { AIProvider, Language, TherapySchool, ThinkingLevel } from "@/types";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
-  const { setOnboarded } = useAppStore();
+  const { setOnboarded, setLocked, lockEnabled, setLockEnabled: setLockEnabledGlobal } = useAppStore();
   const settings = useSettingsStore();
   const { t } = useTranslation();
   const [saved, setSaved] = useState(false);
@@ -30,6 +32,19 @@ export default function SettingsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
+  // Security state
+  const [biometricEnabled, setBiometricEnabledState] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [showPasswordForDeleteModal, setShowPasswordForDeleteModal] = useState(false);
+  const [showDisableLockModal, setShowDisableLockModal] = useState(false);
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmNewPw, setConfirmNewPw] = useState("");
+  const [newHint, setNewHint] = useState("");
+  const [securityError, setSecurityError] = useState("");
+  const [passwordChanged, setPasswordChanged] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+
   useEffect(() => {
     getUserProfile().then((profile) => {
       if (profile) {
@@ -39,6 +54,11 @@ export default function SettingsPage() {
         setProfileOccupation(profile.occupation ?? "");
       }
     });
+    loadSettings().then(async (store) => {
+      const bio = await store.get<boolean>("biometricEnabled");
+      setBiometricEnabledState(bio ?? false);
+    });
+    invoke<boolean>("biometric_available").then(setBiometricAvailable).catch(() => {});
   }, []);
 
   const currentProvider = getProvider(settings.provider);
@@ -86,8 +106,128 @@ export default function SettingsPage() {
     setTimeout(() => setSaved(false), 2000);
   }
 
+  function handleLockApp() {
+    setLocked(true);
+  }
+
   function handleDeleteAllData() {
-    setShowDeleteModal(true);
+    if (lockEnabled) {
+      setShowPasswordForDeleteModal(true);
+    } else {
+      setShowDeleteModal(true);
+    }
+  }
+
+  async function handleVerifyPasswordForDelete() {
+    const store = await loadSettings();
+    const hash = await store.get<string>("passwordHash");
+    const salt = await store.get<string>("passwordSalt");
+    const ok = await verifyPassword(currentPw, salt ?? "", hash ?? "");
+    if (ok) {
+      setShowPasswordForDeleteModal(false);
+      setCurrentPw("");
+      setSecurityError("");
+      setShowDeleteModal(true);
+    } else {
+      setSecurityError(t.security.wrongPassword);
+    }
+  }
+
+  async function handleChangePassword() {
+    const store = await loadSettings();
+    const hash = await store.get<string>("passwordHash");
+    const salt = await store.get<string>("passwordSalt");
+    const ok = await verifyPassword(currentPw, salt ?? "", hash ?? "");
+    if (!ok) {
+      setSecurityError(t.security.wrongPassword);
+      return;
+    }
+    if (newPw.length < 4) {
+      setSecurityError(t.security.passwordTooShort);
+      return;
+    }
+    if (newPw !== confirmNewPw) {
+      setSecurityError(t.security.passwordMismatch);
+      return;
+    }
+    const newSalt = generateSalt();
+    const newHash = await hashPassword(newPw, newSalt);
+    await store.set("passwordHash", newHash);
+    await store.set("passwordSalt", newSalt);
+    await store.set("passwordHint", newHint);
+    await store.save();
+    setShowChangePasswordModal(false);
+    setCurrentPw("");
+    setNewPw("");
+    setConfirmNewPw("");
+    setNewHint("");
+    setSecurityError("");
+    setPasswordChanged(true);
+    setTimeout(() => setPasswordChanged(false), 2000);
+  }
+
+  async function handleToggleLock() {
+    if (lockEnabled) {
+      // Disabling lock — need password confirmation
+      setShowDisableLockModal(true);
+    } else {
+      // Enabling lock — need to set up a password first
+      setShowChangePasswordModal(true);
+    }
+  }
+
+  async function handleDisableLock() {
+    const store = await loadSettings();
+    const hash = await store.get<string>("passwordHash");
+    const salt = await store.get<string>("passwordSalt");
+    const ok = await verifyPassword(currentPw, salt ?? "", hash ?? "");
+    if (!ok) {
+      setSecurityError(t.security.wrongPassword);
+      return;
+    }
+    await store.set("lockEnabled", false);
+    await store.set("passwordHash", "");
+    await store.set("passwordSalt", "");
+    await store.set("passwordHint", "");
+    await store.set("biometricEnabled", false);
+    await store.save();
+    setLockEnabledGlobal(false);
+    setBiometricEnabledState(false);
+    setShowDisableLockModal(false);
+    setCurrentPw("");
+    setSecurityError("");
+  }
+
+  async function handleEnableLock() {
+    if (newPw.length < 4) {
+      setSecurityError(t.security.passwordTooShort);
+      return;
+    }
+    if (newPw !== confirmNewPw) {
+      setSecurityError(t.security.passwordMismatch);
+      return;
+    }
+    const salt = generateSalt();
+    const hash = await hashPassword(newPw, salt);
+    const store = await loadSettings();
+    await store.set("lockEnabled", true);
+    await store.set("passwordHash", hash);
+    await store.set("passwordSalt", salt);
+    await store.set("passwordHint", newHint);
+    await store.save();
+    setLockEnabledGlobal(true);
+    setShowChangePasswordModal(false);
+    setNewPw("");
+    setConfirmNewPw("");
+    setNewHint("");
+    setSecurityError("");
+  }
+
+  async function handleToggleBiometric(enabled: boolean) {
+    const store = await loadSettings();
+    await store.set("biometricEnabled", enabled);
+    await store.save();
+    setBiometricEnabledState(enabled);
   }
 
   async function confirmDeleteAllData() {
@@ -110,7 +250,14 @@ export default function SettingsPage() {
     await store.set("memoryThinkingEnabled", true);
     await store.set("memoryThinkingLevel", "medium");
     await store.set("providerMemoryThinkingSettings", {});
+    await store.set("lockEnabled", false);
+    await store.set("passwordHash", "");
+    await store.set("passwordSalt", "");
+    await store.set("passwordHint", "");
+    await store.set("biometricEnabled", false);
     await store.save();
+    setLockEnabledGlobal(false);
+    setBiometricEnabledState(false);
     settings.loadFromStore({
       language: "tr" as Language,
       provider: "anthropic" as AIProvider,
@@ -332,6 +479,68 @@ export default function SettingsPage() {
         />
       </Card>
 
+      {/* Security */}
+      <Card>
+        <h2 className="font-semibold mb-2">{t.security.appLock}</h2>
+        <p className="text-xs text-[var(--text-muted)] mb-5">
+          {t.security.appLockDescription}
+        </p>
+
+        <Toggle
+          checked={lockEnabled}
+          onChange={handleToggleLock}
+          label={lockEnabled ? t.security.disableLock : t.security.enableLock}
+        />
+
+        {lockEnabled && (
+          <div className="mt-5 space-y-5">
+            {/* Biometric */}
+            {biometricAvailable && (
+              <div>
+                <Toggle
+                  checked={biometricEnabled}
+                  onChange={handleToggleBiometric}
+                  label={t.security.biometricToggle}
+                />
+                <p className="text-xs text-[var(--text-muted)] mt-1 ml-14">
+                  {t.security.biometricDescription}
+                </p>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex items-center gap-3 border-t border-[var(--border-color)] pt-5">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setShowChangePasswordModal(true);
+                  setSecurityError("");
+                  setCurrentPw("");
+                  setNewPw("");
+                  setConfirmNewPw("");
+                  setNewHint("");
+                }}
+              >
+                <Lock className="w-4 h-4" />
+                {t.security.changePassword}
+              </Button>
+
+              <Button variant="secondary" size="sm" onClick={handleLockApp}>
+                <Shield className="w-4 h-4" />
+                {t.security.lockApp}
+              </Button>
+
+              {passwordChanged && (
+                <span className="flex items-center gap-1.5 text-sm text-green-600">
+                  <CheckCircle className="w-4 h-4" /> {t.security.passwordChanged}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+      </Card>
+
       {/* Save */}
       <div className="flex items-center gap-3">
         <Button onClick={handleSave}>
@@ -384,6 +593,113 @@ export default function SettingsPage() {
           >
             {t.settings.permanentlyDelete}
           </Button>
+        </div>
+      </Modal>
+
+      {/* Change Password / Enable Lock Modal */}
+      <Modal
+        isOpen={showChangePasswordModal}
+        onClose={() => { setShowChangePasswordModal(false); setSecurityError(""); setCurrentPw(""); setNewPw(""); setConfirmNewPw(""); setNewHint(""); }}
+        title={lockEnabled ? t.security.changePassword : t.security.setupPassword}
+      >
+        <div className="space-y-4">
+          {lockEnabled && (
+            <Input
+              label={t.security.currentPassword}
+              type="password"
+              value={currentPw}
+              onChange={(e) => { setCurrentPw(e.target.value); setSecurityError(""); }}
+            />
+          )}
+          <Input
+            label={lockEnabled ? t.security.newPassword : t.security.password}
+            type="password"
+            value={newPw}
+            onChange={(e) => { setNewPw(e.target.value); setSecurityError(""); }}
+            error={newPw.length > 0 && newPw.length < 4 ? t.security.passwordTooShort : ""}
+          />
+          <Input
+            label={t.security.confirmPassword}
+            type="password"
+            value={confirmNewPw}
+            onChange={(e) => { setConfirmNewPw(e.target.value); setSecurityError(""); }}
+            error={confirmNewPw.length > 0 && newPw !== confirmNewPw ? t.security.passwordMismatch : ""}
+          />
+          <Input
+            label={t.security.passwordHint}
+            value={newHint}
+            onChange={(e) => setNewHint(e.target.value)}
+            placeholder={t.security.hintPlaceholder}
+          />
+          {securityError && <p className="text-sm text-red-500">{securityError}</p>}
+          <div className="flex justify-end gap-3 mt-4">
+            <Button variant="secondary" size="sm" onClick={() => { setShowChangePasswordModal(false); setSecurityError(""); }}>
+              {t.common.cancel}
+            </Button>
+            <Button
+              size="sm"
+              disabled={newPw.length < 4 || newPw !== confirmNewPw}
+              onClick={lockEnabled ? handleChangePassword : handleEnableLock}
+            >
+              {t.common.save}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Disable Lock Modal */}
+      <Modal
+        isOpen={showDisableLockModal}
+        onClose={() => { setShowDisableLockModal(false); setSecurityError(""); setCurrentPw(""); }}
+        title={t.security.disableLock}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--text-secondary)]">
+            {t.security.confirmDisable}
+          </p>
+          <Input
+            label={t.security.password}
+            type="password"
+            value={currentPw}
+            onChange={(e) => { setCurrentPw(e.target.value); setSecurityError(""); }}
+          />
+          {securityError && <p className="text-sm text-red-500">{securityError}</p>}
+          <div className="flex justify-end gap-3 mt-4">
+            <Button variant="secondary" size="sm" onClick={() => { setShowDisableLockModal(false); setSecurityError(""); setCurrentPw(""); }}>
+              {t.common.cancel}
+            </Button>
+            <Button variant="danger" size="sm" disabled={!currentPw} onClick={handleDisableLock}>
+              {t.security.disableLock}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Password for Delete Modal */}
+      <Modal
+        isOpen={showPasswordForDeleteModal}
+        onClose={() => { setShowPasswordForDeleteModal(false); setSecurityError(""); setCurrentPw(""); }}
+        title={t.security.passwordRequired}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--text-secondary)]">
+            {t.security.passwordRequired}
+          </p>
+          <Input
+            label={t.security.password}
+            type="password"
+            value={currentPw}
+            onChange={(e) => { setCurrentPw(e.target.value); setSecurityError(""); }}
+          />
+          {securityError && <p className="text-sm text-red-500">{securityError}</p>}
+          <div className="flex justify-end gap-3 mt-4">
+            <Button variant="secondary" size="sm" onClick={() => { setShowPasswordForDeleteModal(false); setSecurityError(""); setCurrentPw(""); }}>
+              {t.common.cancel}
+            </Button>
+            <Button size="sm" disabled={!currentPw} onClick={handleVerifyPasswordForDelete}>
+              {t.common.continue}
+            </Button>
+          </div>
         </div>
       </Modal>
     </div>

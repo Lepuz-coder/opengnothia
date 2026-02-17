@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/cn";
+import { useTranslation, getDateLocale } from "@/i18n";
+import type { Translations } from "@/i18n";
 import {
   getInsightGroups,
   createInsightGroup,
@@ -42,7 +44,7 @@ const COLOR_PRESETS = [
   "#F43F5E", "#8B5CF6", "#F97316", "#06B6D4", "#84CC16",
 ];
 
-function formatRelativeTime(dateStr: string): string {
+function formatRelativeTime(dateStr: string, t: Translations["common"], locale: string): string {
   const date = new Date(dateStr.includes("T") ? dateStr : dateStr + "Z");
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -50,16 +52,16 @@ function formatRelativeTime(dateStr: string): string {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return "Az önce";
-  if (diffMins < 60) return `${diffMins} dk önce`;
-  if (diffHours < 24) return `${diffHours} saat önce`;
-  if (diffDays < 7) return `${diffDays} gün önce`;
-  return date.toLocaleDateString("tr-TR", { day: "numeric", month: "short" });
+  if (diffMins < 1) return t.justNow;
+  if (diffMins < 60) return `${diffMins} ${t.minutesAgo}`;
+  if (diffHours < 24) return `${diffHours} ${t.hoursAgo}`;
+  if (diffDays < 7) return `${diffDays} ${t.daysAgo}`;
+  return date.toLocaleDateString(locale, { day: "numeric", month: "short" });
 }
 
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string, locale: string): string {
   const date = new Date(dateStr.includes("T") ? dateStr : dateStr + "Z");
-  return date.toLocaleDateString("tr-TR", {
+  return date.toLocaleDateString(locale, {
     day: "2-digit",
     month: "long",
     year: "numeric",
@@ -71,6 +73,8 @@ function formatDate(dateStr: string): string {
 type View = "groups" | "detail";
 
 export default function InsightsPage() {
+  const { t, language } = useTranslation();
+  const locale = getDateLocale(language);
   const [view, setView] = useState<View>("groups");
   const [groups, setGroups] = useState<InsightGroup[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<InsightGroup | null>(null);
@@ -360,7 +364,7 @@ export default function InsightsPage() {
           className="flex items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Geri
+          {t.common.back}
         </button>
 
         {/* Group header */}
@@ -385,7 +389,7 @@ export default function InsightsPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Badge>{selectedGroup.insight_count} not</Badge>
+              <Badge>{selectedGroup.insight_count} {t.common.note}</Badge>
               <Button variant="ghost" size="sm" onClick={openEditGroupModal}>
                 <Pencil className="w-4 h-4" />
               </Button>
@@ -406,7 +410,7 @@ export default function InsightsPage() {
             <textarea
               value={newNoteContent}
               onChange={(e) => setNewNoteContent(e.target.value)}
-              placeholder="İçgörünü yaz..."
+              placeholder={t.insights.notePlaceholder}
               className="w-full bg-[var(--bg-primary)] rounded-xl p-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 min-h-[100px]"
               autoFocus
             />
@@ -419,7 +423,7 @@ export default function InsightsPage() {
                   setNewNoteContent("");
                 }}
               >
-                İptal
+                {t.common.cancel}
               </Button>
               <Button
                 size="sm"
@@ -427,14 +431,14 @@ export default function InsightsPage() {
                 disabled={!newNoteContent.trim()}
               >
                 <Check className="w-3.5 h-3.5" />
-                Kaydet
+                {t.common.save}
               </Button>
             </div>
           </Card>
         ) : (
           <Button onClick={() => setShowNewNote(true)} className="w-full">
             <Plus className="w-4 h-4" />
-            Yeni Not
+            {t.insights.newNote}
           </Button>
         )}
 
@@ -443,9 +447,9 @@ export default function InsightsPage() {
           {insights.length === 0 ? (
             <Card className="text-center py-12">
               <Lightbulb className="w-10 h-10 mx-auto text-[var(--text-muted)] mb-3" />
-              <p className="text-[var(--text-muted)]">Bu grupta henüz not yok</p>
+              <p className="text-[var(--text-muted)]">{t.insights.noNotesInGroup}</p>
               <p className="text-xs text-[var(--text-muted)] mt-1">
-                Yukarıdaki butona tıklayarak ilk notunu ekle
+                {t.insights.addFirstNote}
               </p>
             </Card>
           ) : (
@@ -476,14 +480,14 @@ export default function InsightsPage() {
                         size="sm"
                         onClick={() => setEditingInsightId(null)}
                       >
-                        İptal
+                        {t.common.cancel}
                       </Button>
                       <Button
                         size="sm"
                         onClick={() => handleUpdateInsight(insight.id)}
                         disabled={!editContent.trim()}
                       >
-                        Kaydet
+                        {t.common.save}
                       </Button>
                     </div>
                   </>
@@ -493,7 +497,7 @@ export default function InsightsPage() {
                       <div className="flex items-center gap-1 mb-2">
                         <Pin className="w-3 h-3 text-amber-400" />
                         <span className="text-xs text-amber-400 font-medium">
-                          Sabitlenmiş
+                          {t.insights.pinned}
                         </span>
                       </div>
                     )}
@@ -502,14 +506,14 @@ export default function InsightsPage() {
                     </p>
                     <div className="flex items-center justify-between mt-3 pt-3 border-t border-[var(--border-color)]">
                       <span className="text-xs text-[var(--text-muted)]">
-                        {formatDate(insight.created_at)}
+                        {formatDate(insight.created_at, locale)}
                       </span>
                       <div className="flex items-center gap-1">
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleTogglePin(insight)}
-                          title={insight.is_pinned ? "Sabitlemeyi kaldır" : "Sabitle"}
+                          title={insight.is_pinned ? t.insights.unpin : t.insights.pin}
                         >
                           {insight.is_pinned ? (
                             <PinOff className="w-3.5 h-3.5" />
@@ -544,17 +548,17 @@ export default function InsightsPage() {
         <Modal
           isOpen={!!deleteInsightId}
           onClose={() => setDeleteInsightId(null)}
-          title="Notu Sil"
+          title={t.insights.deleteNote}
         >
           <p className="text-sm text-[var(--text-secondary)] mb-4">
-            Bu notu silmek istediğine emin misin? Bu işlem geri alınamaz.
+            {t.insights.deleteNoteConfirm}
           </p>
           <div className="flex justify-end gap-2">
             <Button variant="secondary" size="sm" onClick={() => setDeleteInsightId(null)}>
-              İptal
+              {t.common.cancel}
             </Button>
             <Button variant="danger" size="sm" onClick={handleDeleteInsight}>
-              Sil
+              {t.common.delete}
             </Button>
           </div>
         </Modal>
@@ -563,11 +567,10 @@ export default function InsightsPage() {
         <Modal
           isOpen={deleteGroupModalOpen}
           onClose={() => setDeleteGroupModalOpen(false)}
-          title="Grubu Sil"
+          title={t.insights.deleteGroup}
         >
           <p className="text-sm text-[var(--text-secondary)] mb-4">
-            <strong>"{selectedGroup.name}"</strong> grubunu silmek istediğine emin misin?
-            Bu gruptaki tüm notlar da silinecektir.
+            <strong>"{selectedGroup.name}"</strong> {t.insights.deleteGroupConfirm}
           </p>
           <div className="flex justify-end gap-2">
             <Button
@@ -575,10 +578,10 @@ export default function InsightsPage() {
               size="sm"
               onClick={() => setDeleteGroupModalOpen(false)}
             >
-              İptal
+              {t.common.cancel}
             </Button>
             <Button variant="danger" size="sm" onClick={handleDeleteGroup}>
-              Grubu Sil
+              {t.insights.deleteGroup}
             </Button>
           </div>
         </Modal>
@@ -587,19 +590,19 @@ export default function InsightsPage() {
         <Modal
           isOpen={editGroupModalOpen}
           onClose={() => setEditGroupModalOpen(false)}
-          title="Grubu Düzenle"
+          title={t.insights.editGroup}
         >
           <div className="space-y-4">
             <Input
-              label="Grup Adı"
+              label={t.insights.groupName}
               value={editGroupName}
               onChange={(e) => setEditGroupName(e.target.value)}
-              placeholder="Grup adı..."
+              placeholder={t.insights.groupNamePlaceholder}
             />
 
             <div>
               <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
-                Emoji
+                {t.insights.emoji}
               </label>
               <div className="flex flex-wrap gap-2 mb-2">
                 {EMOJI_PRESETS.map((emoji) => (
@@ -627,25 +630,25 @@ export default function InsightsPage() {
                   }}
                   className="w-12 h-9 rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] text-center text-lg focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
                 />
-                <span className="text-xs text-[var(--text-muted)]">veya kendi emojini yaz</span>
+                <span className="text-xs text-[var(--text-muted)]">{t.insights.emojiCustom}</span>
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
-                Açıklama (opsiyonel)
+                {t.insights.descriptionOptional}
               </label>
               <textarea
                 value={editGroupDescription}
                 onChange={(e) => setEditGroupDescription(e.target.value)}
-                placeholder="Bu grup hakkında kısa bir açıklama..."
+                placeholder={t.insights.descriptionPlaceholder}
                 className="w-full bg-[var(--bg-primary)] rounded-xl border border-[var(--border-color)] px-4 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all resize-none min-h-[60px]"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
-                Renk
+                {t.insights.color}
               </label>
               <div className="flex flex-wrap gap-2">
                 {COLOR_PRESETS.map((color) => (
@@ -670,14 +673,14 @@ export default function InsightsPage() {
                 size="sm"
                 onClick={() => setEditGroupModalOpen(false)}
               >
-                İptal
+                {t.common.cancel}
               </Button>
               <Button
                 size="sm"
                 onClick={handleUpdateGroup}
                 disabled={!editGroupName.trim()}
               >
-                Kaydet
+                {t.common.save}
               </Button>
             </div>
           </div>
@@ -692,21 +695,21 @@ export default function InsightsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">İçgörüler</h1>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t.insights.title}</h1>
           <p className="text-sm text-[var(--text-secondary)] mt-1">
-            Düşüncelerini grupla ve organize et
+            {t.insights.description}
           </p>
         </div>
         <div className="flex items-center gap-3">
           {groups.length > 0 && (
             <div className="flex items-center gap-2">
-              <Badge>{groups.length} grup</Badge>
-              <Badge variant="primary">{totalInsights} not</Badge>
+              <Badge>{groups.length} {t.common.group}</Badge>
+              <Badge variant="primary">{totalInsights} {t.common.note}</Badge>
             </div>
           )}
           <Button onClick={openNewInsightModal}>
             <Plus className="w-4 h-4" />
-            Yeni İçgörü
+            {t.insights.newInsight}
           </Button>
         </div>
       </div>
@@ -719,7 +722,7 @@ export default function InsightsPage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Grupları ara..."
+            placeholder={t.insights.searchGroups}
             className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
           />
           {searchQuery && (
@@ -757,7 +760,7 @@ export default function InsightsPage() {
                       </h3>
                     </div>
                     <Badge className="flex-shrink-0 ml-2">
-                      {group.insight_count} not
+                      {group.insight_count} {t.common.note}
                     </Badge>
                   </div>
 
@@ -772,8 +775,8 @@ export default function InsightsPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-[var(--text-muted)]">
                       {group.last_insight_at
-                        ? formatRelativeTime(group.last_insight_at)
-                        : formatRelativeTime(group.updated_at)}
+                        ? formatRelativeTime(group.last_insight_at, t.common, locale)
+                        : formatRelativeTime(group.updated_at, t.common, locale)}
                     </span>
                     <Button
                       variant="ghost"
@@ -784,7 +787,7 @@ export default function InsightsPage() {
                       }}
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      Hızlı Ekle
+                      {t.insights.quickAdd}
                     </Button>
                   </div>
                 </div>
@@ -796,7 +799,7 @@ export default function InsightsPage() {
                   <textarea
                     value={quickAddContent}
                     onChange={(e) => setQuickAddContent(e.target.value)}
-                    placeholder="Hızlı not ekle..."
+                    placeholder={t.insights.quickNotePlaceholder}
                     className="w-full bg-[var(--bg-primary)] rounded-lg p-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 min-h-[60px]"
                     autoFocus
                     onClick={(e) => e.stopPropagation()}
@@ -810,7 +813,7 @@ export default function InsightsPage() {
                         setQuickAddGroupId(null);
                       }}
                     >
-                      İptal
+                      {t.common.cancel}
                     </Button>
                     <Button
                       size="sm"
@@ -821,7 +824,7 @@ export default function InsightsPage() {
                       disabled={!quickAddContent.trim()}
                     >
                       <Check className="w-3.5 h-3.5" />
-                      Ekle
+                      {t.common.add}
                     </Button>
                   </div>
                 </div>
@@ -839,15 +842,14 @@ export default function InsightsPage() {
             <Lightbulb className="w-8 h-8 text-primary-500" />
           </div>
           <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
-            Henüz içgörü grubu yok
+            {t.insights.noGroups}
           </h3>
           <p className="text-sm text-[var(--text-secondary)] mb-6 max-w-sm mx-auto">
-            Düşüncelerini ve içgörülerini gruplar halinde organize etmeye başla.
-            Konulara göre gruplar oluştur ve notlarını ekle.
+            {t.insights.noGroupsDescription}
           </p>
           <Button onClick={openNewInsightModal}>
             <Plus className="w-4 h-4" />
-            İlk İçgörünü Ekle
+            {t.insights.addFirstInsight}
           </Button>
         </Card>
       ) : (
@@ -855,7 +857,7 @@ export default function InsightsPage() {
         <Card className="text-center py-12">
           <Search className="w-8 h-8 mx-auto text-[var(--text-muted)] mb-3" />
           <p className="text-[var(--text-muted)]">
-            "{searchQuery}" için sonuç bulunamadı
+            "{searchQuery}" {t.insights.noSearchResults}
           </p>
         </Card>
       )}
@@ -864,7 +866,7 @@ export default function InsightsPage() {
       <Modal
         isOpen={newInsightModalOpen}
         onClose={() => setNewInsightModalOpen(false)}
-        title="Yeni İçgörü"
+        title={t.insights.newInsight}
         className="max-w-xl"
       >
         <div className="space-y-4">
@@ -872,7 +874,7 @@ export default function InsightsPage() {
           {!showNewGroupForm ? (
             <div>
               <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
-                Grup
+                {t.insights.selectGroup}
               </label>
               <div className="flex gap-2">
                 <select
@@ -881,7 +883,7 @@ export default function InsightsPage() {
                   className="flex-1 appearance-none rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
                 >
                   {groups.length === 0 && (
-                    <option value="">Önce bir grup oluşturun</option>
+                    <option value="">{t.insights.createGroupFirst}</option>
                   )}
                   {groups.map((g) => (
                     <option key={g.id} value={g.id}>
@@ -893,7 +895,7 @@ export default function InsightsPage() {
                   variant="secondary"
                   size="sm"
                   onClick={() => setShowNewGroupForm(true)}
-                  title="Yeni grup oluştur"
+                  title={t.insights.createNewGroup}
                 >
                   <FolderPlus className="w-4 h-4" />
                 </Button>
@@ -903,7 +905,7 @@ export default function InsightsPage() {
             <div className="space-y-3 p-4 bg-[var(--bg-primary)] rounded-xl border border-[var(--border-color)]">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-sm font-medium text-[var(--text-primary)]">
-                  Yeni Grup Oluştur
+                  {t.insights.createNewGroupTitle}
                 </span>
                 <button
                   onClick={() => {
@@ -919,13 +921,13 @@ export default function InsightsPage() {
               <Input
                 value={newGroupName}
                 onChange={(e) => setNewGroupName(e.target.value)}
-                placeholder="Grup adı..."
+                placeholder={t.insights.groupNamePlaceholder}
                 autoFocus
               />
 
               <div>
                 <label className="block text-xs text-[var(--text-muted)] mb-1">
-                  Emoji
+                  {t.insights.emoji}
                 </label>
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {EMOJI_PRESETS.map((emoji) => (
@@ -953,20 +955,20 @@ export default function InsightsPage() {
                     }}
                     className="w-10 h-8 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-center text-base focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
                   />
-                  <span className="text-xs text-[var(--text-muted)]">veya kendi emojini yaz</span>
+                  <span className="text-xs text-[var(--text-muted)]">{t.insights.emojiCustom}</span>
                 </div>
               </div>
 
               <textarea
                 value={newGroupDescription}
                 onChange={(e) => setNewGroupDescription(e.target.value)}
-                placeholder="Açıklama (opsiyonel)..."
+                placeholder={t.insights.descriptionOptionalPlaceholder}
                 className="w-full bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-color)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all resize-none min-h-[50px]"
               />
 
               <div>
                 <label className="block text-xs text-[var(--text-muted)] mb-1">
-                  Renk
+                  {t.insights.color}
                 </label>
                 <div className="flex flex-wrap gap-1.5">
                   {COLOR_PRESETS.map((color) => (
@@ -992,7 +994,7 @@ export default function InsightsPage() {
                 className="w-full"
               >
                 <Check className="w-3.5 h-3.5" />
-                Grubu Oluştur
+                {t.insights.createGroup}
               </Button>
             </div>
           )}
@@ -1000,12 +1002,12 @@ export default function InsightsPage() {
           {/* Content */}
           <div>
             <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
-              İçgörü
+              {t.insights.insightLabel}
             </label>
             <textarea
               value={newContent}
               onChange={(e) => setNewContent(e.target.value)}
-              placeholder="İçgörünü yaz..."
+              placeholder={t.insights.notePlaceholder}
               className="w-full bg-[var(--bg-primary)] rounded-xl border border-[var(--border-color)] px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all resize-none min-h-[120px]"
             />
           </div>
@@ -1016,7 +1018,7 @@ export default function InsightsPage() {
               variant="secondary"
               onClick={() => setNewInsightModalOpen(false)}
             >
-              İptal
+              {t.common.cancel}
             </Button>
             <Button
               onClick={handleSaveNewInsight}
@@ -1027,7 +1029,7 @@ export default function InsightsPage() {
               ) : (
                 <Check className="w-4 h-4" />
               )}
-              Kaydet
+              {t.common.save}
             </Button>
           </div>
         </div>

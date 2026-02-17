@@ -5,9 +5,11 @@ import { loadSettings } from "@/lib/store";
 import { navItems } from "@/constants/navigation";
 import { SidebarItem } from "./SidebarItem";
 import { cn } from "@/lib/cn";
+import { useTranslation } from "@/i18n";
 
 export function Sidebar() {
   const { sidebarCollapsed, toggleSidebar, isNoteTaking, hasSeenNoteTutorial, setHasSeenNoteTutorial } = useAppStore();
+  const { t } = useTranslation();
   const [showTutorial, setShowTutorial] = useState(false);
 
   useEffect(() => {
@@ -49,7 +51,7 @@ export function Sidebar() {
           <SidebarItem
             key={item.path}
             path={item.path}
-            label={item.label}
+            label={t.nav[item.labelKey]}
             icon={item.icon}
             collapsed={sidebarCollapsed}
           />
@@ -71,7 +73,7 @@ export function Sidebar() {
                 <>
                   <FileText className="w-4 h-4 text-primary-400 shrink-0" />
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-primary-400 shrink-0" />
-                  <span className="text-xs truncate">Not alınıyor...</span>
+                  <span className="text-xs truncate">{t.sidebar.noteTaking}</span>
                 </>
               )}
             </div>
@@ -83,7 +85,7 @@ export function Sidebar() {
                 </div>
                 <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-4 shadow-xl">
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <span className="text-xs font-medium text-primary-400">Bilgi</span>
+                    <span className="text-xs font-medium text-primary-400">{t.sidebar.info}</span>
                     <button
                       onClick={dismissTutorial}
                       className="p-0.5 rounded hover:bg-[var(--bg-tertiary)] transition-colors"
@@ -92,13 +94,13 @@ export function Sidebar() {
                     </button>
                   </div>
                   <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-                    Seanslarınız bittikten sonra sizinle ilgili diğer seanslar için notlar alınır. Bu yüklenme tamamlanmadan uygulamayı kapatmamanız gerekir.
+                    {t.sidebar.noteTutorial}
                   </p>
                   <button
                     onClick={dismissTutorial}
                     className="mt-3 w-full text-xs font-medium text-primary-400 hover:text-primary-300 transition-colors"
                   >
-                    Anladım
+                    {t.sidebar.understood}
                   </button>
                 </div>
               </div>
@@ -114,7 +116,7 @@ export function Sidebar() {
           ) : (
             <>
               <PanelLeftClose className="w-5 h-5" />
-              <span>Daralt</span>
+              <span>{t.sidebar.collapse}</span>
             </>
           )}
         </button>

@@ -4,6 +4,7 @@ import { useAppStore } from "@/stores/useAppStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { upsertUserProfile } from "@/services/db/queries";
 import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
+import { LanguageStep } from "@/components/onboarding/LanguageStep";
 import { WelcomeStep } from "@/components/onboarding/WelcomeStep";
 import { ApiSetupStep } from "@/components/onboarding/ApiSetupStep";
 import { InterviewStep } from "@/components/onboarding/InterviewStep";
@@ -12,12 +13,13 @@ import { ReadyStep } from "@/components/onboarding/ReadyStep";
 export default function OnboardingPage() {
   const [step, setStep] = useState(0);
   const { setOnboarded } = useAppStore();
-  const { provider, apiKey, model, approach, preferredSessionTime, sessionDurationMinutes, memoryModel, memoryThinkingEnabled, memoryThinkingLevel } = useSettingsStore();
+  const { language, provider, apiKey, model, approach, preferredSessionTime, sessionDurationMinutes, memoryModel, memoryThinkingEnabled, memoryThinkingLevel } = useSettingsStore();
 
   async function handleComplete() {
     // Save settings to store
     const store = await loadSettings();
     await store.set("isOnboarded", true);
+    await store.set("language", language);
     await store.set("provider", provider);
     await store.set("apiKey", apiKey);
     await store.set("providerApiKeys", { [provider]: apiKey });
@@ -55,15 +57,16 @@ export default function OnboardingPage() {
       approach: data.approach as any,
       preferred_session_time: data.sessionTime,
     });
-    setStep(3);
+    setStep(4);
   }
 
   return (
-    <OnboardingShell step={step} totalSteps={4}>
-      {step === 0 && <WelcomeStep onNext={() => setStep(1)} />}
-      {step === 1 && <ApiSetupStep onNext={() => setStep(2)} onBack={() => setStep(0)} />}
-      {step === 2 && <InterviewStep onNext={handleInterviewNext} onBack={() => setStep(1)} />}
-      {step === 3 && <ReadyStep onComplete={handleComplete} />}
+    <OnboardingShell step={step} totalSteps={5}>
+      {step === 0 && <LanguageStep onNext={() => setStep(1)} />}
+      {step === 1 && <WelcomeStep onNext={() => setStep(2)} />}
+      {step === 2 && <ApiSetupStep onNext={() => setStep(3)} onBack={() => setStep(1)} />}
+      {step === 3 && <InterviewStep onNext={handleInterviewNext} onBack={() => setStep(2)} />}
+      {step === 4 && <ReadyStep onComplete={handleComplete} />}
     </OnboardingShell>
   );
 }

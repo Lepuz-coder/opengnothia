@@ -1,0 +1,359 @@
+import { useSettingsStore } from "@/stores/useSettingsStore";
+import { tr } from "./tr";
+import { en } from "./en";
+import type { Language } from "@/types";
+
+export interface Translations {
+  common: {
+    back: string;
+    save: string;
+    cancel: string;
+    delete: string;
+    loading: string;
+    saving: string;
+    edit: string;
+    close: string;
+    yes: string;
+    change: string;
+    continue: string;
+    add: string;
+    test: string;
+    words: string;
+    note: string;
+    group: string;
+    record: string;
+    call: string;
+    minutes: string;
+    minutesShort: string;
+    justNow: string;
+    minutesAgo: string;
+    hoursAgo: string;
+    daysAgo: string;
+  };
+  days: {
+    mon: string;
+    tue: string;
+    wed: string;
+    thu: string;
+    fri: string;
+    sat: string;
+    sun: string;
+  };
+  nav: {
+    dashboard: string;
+    session: string;
+    journal: string;
+    dreams: string;
+    insights: string;
+    breathing: string;
+    expenses: string;
+    settings: string;
+  };
+  gender: {
+    select: string;
+    female: string;
+    male: string;
+    other: string;
+    preferNot: string;
+  };
+  goals: {
+    stress_management: string;
+    self_discovery: string;
+    relationships: string;
+    self_esteem: string;
+    grief: string;
+    work_stress: string;
+    sleep: string;
+    motivation: string;
+    emotion_regulation: string;
+    general_support: string;
+  };
+  dashboard: {
+    greeting: string;
+    moodQuestion: string;
+    changeMood: string;
+    noDataThisMonth: string;
+    totalSessions: string;
+    totalJournal: string;
+    totalDreams: string;
+    quickSession: string;
+    quickJournal: string;
+    quickDreams: string;
+    quickInsights: string;
+  };
+  session: {
+    title: string;
+    sessionTitle: string;
+    description: string;
+    startSession: string;
+    startSessionModal: string;
+    endSession: string;
+    endSessionConfirm: string;
+    yesEnd: string;
+    therapySchool: string;
+    selectTherapySchool: string;
+    goToSettings: string;
+    checkingConnection: string;
+    startSessionButton: string;
+    psychologist: string;
+    sessionCompleted: string;
+    sessionSummary: string;
+    saveAndClose: string;
+    preparingSummary: string;
+    noSessionsYet: string;
+    noSessionsDescription: string;
+    noSessionsThisWeek: string;
+    weeklySummary: string;
+    showWeeklySummary: string;
+    generateWeeklySummary: string;
+    generatingSummary: string;
+    deleteSession: string;
+    deleteSessionConfirm: string;
+    deleting: string;
+    sessionNotFound: string;
+    goBack: string;
+  };
+  journal: {
+    title: string;
+    description: string;
+    writeToday: string;
+    placeholder: string;
+    detail: string;
+    analyzing: string;
+    showAnalysis: string;
+    analyze: string;
+    deleteEntry: string;
+    deleteEntryConfirm: string;
+    yesDelete: string;
+    aiAnalysis: string;
+    mood: string;
+  };
+  dreams: {
+    title: string;
+    description: string;
+    writeToday: string;
+    placeholder: string;
+    detail: string;
+    analyzing: string;
+    showAnalysis: string;
+    analyze: string;
+    deleteDream: string;
+    deleteDreamConfirm: string;
+    yesDelete: string;
+    aiAnalysis: string;
+  };
+  insights: {
+    title: string;
+    description: string;
+    newInsight: string;
+    searchGroups: string;
+    quickAdd: string;
+    quickNotePlaceholder: string;
+    newNote: string;
+    notePlaceholder: string;
+    noNotesInGroup: string;
+    addFirstNote: string;
+    pinned: string;
+    unpin: string;
+    pin: string;
+    deleteNote: string;
+    deleteNoteConfirm: string;
+    deleteGroup: string;
+    deleteGroupConfirm: string;
+    editGroup: string;
+    groupName: string;
+    groupNamePlaceholder: string;
+    emoji: string;
+    emojiCustom: string;
+    descriptionOptional: string;
+    descriptionPlaceholder: string;
+    color: string;
+    noGroups: string;
+    noGroupsDescription: string;
+    addFirstInsight: string;
+    noSearchResults: string;
+    selectGroup: string;
+    createGroupFirst: string;
+    createNewGroup: string;
+    createNewGroupTitle: string;
+    createGroup: string;
+    insightLabel: string;
+    descriptionOptionalPlaceholder: string;
+  };
+  settings: {
+    title: string;
+    language: string;
+    languageLabel: string;
+    personalInfo: string;
+    name: string;
+    namePlaceholder: string;
+    age: string;
+    agePlaceholder: string;
+    genderLabel: string;
+    occupation: string;
+    occupationPlaceholder: string;
+    aiConnection: string;
+    provider: string;
+    apiKey: string;
+    chatModel: string;
+    chatModelDescription: string;
+    model: string;
+    thinkingMode: string;
+    thinkingModeDescription: string;
+    thinkingLevel: string;
+    thinkingLow: string;
+    thinkingMedium: string;
+    thinkingHigh: string;
+    thinkingMax: string;
+    memoryModel: string;
+    memoryModelDescription: string;
+    memoryThinkingDescription: string;
+    recommended: string;
+    therapySchool: string;
+    schoolLabel: string;
+    saved: string;
+    dangerZone: string;
+    dangerDescription: string;
+    deleteAllData: string;
+    deleteAllDataTitle: string;
+    deleteAllDataDescription: string;
+    deleteConfirmInstruction: string;
+    deleteConfirmText: string;
+    cancelDelete: string;
+    permanentlyDelete: string;
+    connectionSuccess: string;
+    connectionFailed: string;
+  };
+  onboarding: {
+    welcome: string;
+    welcomeDescription: string;
+    completelyLocal: string;
+    completelyLocalDescription: string;
+    ownApiKey: string;
+    ownApiKeyDescription: string;
+    openSource: string;
+    openSourceDescription: string;
+    letsStart: string;
+    aiConnection: string;
+    aiConnectionDescription: string;
+    apiKeyPlaceholder: string;
+    chatModelOnboarding: string;
+    chatModelOnboardingDescription: string;
+    memoryModelOnboarding: string;
+    memoryModelOnboardingDescription: string;
+    getToKnow: string;
+    getToKnowDescription: string;
+    yourName: string;
+    yourNamePlaceholder: string;
+    whatBroughtYou: string;
+    preferredSessionTime: string;
+    ready: string;
+    readyDescription: string;
+    readyDisclaimer: string;
+  };
+  breathing: {
+    title: string;
+    description: string;
+    selectTechnique: string;
+    duration: string;
+    startExercise: string;
+    congratulations: string;
+    completed: string;
+    cyclesCompleted: string;
+    breatheIn: string;
+    hold: string;
+    breatheOut: string;
+    wait: string;
+    technique478: string;
+    technique478Desc: string;
+    techniqueBox: string;
+    techniqueBoxDesc: string;
+    technique426: string;
+    technique426Desc: string;
+    techniqueSimple: string;
+    techniqueSimpleDesc: string;
+    durationMinute: string;
+  };
+  expenses: {
+    title: string;
+    description: string;
+    totalExpense: string;
+    allModels: string;
+    noUsageData: string;
+    date: string;
+    type: string;
+    input: string;
+    output: string;
+    cost: string;
+    callTypes: {
+      greeting: string;
+      chat: string;
+      recommendation: string;
+      summary: string;
+      patient_notes: string;
+      dream_analysis: string;
+      journal_analysis: string;
+      weekly_summary: string;
+    };
+  };
+  programs: {
+    title: string;
+    comingSoon: string;
+  };
+  errors: {
+    generic: string;
+    apiConnection: string;
+    checkApiSettings: string;
+    unknown: string;
+    stream: string;
+    compaction: string;
+    databaseError: string;
+    analysisError: string;
+  };
+  sidebar: {
+    noteTaking: string;
+    info: string;
+    noteTutorial: string;
+    understood: string;
+    collapse: string;
+  };
+  chat: {
+    placeholder: string;
+    thinking: string;
+    thinkingProcess: string;
+    preparing: string;
+    compacting: string;
+    compactingDescription: string;
+  };
+  closeGuard: {
+    noteTakingConfirm: string;
+    noteTakingBlock: string;
+  };
+  placeholder: {
+    featureComingSoon: string;
+  };
+}
+
+const translations: Record<Language, Translations> = { tr, en };
+
+export function useTranslation() {
+  const language = useSettingsStore((s) => s.language);
+  return { t: translations[language], language };
+}
+
+export function getCurrentLanguage(): Language {
+  return useSettingsStore.getState().language;
+}
+
+export function getTranslation(lang: Language): Translations {
+  return translations[lang];
+}
+
+export function getDateLocale(lang: Language): string {
+  return lang === "tr" ? "tr-TR" : "en-US";
+}
+
+export function getDayNames(lang: Language): string[] {
+  const t = translations[lang];
+  return [t.days.mon, t.days.tue, t.days.wed, t.days.thu, t.days.fri, t.days.sat, t.days.sun];
+}

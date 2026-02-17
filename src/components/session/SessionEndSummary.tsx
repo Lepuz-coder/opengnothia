@@ -1,9 +1,9 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Card } from "@/components/ui/Card";
-
 import { Button } from "@/components/ui/Button";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "@/i18n";
 
 interface SessionEndSummaryProps {
   summaryNarrative: string;
@@ -18,19 +18,20 @@ export function SessionEndSummary({
   onSave,
   saving,
 }: SessionEndSummaryProps) {
+  const { t } = useTranslation();
   return (
     <div className="max-w-2xl mx-auto space-y-6 p-8">
       <div className="text-center">
-        <h2 className="text-2xl font-bold">Seans Tamamlandı</h2>
+        <h2 className="text-2xl font-bold">{t.session.sessionCompleted}</h2>
         <p className="text-[var(--text-muted)] mt-1">
-          Seans Özeti
+          {t.session.sessionSummary}
         </p>
       </div>
 
       {/* Summary card */}
       <Card>
         <h3 className="font-semibold mb-3 flex items-center gap-2">
-          Seans Özeti
+          {t.session.sessionSummary}
           {isSummaryStreaming && (
             <Loader2 className="w-4 h-4 text-accent-400 animate-spin" />
           )}
@@ -60,7 +61,7 @@ export function SessionEndSummary({
         size="lg"
         className="w-full"
       >
-        {saving ? "Kaydediliyor..." : isSummaryStreaming ? "Seans özeti hazırlanıyor..." : "Kaydet ve Kapat"}
+        {saving ? t.common.saving : isSummaryStreaming ? t.session.preparingSummary : t.session.saveAndClose}
       </Button>
     </div>
   );

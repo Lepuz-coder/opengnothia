@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "@/i18n";
 import type { ChatMessage as ChatMessageType } from "@/types";
 
 interface ChatContainerProps {
@@ -12,6 +13,7 @@ interface ChatContainerProps {
 
 export function ChatContainer({ messages, isLoading, isStreaming, isCompacting }: ChatContainerProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -24,7 +26,7 @@ export function ChatContainer({ messages, isLoading, isStreaming, isCompacting }
       <div className="max-w-3xl mx-auto px-4 py-6 min-h-full flex flex-col gap-6">
         {messages.length === 0 && !isLoading && !isStreaming && (
           <div className="flex items-center justify-center flex-1">
-            <p className="text-[var(--text-muted)] text-sm">Hazırlanıyor...</p>
+            <p className="text-[var(--text-muted)] text-sm">{t.chat.preparing}</p>
           </div>
         )}
         {messages.map((msg) => (
@@ -45,10 +47,10 @@ export function ChatContainer({ messages, isLoading, isStreaming, isCompacting }
           <div className="py-4 px-4 rounded-xl bg-primary-500/5 border border-primary-500/20">
             <div className="flex items-center gap-3">
               <Loader2 className="w-4 h-4 animate-spin text-primary-400" />
-              <span className="text-sm font-medium text-primary-400">Seans kompakt ediliyor...</span>
+              <span className="text-sm font-medium text-primary-400">{t.chat.compacting}</span>
             </div>
             <p className="text-xs text-[var(--text-muted)] mt-2 ml-7">
-              Konuşma geçmişi model hafıza sınırına yaklaştı. Seans özetlenerek hafıza boşaltılıyor — mesajların aynen kalacak, seans kesintisiz devam edecek.
+              {t.chat.compactingDescription}
             </p>
           </div>
         )}

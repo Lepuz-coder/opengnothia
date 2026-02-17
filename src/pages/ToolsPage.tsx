@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAppStore } from "@/stores/useAppStore";
-import { breathingTechniques } from "@/constants/breathingTechniques";
+import { getBreathingTechniques } from "@/constants/breathingTechniques";
 import { BreathingSetup } from "@/components/breathing/BreathingSetup";
 import { BreathingExercise } from "@/components/breathing/BreathingExercise";
 
@@ -26,7 +26,7 @@ export default function ToolsPage() {
     setIsActive(false);
   };
 
-  const technique = breathingTechniques.find(
+  const technique = getBreathingTechniques().find(
     (t) => t.id === selectedTechniqueId
   )!;
 

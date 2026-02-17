@@ -2,9 +2,10 @@ import { Wind } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
+import { useTranslation } from "@/i18n";
 import {
-  breathingTechniques,
-  durationOptions,
+  getBreathingTechniques,
+  getDurationOptions,
 } from "@/constants/breathingTechniques";
 
 interface BreathingSetupProps {
@@ -22,6 +23,7 @@ export function BreathingSetup({
   onSelectDuration,
   onStart,
 }: BreathingSetupProps) {
+  const { t } = useTranslation();
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
@@ -30,20 +32,20 @@ export function BreathingSetup({
         </div>
         <div>
           <h1 className="text-2xl font-bold text-[var(--text-primary)]">
-            Nefes Egzersizi
+            {t.breathing.title}
           </h1>
           <p className="text-sm text-[var(--text-muted)]">
-            Bir teknik ve süre seçerek egzersize başlayın
+            {t.breathing.description}
           </p>
         </div>
       </div>
 
       <div>
         <h2 className="text-sm font-medium text-[var(--text-secondary)] mb-3">
-          Teknik Seçin
+          {t.breathing.selectTechnique}
         </h2>
         <div className="grid grid-cols-2 gap-3">
-          {breathingTechniques.map((technique) => {
+          {getBreathingTechniques().map((technique) => {
             const isSelected = technique.id === selectedTechniqueId;
             return (
               <button
@@ -86,15 +88,15 @@ export function BreathingSetup({
 
       <div className="max-w-xs">
         <Select
-          label="Süre"
-          options={durationOptions}
+          label={t.breathing.duration}
+          options={getDurationOptions()}
           value={selectedDuration}
           onChange={(e) => onSelectDuration(e.target.value)}
         />
       </div>
 
       <Button size="lg" className="w-full" onClick={onStart}>
-        Egzersizi Başlat
+        {t.breathing.startExercise}
       </Button>
     </div>
   );

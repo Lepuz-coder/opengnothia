@@ -5,6 +5,7 @@ import { ArrowLeft, Loader2, Trash2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { ChatContainer } from "@/components/chat/ChatContainer";
+import { useTranslation, getDateLocale } from "@/i18n";
 import { getSessionById, deleteSession, getSessionTotalCost } from "@/services/db/queries";
 import type { Session } from "@/types";
 
@@ -14,6 +15,8 @@ interface PastSessionDetailProps {
 }
 
 export function PastSessionDetail({ sessionId, onBack }: PastSessionDetailProps) {
+  const { t, language } = useTranslation();
+  const locale = getDateLocale(language);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -51,9 +54,9 @@ export function PastSessionDetail({ sessionId, onBack }: PastSessionDetailProps)
   if (!session) {
     return (
       <div className="text-center py-12">
-        <p className="text-[var(--text-muted)]">Seans bulunamadı.</p>
+        <p className="text-[var(--text-muted)]">{t.session.sessionNotFound}</p>
         <Button variant="ghost" onClick={onBack} className="mt-4">
-          Geri Dön
+          {t.session.goBack}
         </Button>
       </div>
     );
@@ -71,20 +74,20 @@ export function PastSessionDetail({ sessionId, onBack }: PastSessionDetailProps)
       <div className="flex items-center gap-3 px-6 py-3 border-b border-[var(--border-color)] bg-[var(--bg-secondary)]">
         <Button variant="ghost" size="sm" onClick={onBack}>
           <ArrowLeft className="w-4 h-4" />
-          Geri
+          {t.common.back}
         </Button>
         <div className="flex-1">
           <div className="text-sm font-semibold">
-            {startDate.toLocaleDateString("tr-TR", {
+            {startDate.toLocaleDateString(locale, {
               day: "numeric",
               month: "long",
               year: "numeric",
             })}
             {" — "}
-            {startDate.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
+            {startDate.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
           </div>
           <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
-            {durationMin != null && <span>{durationMin} dakika</span>}
+            {durationMin != null && <span>{durationMin} {t.common.minutes}</span>}
             {sessionCost > 0 && (
               <>
                 <span>·</span>
@@ -100,7 +103,7 @@ export function PastSessionDetail({ sessionId, onBack }: PastSessionDetailProps)
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
             >
               <FileText className="w-3.5 h-3.5" />
-              Seans Özeti
+              {t.session.sessionSummary}
             </button>
           )}
           <button
@@ -108,7 +111,7 @@ export function PastSessionDetail({ sessionId, onBack }: PastSessionDetailProps)
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" />
-            Seansı Sil
+            {t.session.deleteSession}
           </button>
         </div>
       </div>
@@ -120,7 +123,7 @@ export function PastSessionDetail({ sessionId, onBack }: PastSessionDetailProps)
       <Modal
         isOpen={summaryOpen}
         onClose={() => setSummaryOpen(false)}
-        title="Seans Özeti"
+        title={t.session.sessionSummary}
         className="!max-w-none !w-full !h-full !mx-0 !rounded-none !flex !flex-col"
       >
         <div className="flex-1 overflow-y-auto text-sm text-[var(--text-secondary)] leading-relaxed markdown-content">
@@ -131,16 +134,16 @@ export function PastSessionDetail({ sessionId, onBack }: PastSessionDetailProps)
       </Modal>
 
       {/* Delete confirmation modal */}
-      <Modal isOpen={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} title="Seansı Sil">
+      <Modal isOpen={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} title={t.session.deleteSession}>
         <p className="text-sm text-[var(--text-secondary)] mb-6">
-          Bu seansı silmek istediğine emin misin? Bu işlem geri alınamaz.
+          {t.session.deleteSessionConfirm}
         </p>
         <div className="flex gap-3 justify-end">
           <Button variant="secondary" onClick={() => setDeleteConfirmOpen(false)} disabled={deleting}>
-            Vazgeç
+            {t.common.cancel}
           </Button>
           <Button onClick={handleDelete} disabled={deleting} className="!bg-red-500 hover:!bg-red-600 !border-red-500">
-            {deleting ? "Siliniyor..." : "Sil"}
+            {deleting ? t.session.deleting : t.common.delete}
           </Button>
         </div>
       </Modal>

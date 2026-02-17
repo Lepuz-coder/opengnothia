@@ -9,16 +9,18 @@ import { Toggle } from "@/components/ui/Toggle";
 import { useAppStore } from "@/stores/useAppStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useTheme } from "@/hooks/useTheme";
+import { useTranslation } from "@/i18n";
 import { providers, getProvider, modelSupportsThinking } from "@/constants/providers";
-import { therapySchools } from "@/constants/therapySchools";
+import { getTherapySchools } from "@/constants/therapySchools";
 import { getUserProfile, upsertUserProfile, clearAllData } from "@/services/db/queries";
 import { Modal } from "@/components/ui/Modal";
-import type { AIProvider, TherapySchool, ThinkingLevel } from "@/types";
+import type { AIProvider, Language, TherapySchool, ThinkingLevel } from "@/types";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { setOnboarded } = useAppStore();
   const settings = useSettingsStore();
+  const { t } = useTranslation();
   const [saved, setSaved] = useState(false);
   const [apiKeyFocused, setApiKeyFocused] = useState(false);
   const [profileName, setProfileName] = useState("");
@@ -43,10 +45,10 @@ export default function SettingsPage() {
   const providerOptions = providers.map((p) => ({ value: p.id, label: p.name }));
   const modelOptions = currentProvider?.models.map((m) => ({ value: m.id, label: m.name })) ?? [];
   const memoryModelOptions = currentProvider?.models.map((m) => {
-    const baseName = m.name.replace(" (Önerilen)", "");
+    const baseName = m.name.replace(` (${t.settings.recommended})`, "").replace(" (Recommended)", "").replace(" (Önerilen)", "");
     return {
       value: m.id,
-      label: m.id === "claude-sonnet-4-5-20250929" ? `${baseName} (Önerilen)` : baseName,
+      label: m.id === "claude-sonnet-4-5-20250929" ? `${baseName} (${t.settings.recommended})` : baseName,
     };
   }) ?? [];
   const showThinkingToggle = modelSupportsThinking(settings.provider, settings.model);
@@ -54,6 +56,7 @@ export default function SettingsPage() {
 
   async function handleSave() {
     const store = await loadSettings();
+    await store.set("language", settings.language);
     await store.set("provider", settings.provider);
     await store.set("apiKey", settings.apiKey);
     await store.set("providerApiKeys", settings.providerApiKeys);
@@ -85,7 +88,7 @@ export default function SettingsPage() {
   }
 
   async function confirmDeleteAllData() {
-    if (deleteConfirmText !== "Tüm verilerimin silinmesini onaylıyorum") return;
+    if (deleteConfirmText !== t.settings.deleteConfirmText) return;
     await clearAllData();
     const store = await loadSettings();
     await store.set("isOnboarded", false);
@@ -95,6 +98,7 @@ export default function SettingsPage() {
     await store.set("providerApiKeys", {});
     await store.set("model", "gpt-4o");
     await store.set("customBaseUrl", "");
+    await store.set("language", "tr");
     await store.set("therapySchool", "psychodynamic");
     await store.set("thinkingEnabled", false);
     await store.set("thinkingLevel", "medium");
@@ -104,8 +108,8 @@ export default function SettingsPage() {
     await store.set("memoryThinkingLevel", "medium");
     await store.set("providerMemoryThinkingSettings", {});
     await store.save();
-    // Zustand in-memory store'u da sıfırla
     settings.loadFromStore({
+      language: "tr" as Language,
       provider: "openai" as AIProvider,
       apiKey: "",
       providerApiKeys: {},
@@ -126,54 +130,68 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold">Ayarlar</h1>
+      <h1 className="text-2xl font-bold">{t.settings.title}</h1>
+
+      {/* Language */}
+      <Card>
+        <h2 className="font-semibold mb-4">{t.settings.language}</h2>
+        <Select
+          label={t.settings.languageLabel}
+          options={[
+            { value: "tr", label: "Türkçe" },
+            { value: "en", label: "English" },
+          ]}
+          value={settings.language}
+          onChange={(e) => settings.setLanguage(e.target.value as Language)}
+        />
+      </Card>
 
       {/* Personal Info */}
       <Card>
-        <h2 className="font-semibold mb-4">Kişisel Bilgiler</h2>
+        <h2 className="font-semibold mb-4">{t.settings.personalInfo}</h2>
         <div className="grid grid-cols-2 gap-4">
           <Input
-            label="Ad"
+            label={t.settings.name}
             value={profileName}
             onChange={(e) => setProfileName(e.target.value)}
-            placeholder="Adını gir"
+            placeholder={t.settings.namePlaceholder}
           />
           <Input
-            label="Yaş"
+            label={t.settings.age}
             type="number"
             value={profileAge}
             onChange={(e) => setProfileAge(e.target.value)}
-            placeholder="25"
+            placeholder={t.settings.agePlaceholder}
             min={1}
             max={120}
           />
           <Select
-            label="Cinsiyet"
+            label={t.settings.genderLabel}
             options={[
-              { value: "", label: "Seçiniz" },
-              { value: "Kadın", label: "Kadın" },
-              { value: "Erkek", label: "Erkek" },
-              { value: "Diğer", label: "Diğer" },
-              { value: "Belirtmek istemiyorum", label: "Belirtmek istemiyorum" },
+              { value: "", label: t.gender.select },
+              { value: "female", label: t.gender.female },
+              { value: "male", label: t.gender.male },
+              { value: "other", label: t.gender.other },
+              { value: "preferNot", label: t.gender.preferNot },
             ]}
             value={profileGender}
             onChange={(e) => setProfileGender(e.target.value)}
           />
           <Input
-            label="Meslek / Okul Durumu"
+            label={t.settings.occupation}
             value={profileOccupation}
             onChange={(e) => setProfileOccupation(e.target.value)}
-            placeholder="Öğrenci, Mühendis, vb."
+            placeholder={t.settings.occupationPlaceholder}
           />
         </div>
       </Card>
 
       {/* AI Connection */}
       <Card>
-        <h2 className="font-semibold mb-4">AI Bağlantısı</h2>
+        <h2 className="font-semibold mb-4">{t.settings.aiConnection}</h2>
         <div className="space-y-4">
           <Select
-            label="Sağlayıcı"
+            label={t.settings.provider}
             options={providerOptions}
             value={settings.provider}
             onChange={(e) => {
@@ -183,7 +201,7 @@ export default function SettingsPage() {
 
           {currentProvider?.requiresKey && (
             <Input
-              label="API Anahtarı"
+              label={t.settings.apiKey}
               type={apiKeyFocused ? "text" : "text"}
               value={
                 apiKeyFocused || !settings.apiKey
@@ -202,14 +220,14 @@ export default function SettingsPage() {
 
       {/* Chat Model */}
       <Card>
-        <h2 className="font-semibold mb-4">Genel Chat Modeli</h2>
+        <h2 className="font-semibold mb-4">{t.settings.chatModel}</h2>
         <p className="text-xs text-[var(--text-muted)] mb-3">
-          Seans, özet, rüya analizi ve günlük analizi için kullanılır.
+          {t.settings.chatModelDescription}
         </p>
         <div className="space-y-4">
           {modelOptions.length > 0 && (
             <Select
-              label="Model"
+              label={t.settings.model}
               options={modelOptions}
               value={settings.model}
               onChange={(e) => {
@@ -226,22 +244,22 @@ export default function SettingsPage() {
               <Toggle
                 checked={settings.thinkingEnabled}
                 onChange={settings.setThinkingEnabled}
-                label="Düşünce Modu"
+                label={t.settings.thinkingMode}
               />
               <p className="text-xs text-[var(--text-muted)] mt-1 ml-14">
-                AI'ın düşünce sürecini görmeni sağlar. Daha yavaş ama daha derinlemesine yanıtlar.
+                {t.settings.thinkingModeDescription}
               </p>
             </div>
           )}
 
           {showThinkingToggle && settings.thinkingEnabled && (
             <Select
-              label="Düşünce Seviyesi"
+              label={t.settings.thinkingLevel}
               options={[
-                { value: "low", label: "Hızlı — Kısa düşünür, çabuk yanıt verir" },
-                { value: "medium", label: "Dengeli — Yeterince düşünür, makul hızda" },
-                { value: "high", label: "Derinlemesine — Uzun düşünür, detaylı analiz" },
-                ...(settings.provider !== "openai" ? [{ value: "max", label: "Kapsamlı — En derin analiz, en yavaş yanıt" }] : []),
+                { value: "low", label: t.settings.thinkingLow },
+                { value: "medium", label: t.settings.thinkingMedium },
+                { value: "high", label: t.settings.thinkingHigh },
+                ...(settings.provider !== "openai" ? [{ value: "max", label: t.settings.thinkingMax }] : []),
               ]}
               value={settings.thinkingLevel}
               onChange={(e) => settings.setThinkingLevel(e.target.value as ThinkingLevel)}
@@ -252,14 +270,14 @@ export default function SettingsPage() {
 
       {/* Memory Model */}
       <Card>
-        <h2 className="font-semibold mb-4">Hafıza Modeli</h2>
+        <h2 className="font-semibold mb-4">{t.settings.memoryModel}</h2>
         <p className="text-xs text-[var(--text-muted)] mb-3">
-          Hasta notları çıkarımı için kullanılır. Daha küçük/ucuz bir model seçebilirsin.
+          {t.settings.memoryModelDescription}
         </p>
         <div className="space-y-4">
           {modelOptions.length > 0 && (
             <Select
-              label="Model"
+              label={t.settings.model}
               options={memoryModelOptions}
               value={settings.memoryModel}
               onChange={(e) => {
@@ -276,22 +294,22 @@ export default function SettingsPage() {
               <Toggle
                 checked={settings.memoryThinkingEnabled}
                 onChange={settings.setMemoryThinkingEnabled}
-                label="Düşünce Modu"
+                label={t.settings.thinkingMode}
               />
               <p className="text-xs text-[var(--text-muted)] mt-1 ml-14">
-                Hasta notları çıkarımında düşünce modunu kullanır.
+                {t.settings.memoryThinkingDescription}
               </p>
             </div>
           )}
 
           {showMemoryThinkingToggle && settings.memoryThinkingEnabled && (
             <Select
-              label="Düşünce Seviyesi"
+              label={t.settings.thinkingLevel}
               options={[
-                { value: "low", label: "Hızlı — Kısa düşünür, çabuk yanıt verir" },
-                { value: "medium", label: "Dengeli — Yeterince düşünür, makul hızda" },
-                { value: "high", label: "Derinlemesine — Uzun düşünür, detaylı analiz" },
-                ...(settings.provider !== "openai" ? [{ value: "max", label: "Kapsamlı — En derin analiz, en yavaş yanıt" }] : []),
+                { value: "low", label: t.settings.thinkingLow },
+                { value: "medium", label: t.settings.thinkingMedium },
+                { value: "high", label: t.settings.thinkingHigh },
+                ...(settings.provider !== "openai" ? [{ value: "max", label: t.settings.thinkingMax }] : []),
               ]}
               value={settings.memoryThinkingLevel}
               onChange={(e) => settings.setMemoryThinkingLevel(e.target.value as ThinkingLevel)}
@@ -302,10 +320,10 @@ export default function SettingsPage() {
 
       {/* Therapy School */}
       <Card>
-        <h2 className="font-semibold mb-4">Terapi Ekolü</h2>
+        <h2 className="font-semibold mb-4">{t.settings.therapySchool}</h2>
         <Select
-          label="Ekol"
-          options={therapySchools.map((s) => ({ value: s.id, label: s.name }))}
+          label={t.settings.schoolLabel}
+          options={getTherapySchools().map((s) => ({ value: s.id, label: s.name }))}
           value={settings.therapySchool}
           onChange={(e) => settings.setTherapySchool(e.target.value as TherapySchool)}
         />
@@ -315,54 +333,53 @@ export default function SettingsPage() {
       <div className="flex items-center gap-3">
         <Button onClick={handleSave}>
           <Save className="w-4 h-4" />
-          Kaydet
+          {t.common.save}
         </Button>
         {saved && (
           <span className="flex items-center gap-1.5 text-sm text-green-600">
-            <CheckCircle className="w-4 h-4" /> Kaydedildi
+            <CheckCircle className="w-4 h-4" /> {t.settings.saved}
           </span>
         )}
       </div>
 
       {/* Danger zone */}
       <Card className="border-red-900">
-        <h2 className="font-semibold mb-2 text-red-600">Tehlikeli Alan</h2>
+        <h2 className="font-semibold mb-2 text-red-600">{t.settings.dangerZone}</h2>
         <p className="text-sm text-[var(--text-muted)] mb-4">
-          Tüm verilerini kalıcı olarak sil. Bu işlem geri alınamaz.
+          {t.settings.dangerDescription}
         </p>
         <Button variant="danger" size="sm" onClick={handleDeleteAllData}>
-          Tüm Verilerimi Sil
+          {t.settings.deleteAllData}
         </Button>
       </Card>
 
       <Modal
         isOpen={showDeleteModal}
         onClose={() => { setShowDeleteModal(false); setDeleteConfirmText(""); }}
-        title="Tüm Verileri Sil"
+        title={t.settings.deleteAllDataTitle}
       >
         <p className="text-sm text-[var(--text-secondary)] mb-4">
-          Bu işlem geri alınamaz. Tüm seanslar, günlükler, rüyalar, check-in'ler ve
-          kişisel bilgileriniz kalıcı olarak silinecektir.
+          {t.settings.deleteAllDataDescription}
         </p>
         <p className="text-sm mb-2">
-          Onaylamak için aşağıya <strong>"Tüm verilerimin silinmesini onaylıyorum"</strong> yazın:
+          {t.settings.deleteConfirmInstruction} <strong>"{t.settings.deleteConfirmText}"</strong>
         </p>
         <Input
           value={deleteConfirmText}
           onChange={(e) => setDeleteConfirmText(e.target.value)}
-          placeholder="Tüm verilerimin silinmesini onaylıyorum"
+          placeholder={t.settings.deleteConfirmText}
         />
         <div className="flex justify-end gap-3 mt-4">
           <Button variant="secondary" size="sm" onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(""); }}>
-            Vazgeç
+            {t.settings.cancelDelete}
           </Button>
           <Button
             variant="danger"
             size="sm"
-            disabled={deleteConfirmText !== "Tüm verilerimin silinmesini onaylıyorum"}
+            disabled={deleteConfirmText !== t.settings.deleteConfirmText}
             onClick={confirmDeleteAllData}
           >
-            Kalıcı Olarak Sil
+            {t.settings.permanentlyDelete}
           </Button>
         </div>
       </Modal>

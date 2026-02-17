@@ -4,6 +4,7 @@ import { MessageSquare, BookOpen, Moon, Pencil, Lightbulb, ChevronLeft, ChevronR
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/cn";
 import { saveMoodEntry, getTodayMoodEntry, getMoodEntriesByDateRange, getCompletedSessionCount, getJournalEntryCount, getDreamCount } from "@/services/db/queries";
+import { useTranslation, getDayNames, getDateLocale } from "@/i18n";
 import type { MoodEntry } from "@/types";
 
 const MOOD_EMOJIS: Record<number, string> = {
@@ -11,7 +12,7 @@ const MOOD_EMOJIS: Record<number, string> = {
   6: "\u{1F642}", 7: "\u{1F60A}", 8: "\u{1F604}", 9: "\u{1F929}", 10: "\u{1F973}",
 };
 
-const DAY_NAMES = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
+// DAY_NAMES moved to component level using getDayNames(language)
 
 function getCalendarDays(year: number, month: number): Date[] {
   const firstOfMonth = new Date(year, month, 1);
@@ -43,16 +44,16 @@ function formatYMD(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-function formatMonthYear(year: number, month: number): string {
+function formatMonthYear(year: number, month: number, locale: string): string {
   const date = new Date(year, month, 1);
-  return date.toLocaleDateString("tr-TR", { month: "long", year: "numeric" });
+  return date.toLocaleDateString(locale, { month: "long", year: "numeric" });
 }
 
-function MoodChart({ entries, daysInMonth }: { entries: MoodEntry[]; daysInMonth: number }) {
+function MoodChart({ entries, daysInMonth, noDataText }: { entries: MoodEntry[]; daysInMonth: number; noDataText: string }) {
   if (entries.length === 0) {
     return (
       <div className="flex items-center justify-center h-[160px] text-sm text-[var(--text-muted)]">
-        {"Bu ay için veri yok"}
+        {noDataText}
       </div>
     );
   }
@@ -130,6 +131,9 @@ function MoodChart({ entries, daysInMonth }: { entries: MoodEntry[]; daysInMonth
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const { t, language } = useTranslation();
+  const DAY_NAMES = getDayNames(language);
+  const locale = getDateLocale(language);
   const [todayMood, setTodayMood] = useState<number | null>(null);
   const [sessionCount, setSessionCount] = useState(0);
   const [journalCount, setJournalCount] = useState(0);
@@ -225,19 +229,19 @@ export default function DashboardPage() {
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold">Merhaba</h1>
+        <h1 className="text-2xl font-bold">{t.dashboard.greeting}</h1>
         <p className="text-[var(--text-muted)]">
-          {new Date().toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long" })}
+          {new Date().toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" })}
         </p>
       </div>
 
       {/* Quick Access */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { icon: MessageSquare, label: "Seans", color: "bg-primary-900/30 text-primary-400", path: "/session" },
-          { icon: BookOpen, label: "Günlük", color: "bg-blue-900/30 text-blue-400", path: "/journal" },
-          { icon: Moon, label: "Rüyalar", color: "bg-purple-900/30 text-purple-400", path: "/dreams" },
-          { icon: Lightbulb, label: "İçgörüler", color: "bg-amber-900/30 text-amber-400", path: "/insights" },
+          { icon: MessageSquare, label: t.dashboard.quickSession, color: "bg-primary-900/30 text-primary-400", path: "/session" },
+          { icon: BookOpen, label: t.dashboard.quickJournal, color: "bg-blue-900/30 text-blue-400", path: "/journal" },
+          { icon: Moon, label: t.dashboard.quickDreams, color: "bg-purple-900/30 text-purple-400", path: "/dreams" },
+          { icon: Lightbulb, label: t.dashboard.quickInsights, color: "bg-amber-900/30 text-amber-400", path: "/insights" },
         ].map((btn) => (
           <button
             key={btn.label}
@@ -255,9 +259,9 @@ export default function DashboardPage() {
        {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { icon: MessageSquare, label: "Toplam Seans", count: sessionCount, color: "bg-primary-900/30 text-primary-400" },
-          { icon: BookOpen, label: "Toplam Günlük", count: journalCount, color: "bg-blue-900/30 text-blue-400" },
-          { icon: Moon, label: "Toplam Rüya", count: dreamCount, color: "bg-purple-900/30 text-purple-400" },
+          { icon: MessageSquare, label: t.dashboard.totalSessions, count: sessionCount, color: "bg-primary-900/30 text-primary-400" },
+          { icon: BookOpen, label: t.dashboard.totalJournal, count: journalCount, color: "bg-blue-900/30 text-blue-400" },
+          { icon: Moon, label: t.dashboard.totalDreams, count: dreamCount, color: "bg-purple-900/30 text-purple-400" },
         ].map((stat) => (
           <Card key={stat.label}>
             <div className="flex flex-col items-center gap-2 text-center">
@@ -276,7 +280,7 @@ export default function DashboardPage() {
       <Card>
         {todayMood === null ? (
           <>
-            <h3 className="text-lg font-semibold mb-4">{"Bugün nasıl hissediyorsun?"}</h3>
+            <h3 className="text-lg font-semibold mb-4">{t.dashboard.moodQuestion}</h3>
             <div className="grid grid-cols-5 gap-2">
               {Array.from({ length: 10 }, (_, i) => i + 1).map((mood) => (
                 <button
@@ -304,7 +308,7 @@ export default function DashboardPage() {
                 onClick={handleGoToToday}
                 className="text-sm font-semibold text-[var(--text-secondary)] capitalize hover:text-[var(--text-primary)] transition-colors"
               >
-                {formatMonthYear(currentYear, currentMonth)}
+                {formatMonthYear(currentYear, currentMonth, locale)}
               </button>
               <button
                 onClick={handleNextMonth}
@@ -366,7 +370,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Mood Trend Chart */}
-            <MoodChart entries={currentMonthEntries} daysInMonth={daysInMonth} />
+            <MoodChart entries={currentMonthEntries} daysInMonth={daysInMonth} noDataText={t.dashboard.noDataThisMonth} />
 
             {/* Edit today's mood */}
             <div className="flex justify-center mt-3">
@@ -375,7 +379,7 @@ export default function DashboardPage() {
                 className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] flex items-center gap-1.5 transition-colors"
               >
                 <Pencil className="w-3.5 h-3.5" />
-                {"Bugünkü ruh halini değiştir"}
+                {t.dashboard.changeMood}
               </button>
             </div>
           </div>

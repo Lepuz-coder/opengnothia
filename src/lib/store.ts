@@ -3,6 +3,7 @@ import { load } from "@tauri-apps/plugin-store";
 const STORE_DEFAULTS = {
   isOnboarded: false,
   hasSeenNoteTutorial: false,
+  language: "tr",
   provider: "openai",
   apiKey: "",
   model: "gpt-4o",

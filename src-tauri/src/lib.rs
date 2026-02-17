@@ -1,5 +1,75 @@
 use tauri_plugin_sql::{Migration, MigrationKind};
 
+#[cfg(target_os = "macos")]
+mod biometric {
+    use objc2::runtime::Bool;
+    use objc2_foundation::{NSError, NSString};
+    use objc2_local_authentication::{LAContext, LAPolicy};
+
+    pub fn can_evaluate() -> bool {
+        let context = unsafe { LAContext::new() };
+        unsafe {
+            context
+                .canEvaluatePolicy_error(LAPolicy::DeviceOwnerAuthenticationWithBiometrics)
+                .is_ok()
+        }
+    }
+
+    pub fn authenticate(reason: &str) -> Result<(), String> {
+        let context = unsafe { LAContext::new() };
+        if unsafe {
+            context
+                .canEvaluatePolicy_error(LAPolicy::DeviceOwnerAuthenticationWithBiometrics)
+                .is_err()
+        } {
+            return Err("Biometric authentication not available".into());
+        }
+
+        let reason_ns = NSString::from_str(reason);
+        let (tx, rx) = std::sync::mpsc::channel();
+        let block =
+            block2::RcBlock::new(move |success: Bool, _error: *mut NSError| {
+                let _ = tx.send(success.as_bool());
+            });
+        unsafe {
+            context.evaluatePolicy_localizedReason_reply(
+                LAPolicy::DeviceOwnerAuthenticationWithBiometrics,
+                &reason_ns,
+                &block,
+            );
+        }
+        match rx.recv() {
+            Ok(true) => Ok(()),
+            Ok(false) => Err("Authentication failed".into()),
+            Err(_) => Err("Authentication cancelled".into()),
+        }
+    }
+}
+
+#[tauri::command]
+fn biometric_authenticate(reason: String) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        biometric::authenticate(&reason)
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        Err("Biometric authentication not supported on this platform".into())
+    }
+}
+
+#[tauri::command]
+fn biometric_available() -> bool {
+    #[cfg(target_os = "macos")]
+    {
+        biometric::can_evaluate()
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        false
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let migrations = vec![
@@ -84,6 +154,10 @@ pub fn run() {
                 .add_migrations("sqlite:opengnothia.db", migrations)
                 .build(),
         )
+        .invoke_handler(tauri::generate_handler![
+            biometric_authenticate,
+            biometric_available
+        ])
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(

@@ -329,6 +329,38 @@ export interface Translations {
     noteTakingConfirm: string;
     noteTakingBlock: string;
   };
+  security: {
+    lockApp: string;
+    setupPassword: string;
+    setupPasswordDescription: string;
+    password: string;
+    confirmPassword: string;
+    passwordHint: string;
+    hintPlaceholder: string;
+    passwordMismatch: string;
+    passwordTooShort: string;
+    wrongPassword: string;
+    showHint: string;
+    changePassword: string;
+    currentPassword: string;
+    newPassword: string;
+    biometricToggle: string;
+    biometricDescription: string;
+    biometricPrompt: string;
+    skipSetup: string;
+    skipSetupDescription: string;
+    appLock: string;
+    appLockDescription: string;
+    enterPassword: string;
+    unlockWithBiometric: string;
+    passwordRequired: string;
+    newHint: string;
+    passwordChanged: string;
+    securitySetup: string;
+    enableLock: string;
+    disableLock: string;
+    confirmDisable: string;
+  };
   placeholder: {
     featureComingSoon: string;
   };

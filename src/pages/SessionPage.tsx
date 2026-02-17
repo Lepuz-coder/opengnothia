@@ -128,6 +128,7 @@ export default function SessionPage() {
         lastSessionDate,
         totalSessionCount: sessionCount,
         language,
+        provider: settings.provider,
       });
 
       const abortController = new AbortController();
@@ -204,6 +205,7 @@ export default function SessionPage() {
         lastSessionDate: recentSessions[0]?.started_at ?? null,
         totalSessionCount: sessionCount,
         language,
+        provider: settings.provider,
       });
 
       const compactionPrompt = buildCompactionPrompt(language);
@@ -282,6 +284,7 @@ export default function SessionPage() {
         lastSessionDate,
         totalSessionCount: sessionCount,
         language,
+        provider: settings.provider,
       });
 
       const state = useSessionStore.getState();

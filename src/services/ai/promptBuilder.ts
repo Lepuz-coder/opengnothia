@@ -1,4 +1,4 @@
-import type { UserProfile, CheckIn, SessionSummary, TherapySchool, Language } from "@/types";
+import type { UserProfile, CheckIn, SessionSummary, TherapySchool, Language, AIProvider } from "@/types";
 import { getSchoolById } from "@/stores/useSchoolsStore";
 import { getCurrentLanguage } from "@/i18n";
 
@@ -39,6 +39,7 @@ export function buildSystemPrompt(params: {
   lastSessionDate?: string | null;
   totalSessionCount?: number;
   language?: Language;
+  provider?: AIProvider;
 }): string {
   const { profile, todayCheckIn, lastSessionSummary, lastSessionNarrative, therapySchool, patientNotes, lastSessionDate, totalSessionCount } = params;
 
@@ -54,6 +55,16 @@ Core principles:
 - Keep your responses short and concise, speak in paragraphs`;
 
   prompt += getLanguageInstruction(params.language);
+
+  if (params.provider === "openai") {
+    prompt += `\n\nCRITICAL — Response style:
+You are a psychologist in a real therapy session. Your responses MUST be natural, conversational, and brief — like a real therapist would speak.
+- Maximum 2-3 short paragraphs per response
+- Do NOT write essays, lists, or structured analyses
+- Do NOT over-explain or repeat what the client said
+- Respond as if you are sitting across from the client in a room
+- Ask only ONE question per response — never stack multiple questions together`;
+  }
 
   // Temporal context
   const today = new Date();
@@ -133,6 +144,7 @@ export function buildGreetingPrompt(params: {
   lastSessionDate?: string | null;
   totalSessionCount?: number;
   language?: Language;
+  provider?: AIProvider;
 }): string {
   let prompt = buildSystemPrompt(params);
 

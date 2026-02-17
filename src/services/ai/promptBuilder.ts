@@ -113,7 +113,7 @@ KRİTİK KURALLAR:
 - Toplam not en fazla 60 madde olsun
 - Her madde en fazla 2 satır olsun
 - Açıklama, yorum, paragraf YAZMA — sadece kısa notlar
-- Eski notlardan bilgi silerken dikkatli ol: sadece açıkça çözülmüş veya artık geçersiz olan bilgileri çıkar. Şüphe varsa koru.
+- Eski notlardan da önemli olan bilgileri bırak. Hasta hakkında önemli tüm notları hatırlamaya çalışman lazım.
 - Detaylı anlatım değil, hatırlatıcı notlar yaz
 - Türkçe yaz
 - Sadece notları yaz, başka açıklama ekleme`;
@@ -219,7 +219,7 @@ KRİTİK KURALLAR:
 - Toplam not en fazla 60 madde olsun
 - Her madde en fazla 2 satır olsun
 - Açıklama, yorum, paragraf YAZMA — sadece kısa notlar
-- Eski notlardan bilgi silerken dikkatli ol: sadece açıkça çözülmüş veya artık geçersiz olan bilgileri çıkar. Şüphe varsa koru.
+- Eski notlardan da önemli olan bilgileri bırak. Hasta hakkında önemli tüm notları hatırlamaya çalışman lazım.
 - Detaylı anlatım değil, hatırlatıcı notlar yaz
 - Türkçe yaz
 - Sadece notları yaz, başka açıklama ekleme`;

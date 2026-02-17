@@ -19,12 +19,15 @@ import { PastSessionsList } from "@/components/session/PastSessionsList";
 import type { PastSessionsListHandle, WeekSummaryInfo } from "@/components/session/PastSessionsList";
 import { PastSessionDetail } from "@/components/session/PastSessionDetail";
 import { sendMessage, streamMessage, testApiKey } from "@/services/ai/aiService";
+import { AIError } from "@/services/ai/AIError";
+import { getErrorDisplayInfo, type ErrorDisplayInfo } from "@/services/ai/errorMessages";
 import { calculateCost } from "@/services/ai/costCalculator";
 import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildPatientNotesUpdatePrompt, buildCompactionPrompt, GREETING_TRIGGER, BACKGROUND_NOTES_SYSTEM_PROMPT, SESSION_SUMMARY_SYSTEM_PROMPT } from "@/services/ai/promptBuilder";
 import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
 import { createSession, updateSessionMessages, completeSession, deleteSession, getUserProfile, getTodayCheckIn, getRecentSessions, getPatientNotes, getPatientNotesUpdatedAt, getCompletedSessionCount, saveTokenUsage } from "@/services/db/queries";
 import { getTherapySchools, getTherapySchool, getTherapySchoolName } from "@/constants/therapySchools";
 import { providers, getProvider, modelSupportsThinking } from "@/constants/providers";
+import { ErrorModal } from "@/components/ui/ErrorModal";
 import { Square, Loader2, FileText, Sparkles } from "lucide-react";
 import type { AIProvider, ChatMessage, ThinkingLevel, TokenUsage } from "@/types";
 
@@ -82,9 +85,9 @@ export default function SessionPage() {
   const [viewingSessionId, setViewingSessionId] = useState<string | null>(null);
   const [endConfirmOpen, setEndConfirmOpen] = useState(false);
   const [apiTesting, setApiTesting] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
   const pastSessionsRef = useRef<PastSessionsListHandle>(null);
   const [weekSummaryInfo, setWeekSummaryInfo] = useState<WeekSummaryInfo>({ weekSessionCount: 0, hasWeeklySummary: false, summaryLoading: false, generating: false });
+  const [errorModalInfo, setErrorModalInfo] = useState<ErrorDisplayInfo | null>(null);
   const isSunday = new Date().getDay() === 0;
 
   // Restore sidebar when leaving session page
@@ -162,23 +165,17 @@ export default function SessionPage() {
         onError: (error) => {
           const store = useSessionStore.getState();
           if (store.streamingMessageId) {
-            store.updateMessage(store.streamingMessageId, {
-              content: `${t.errors.generic}: ${error.message}`,
-              isStreaming: false,
-            });
+            store.removeMessage(store.streamingMessageId);
           }
           store.finishStreaming();
+          const statusCode = error instanceof AIError ? error.statusCode : undefined;
+          setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider));
         },
       });
     } catch (err) {
-      const errorMsg: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: `${t.errors.generic}: ${err instanceof Error ? err.message : t.errors.unknown}`,
-        timestamp: new Date().toISOString(),
-      };
-      session.addMessage(errorMsg);
       session.finishStreaming();
+      const statusCode = err instanceof AIError ? err.statusCode : undefined;
+      setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider));
     }
   }, [settings]);
 
@@ -328,12 +325,11 @@ export default function SessionPage() {
         onError: (error) => {
           const store = useSessionStore.getState();
           if (store.streamingMessageId) {
-            store.updateMessage(store.streamingMessageId, {
-              content: `${t.errors.generic}: ${error.message}. ${t.errors.checkApiSettings}`,
-              isStreaming: false,
-            });
+            store.removeMessage(store.streamingMessageId);
           }
           store.finishStreaming();
+          const statusCode = error instanceof AIError ? error.statusCode : undefined;
+          setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider));
         },
       });
 
@@ -346,14 +342,9 @@ export default function SessionPage() {
         await performCompaction();
       }
     } catch (err) {
-      const errorMsg: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: `${t.errors.generic}: ${err instanceof Error ? err.message : t.errors.unknown}. ${t.errors.checkApiSettings}`,
-        timestamp: new Date().toISOString(),
-      };
-      session.addMessage(errorMsg);
       session.finishStreaming();
+      const statusCode = err instanceof AIError ? err.statusCode : undefined;
+      setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider));
     }
   }, [settings, performCompaction]);
 
@@ -440,19 +431,17 @@ export default function SessionPage() {
           useSessionStore.getState().finishSummaryStream();
         },
         onError: (error) => {
-          useSessionStore.getState().appendSummaryNarrative(
-            `\n\n${t.errors.generic}: ${error.message}`
-          );
           session.setSummary({ themes: [], defenses: [], insights: [], homework: [] });
           useSessionStore.getState().finishSummaryStream();
+          const statusCode = error instanceof AIError ? error.statusCode : undefined;
+          setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider));
         },
       });
     } catch (err) {
-      useSessionStore.getState().appendSummaryNarrative(
-        `${t.errors.generic}: ${err instanceof Error ? err.message : t.errors.unknown}`
-      );
       session.setSummary({ themes: [], defenses: [], insights: [], homework: [] });
       useSessionStore.getState().finishSummaryStream();
+      const statusCode = err instanceof AIError ? err.statusCode : undefined;
+      setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider));
     }
   }, [settings, navigate, setSidebarHidden]);
 
@@ -520,7 +509,7 @@ export default function SessionPage() {
                 </Button>
               ) : null
             )}
-            <Button onClick={() => { setApiError(null); setStartModalOpen(true); }} size="lg">
+            <Button onClick={() => setStartModalOpen(true)} size="lg">
               {t.session.startSession}
             </Button>
           </div>
@@ -544,24 +533,10 @@ export default function SessionPage() {
             </div>
           </div>
 
-          {/* API error message */}
-          {apiError && (
-            <div className="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
-              <p className="text-sm text-red-400 mb-2">{apiError}</p>
-              <button
-                onClick={() => { setStartModalOpen(false); setApiError(null); navigate("/settings"); }}
-                className="text-sm text-primary-400 hover:text-primary-300 underline"
-              >
-                {t.session.goToSettings}
-              </button>
-            </div>
-          )}
-
           {/* Start button */}
           <Button
             disabled={apiTesting}
             onClick={async () => {
-              setApiError(null);
               setApiTesting(true);
               const result = await testApiKey({
                 provider: settings.provider,
@@ -571,7 +546,9 @@ export default function SessionPage() {
               });
               setApiTesting(false);
               if (!result.success) {
-                setApiError(result.error ?? t.errors.apiConnection);
+                setStartModalOpen(false);
+                setSchoolPickerOpen(false);
+                setErrorModalInfo(getErrorDisplayInfo(t, result.statusCode, settings.provider));
                 return;
               }
               setStartModalOpen(false);
@@ -618,6 +595,16 @@ export default function SessionPage() {
             ))}
           </div>
         </Modal>
+
+        {/* API Error Modal */}
+        <ErrorModal
+          isOpen={errorModalInfo !== null}
+          onClose={() => setErrorModalInfo(null)}
+          title={errorModalInfo?.title ?? ""}
+          message={errorModalInfo?.message ?? ""}
+          showSettingsLink={errorModalInfo?.showSettingsLink ?? false}
+          onGoToSettings={() => { setErrorModalInfo(null); navigate("/settings"); }}
+        />
       </div>
     );
   }
@@ -625,12 +612,22 @@ export default function SessionPage() {
   // Post-session: summary
   if (session.status === "post") {
     return (
-      <SessionEndSummary
-        summaryNarrative={session.summaryNarrative}
-        isSummaryStreaming={session.isSummaryStreaming}
-        onSave={handleSaveAndClose}
-        saving={saving}
-      />
+      <>
+        <SessionEndSummary
+          summaryNarrative={session.summaryNarrative}
+          isSummaryStreaming={session.isSummaryStreaming}
+          onSave={handleSaveAndClose}
+          saving={saving}
+        />
+        <ErrorModal
+          isOpen={errorModalInfo !== null}
+          onClose={() => setErrorModalInfo(null)}
+          title={errorModalInfo?.title ?? ""}
+          message={errorModalInfo?.message ?? ""}
+          showSettingsLink={errorModalInfo?.showSettingsLink ?? false}
+          onGoToSettings={() => { setErrorModalInfo(null); navigate("/settings"); }}
+        />
+      </>
     );
   }
 
@@ -703,6 +700,16 @@ export default function SessionPage() {
           </Button>
         </div>
       </Modal>
+
+      {/* API Error Modal */}
+      <ErrorModal
+        isOpen={errorModalInfo !== null}
+        onClose={() => setErrorModalInfo(null)}
+        title={errorModalInfo?.title ?? ""}
+        message={errorModalInfo?.message ?? ""}
+        showSettingsLink={errorModalInfo?.showSettingsLink ?? false}
+        onGoToSettings={() => { setErrorModalInfo(null); navigate("/settings"); }}
+      />
     </div>
   );
 }

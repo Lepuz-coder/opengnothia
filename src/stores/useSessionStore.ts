@@ -36,6 +36,7 @@ interface SessionState {
   finishStreaming: () => void;
   cancelStreaming: () => void;
   setAbortController: (controller: AbortController | null) => void;
+  removeMessage: (id: string) => void;
   updateMessage: (id: string, updates: Partial<ChatMessage>) => void;
 
   startSummaryStream: () => void;
@@ -205,6 +206,11 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   },
 
   setAbortController: (controller) => set({ abortController: controller }),
+
+  removeMessage: (id) =>
+    set((s) => ({
+      messages: s.messages.filter((m) => m.id !== id),
+    })),
 
   updateMessage: (id, updates) =>
     set((s) => ({

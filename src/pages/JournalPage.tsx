@@ -8,6 +8,8 @@ import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useAppStore } from "@/stores/useAppStore";
 import { useTranslation, getDayNames, getDateLocale } from "@/i18n";
 import { streamMessage } from "@/services/ai/aiService";
+import { AIError } from "@/services/ai/AIError";
+import { getErrorDisplayInfo, type ErrorDisplayInfo } from "@/services/ai/errorMessages";
 import { calculateCost } from "@/services/ai/costCalculator";
 import { buildJournalAnalysisPrompt, buildPatientNotesUpdatePrompt, JOURNAL_ANALYSIS_TRIGGER, journalPatientNotesMessage } from "@/services/ai/promptBuilder";
 import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
@@ -23,6 +25,7 @@ import {
   getPatientNotesUpdatedAt,
   saveTokenUsage,
 } from "@/services/db/queries";
+import { ErrorModal } from "@/components/ui/ErrorModal";
 import { Plus, ArrowLeft, Trash2, Sparkles, Loader2, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -110,7 +113,7 @@ export default function JournalPage() {
 
   // Analysis state
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [errorModalInfo, setErrorModalInfo] = useState<ErrorDisplayInfo | null>(null);
 
   // Edit state
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
@@ -231,7 +234,7 @@ export default function JournalPage() {
     const entry = await getJournalEntryById(id);
     if (entry) {
       setSelectedEntry(entry);
-      setError(null);
+      setErrorModalInfo(null);
       setView("detail");
     }
   };
@@ -250,7 +253,7 @@ export default function JournalPage() {
   const handleAnalyze = async () => {
     if (!selectedEntry || isAnalyzing) return;
     setIsAnalyzing(true);
-    setError(null);
+    setErrorModalInfo(null);
     setAnalysisModalOpen(true);
 
     try {
@@ -325,7 +328,8 @@ export default function JournalPage() {
       if (updated) setSelectedEntry(updated);
       await loadEntries();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t.errors.analysisError);
+      const statusCode = err instanceof AIError ? err.statusCode : undefined;
+      setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider));
     } finally {
       setIsAnalyzing(false);
     }
@@ -416,7 +420,7 @@ export default function JournalPage() {
     return (
       <div className="max-w-2xl mx-auto">
         <button
-          onClick={() => { if (!isBusy) { setView("calendar"); setSelectedEntry(null); setError(null); } }}
+          onClick={() => { if (!isBusy) { setView("calendar"); setSelectedEntry(null); setErrorModalInfo(null); } }}
           disabled={isBusy}
           className={`flex items-center gap-1.5 text-sm transition-colors mb-6 ${isBusy ? "text-[var(--text-muted)] opacity-50 cursor-not-allowed" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}
         >
@@ -525,12 +529,17 @@ export default function JournalPage() {
             )}
           </div>
 
-          {error && (
-            <div className="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
-              <p className="text-sm text-red-400">{error}</p>
-            </div>
-          )}
         </Modal>
+
+        {/* API Error Modal */}
+        <ErrorModal
+          isOpen={errorModalInfo !== null}
+          onClose={() => setErrorModalInfo(null)}
+          title={errorModalInfo?.title ?? ""}
+          message={errorModalInfo?.message ?? ""}
+          showSettingsLink={errorModalInfo?.showSettingsLink ?? false}
+          onGoToSettings={() => { setErrorModalInfo(null); setView("calendar"); }}
+        />
 
         {/* Delete confirmation modal */}
         <Modal isOpen={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title={t.journal.deleteEntry}>

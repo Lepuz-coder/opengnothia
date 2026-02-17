@@ -2,6 +2,7 @@ import type { AIProvider, ChatMessage, ThinkingLevel, TokenUsage } from "@/types
 import { getAdapter } from "./providers";
 import { getCurrentLanguage, getTranslation } from "@/i18n";
 import { TEST_MESSAGE, TEST_SYSTEM_PROMPT } from "./promptBuilder";
+import { AIError } from "./AIError";
 
 export async function sendMessage(params: {
   provider: AIProvider;
@@ -18,7 +19,7 @@ export async function sendMessage(params: {
   const response = await fetch(url, init);
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(`AI API error (${response.status}): ${error}`);
+    throw new AIError(`AI API error (${response.status}): ${error}`, response.status, error);
   }
 
   const data = await response.json();
@@ -30,7 +31,7 @@ export async function testApiKey(params: {
   apiKey: string;
   model: string;
   customBaseUrl?: string;
-}): Promise<{ success: boolean; error?: string }> {
+}): Promise<{ success: boolean; error?: string; statusCode?: number }> {
   const lang = getCurrentLanguage();
   const t = getTranslation(lang);
   try {
@@ -41,7 +42,8 @@ export async function testApiKey(params: {
     });
     return { success: result.content.length > 0 };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : t.errors.unknown };
+    const statusCode = err instanceof AIError ? err.statusCode : undefined;
+    return { success: false, error: err instanceof Error ? err.message : t.errors.unknown, statusCode };
   }
 }
 
@@ -72,7 +74,7 @@ export async function streamMessage(params: {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`AI API error (${response.status}): ${errorText}`);
+      throw new AIError(`AI API error (${response.status}): ${errorText}`, response.status, errorText);
     }
 
     const reader = response.body?.getReader();
@@ -138,7 +140,7 @@ export async function streamMessage(params: {
               }
               break;
             case "error":
-              params.onError(new Error(chunk.message));
+              params.onError(new AIError(chunk.message));
               return;
           }
         }
@@ -157,6 +159,6 @@ export async function streamMessage(params: {
     }
     const lang = getCurrentLanguage();
     const t = getTranslation(lang);
-    params.onError(err instanceof Error ? err : new Error(t.errors.stream));
+    params.onError(err instanceof AIError ? err : err instanceof Error ? new AIError(err.message) : new AIError(t.errors.stream));
   }
 }

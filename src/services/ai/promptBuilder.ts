@@ -110,7 +110,7 @@ Format — madde işaretleriyle kısa notlar:
 - Bu seanstan yeni önemli bilgiler
 
 KRİTİK KURALLAR:
-- Toplam not en fazla 60 madde olsun
+- Toplam not en fazla 120 madde olsun
 - Her madde en fazla 2 satır olsun
 - Açıklama, yorum, paragraf YAZMA — sadece kısa notlar
 - Eski notlardan da önemli olan bilgileri bırak. Hasta hakkında önemli tüm notları hatırlamaya çalışman lazım.
@@ -216,7 +216,7 @@ Format — madde işaretleriyle kısa notlar:
 - Günlükten yeni önemli bilgiler
 
 KRİTİK KURALLAR:
-- Toplam not en fazla 60 madde olsun
+- Toplam not en fazla 120 madde olsun
 - Her madde en fazla 2 satır olsun
 - Açıklama, yorum, paragraf YAZMA — sadece kısa notlar
 - Eski notlardan da önemli olan bilgileri bırak. Hasta hakkında önemli tüm notları hatırlamaya çalışman lazım.

@@ -27,7 +27,10 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
 
   const currentProvider = getProvider(provider);
   const providerOptions = providers.map((p) => ({ value: p.id, label: p.name }));
-  const modelOptions = currentProvider?.models.map((m) => ({ value: m.id, label: m.name })) ?? [];
+  const modelOptions = currentProvider?.models.map((m) => ({
+    value: m.id,
+    label: m.id === "claude-opus-4-6" ? `${m.name} (${t.settings.recommended})` : m.name,
+  })) ?? [];
   const memoryModelOptions = currentProvider?.models.map((m) => ({
     value: m.id,
     label: m.id === "claude-sonnet-4-5-20250929" ? `${m.name} (${t.settings.recommended})` : m.name,

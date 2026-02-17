@@ -43,7 +43,10 @@ export default function SettingsPage() {
 
   const currentProvider = getProvider(settings.provider);
   const providerOptions = providers.map((p) => ({ value: p.id, label: p.name }));
-  const modelOptions = currentProvider?.models.map((m) => ({ value: m.id, label: m.name })) ?? [];
+  const modelOptions = currentProvider?.models.map((m) => ({
+    value: m.id,
+    label: m.id === "claude-opus-4-6" ? `${m.name} (${t.settings.recommended})` : m.name,
+  })) ?? [];
   const memoryModelOptions = currentProvider?.models.map((m) => {
     const baseName = m.name.replace(` (${t.settings.recommended})`, "").replace(" (Recommended)", "").replace(" (Önerilen)", "");
     return {
@@ -93,34 +96,34 @@ export default function SettingsPage() {
     const store = await loadSettings();
     await store.set("isOnboarded", false);
     await store.set("hasSeenNoteTutorial", false);
-    await store.set("provider", "openai");
+    await store.set("provider", "anthropic");
     await store.set("apiKey", "");
     await store.set("providerApiKeys", {});
-    await store.set("model", "gpt-4o");
+    await store.set("model", "claude-opus-4-6");
     await store.set("customBaseUrl", "");
     await store.set("language", "tr");
     await store.set("therapySchool", "psychodynamic");
-    await store.set("thinkingEnabled", false);
+    await store.set("thinkingEnabled", true);
     await store.set("thinkingLevel", "medium");
     await store.set("providerThinkingSettings", {});
-    await store.set("memoryModel", "gpt-4o-mini");
-    await store.set("memoryThinkingEnabled", false);
+    await store.set("memoryModel", "claude-sonnet-4-5-20250929");
+    await store.set("memoryThinkingEnabled", true);
     await store.set("memoryThinkingLevel", "medium");
     await store.set("providerMemoryThinkingSettings", {});
     await store.save();
     settings.loadFromStore({
       language: "tr" as Language,
-      provider: "openai" as AIProvider,
+      provider: "anthropic" as AIProvider,
       apiKey: "",
       providerApiKeys: {},
-      model: "gpt-4o",
+      model: "claude-opus-4-6",
       customBaseUrl: "",
       therapySchool: "psychodynamic" as TherapySchool,
-      thinkingEnabled: false,
+      thinkingEnabled: true,
       thinkingLevel: "medium" as ThinkingLevel,
       providerThinkingSettings: {},
-      memoryModel: "gpt-4o-mini",
-      memoryThinkingEnabled: false,
+      memoryModel: "claude-sonnet-4-5-20250929",
+      memoryThinkingEnabled: true,
       memoryThinkingLevel: "medium" as ThinkingLevel,
       providerMemoryThinkingSettings: {},
     });

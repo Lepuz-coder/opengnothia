@@ -11,7 +11,8 @@ import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useTheme } from "@/hooks/useTheme";
 import { providers, getProvider, modelSupportsThinking } from "@/constants/providers";
 import { therapySchools } from "@/constants/therapySchools";
-import { getUserProfile, upsertUserProfile } from "@/services/db/queries";
+import { getUserProfile, upsertUserProfile, clearAllData } from "@/services/db/queries";
+import { Modal } from "@/components/ui/Modal";
 import type { AIProvider, TherapySchool, ThinkingLevel } from "@/types";
 
 export default function SettingsPage() {
@@ -24,6 +25,8 @@ export default function SettingsPage() {
   const [profileAge, setProfileAge] = useState("");
   const [profileGender, setProfileGender] = useState("");
   const [profileOccupation, setProfileOccupation] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   useEffect(() => {
     getUserProfile().then((profile) => {
@@ -77,10 +80,47 @@ export default function SettingsPage() {
     setTimeout(() => setSaved(false), 2000);
   }
 
-  async function handleResetOnboarding() {
+  function handleDeleteAllData() {
+    setShowDeleteModal(true);
+  }
+
+  async function confirmDeleteAllData() {
+    if (deleteConfirmText !== "Tüm verilerimin silinmesini onaylıyorum") return;
+    await clearAllData();
     const store = await loadSettings();
     await store.set("isOnboarded", false);
+    await store.set("hasSeenNoteTutorial", false);
+    await store.set("provider", "openai");
+    await store.set("apiKey", "");
+    await store.set("providerApiKeys", {});
+    await store.set("model", "gpt-4o");
+    await store.set("customBaseUrl", "");
+    await store.set("therapySchool", "cbt");
+    await store.set("thinkingEnabled", false);
+    await store.set("thinkingLevel", "medium");
+    await store.set("providerThinkingSettings", {});
+    await store.set("memoryModel", "gpt-4o-mini");
+    await store.set("memoryThinkingEnabled", false);
+    await store.set("memoryThinkingLevel", "medium");
+    await store.set("providerMemoryThinkingSettings", {});
     await store.save();
+    // Zustand in-memory store'u da sıfırla
+    settings.loadFromStore({
+      provider: "openai" as AIProvider,
+      apiKey: "",
+      providerApiKeys: {},
+      model: "gpt-4o",
+      customBaseUrl: "",
+      therapySchool: "cbt" as TherapySchool,
+      thinkingEnabled: false,
+      thinkingLevel: "medium" as ThinkingLevel,
+      providerThinkingSettings: {},
+      memoryModel: "gpt-4o-mini",
+      memoryThinkingEnabled: false,
+      memoryThinkingLevel: "medium" as ThinkingLevel,
+      providerMemoryThinkingSettings: {},
+    });
+    setShowDeleteModal(false);
     setOnboarded(false);
   }
 
@@ -288,12 +328,44 @@ export default function SettingsPage() {
       <Card className="border-red-900">
         <h2 className="font-semibold mb-2 text-red-600">Tehlikeli Alan</h2>
         <p className="text-sm text-[var(--text-muted)] mb-4">
-          Onboarding sürecini sıfırla ve tüm ayarları yeniden yapılandır.
+          Tüm verilerini kalıcı olarak sil. Bu işlem geri alınamaz.
         </p>
-        <Button variant="danger" size="sm" onClick={handleResetOnboarding}>
-          Onboarding'i Sıfırla
+        <Button variant="danger" size="sm" onClick={handleDeleteAllData}>
+          Tüm Verilerimi Sil
         </Button>
       </Card>
+
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => { setShowDeleteModal(false); setDeleteConfirmText(""); }}
+        title="Tüm Verileri Sil"
+      >
+        <p className="text-sm text-[var(--text-secondary)] mb-4">
+          Bu işlem geri alınamaz. Tüm seanslar, günlükler, rüyalar, check-in'ler ve
+          kişisel bilgileriniz kalıcı olarak silinecektir.
+        </p>
+        <p className="text-sm mb-2">
+          Onaylamak için aşağıya <strong>"Tüm verilerimin silinmesini onaylıyorum"</strong> yazın:
+        </p>
+        <Input
+          value={deleteConfirmText}
+          onChange={(e) => setDeleteConfirmText(e.target.value)}
+          placeholder="Tüm verilerimin silinmesini onaylıyorum"
+        />
+        <div className="flex justify-end gap-3 mt-4">
+          <Button variant="secondary" size="sm" onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(""); }}>
+            Vazgeç
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            disabled={deleteConfirmText !== "Tüm verilerimin silinmesini onaylıyorum"}
+            onClick={confirmDeleteAllData}
+          >
+            Kalıcı Olarak Sil
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

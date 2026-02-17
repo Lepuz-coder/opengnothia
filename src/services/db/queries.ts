@@ -548,3 +548,20 @@ export async function deleteInsight(id: string): Promise<void> {
   const db = await getDatabase();
   await db.execute("DELETE FROM insights WHERE id = ?", [id]);
 }
+
+// Clear all data
+export async function clearAllData(): Promise<void> {
+  const db = await getDatabase();
+  await db.execute("DELETE FROM insights");
+  await db.execute("DELETE FROM insight_groups");
+  await db.execute("DELETE FROM weekly_summaries");
+  await db.execute("DELETE FROM theme_tracking");
+  await db.execute("DELETE FROM token_usage");
+  await db.execute("DELETE FROM mood_entries");
+  await db.execute("DELETE FROM dreams");
+  await db.execute("DELETE FROM journal_entries");
+  await db.execute("DELETE FROM patient_notes");
+  await db.execute("DELETE FROM checkins");
+  await db.execute("DELETE FROM sessions");
+  await db.execute("DELETE FROM user_profile");
+}

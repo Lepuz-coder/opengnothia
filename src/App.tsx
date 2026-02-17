@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { loadSettings } from "@/lib/store";
 import { useAppStore } from "@/stores/useAppStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
+import { useSchoolsStore } from "@/stores/useSchoolsStore";
 import { useTheme } from "@/hooks/useTheme";
 import { useCloseGuard } from "@/hooks/useCloseGuard";
 import { useDatabase } from "@/hooks/useDatabase";
@@ -19,6 +20,7 @@ import InsightsPage from "@/pages/InsightsPage";
 import ToolsPage from "@/pages/ToolsPage";
 import ProgramsPage from "@/pages/ProgramsPage";
 import ExpensesPage from "@/pages/ExpensesPage";
+import SchoolsPage from "@/pages/SchoolsPage";
 
 function AppContent() {
   const { isOnboarded, setOnboarded, setTheme, setHasSeenNoteTutorial, isLocked, setLocked, lockEnabled, setLockEnabled } = useAppStore();
@@ -54,6 +56,16 @@ function AppContent() {
         const memoryThinkingEnabled = await store.get<boolean>("memoryThinkingEnabled");
         const memoryThinkingLevel = await store.get<string>("memoryThinkingLevel");
         const providerMemoryThinkingSettings = await store.get<Record<string, { enabled: boolean; level: string }>>("providerMemoryThinkingSettings");
+
+        // Load schools data
+        const customSchools = await store.get<any[]>("customSchools");
+        const promptOverrides = await store.get<Record<string, string>>("promptOverrides");
+        if (customSchools || promptOverrides) {
+          useSchoolsStore.getState().loadFromStore({
+            ...(customSchools && { customSchools }),
+            ...(promptOverrides && { promptOverrides }),
+          });
+        }
 
         const lockEnabledVal = await store.get<boolean>("lockEnabled");
         if (lockEnabledVal) {
@@ -123,6 +135,7 @@ function AppContent() {
           <Route path="/tools" element={<ToolsPage />} />
           <Route path="/programs" element={<ProgramsPage />} />
           <Route path="/expenses" element={<ExpensesPage />} />
+          <Route path="/schools" element={<SchoolsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>

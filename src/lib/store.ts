@@ -23,6 +23,8 @@ const STORE_DEFAULTS = {
   passwordSalt: "",
   passwordHint: "",
   biometricEnabled: false,
+  customSchools: [] as any[],
+  promptOverrides: {} as Record<string, string>,
 };
 
 export function loadSettings() {

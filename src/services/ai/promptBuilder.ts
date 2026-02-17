@@ -1,5 +1,5 @@
 import type { UserProfile, CheckIn, SessionSummary, TherapySchool, Language } from "@/types";
-import { getTherapySchool } from "@/constants/therapySchools";
+import { getSchoolById } from "@/stores/useSchoolsStore";
 import { getCurrentLanguage } from "@/i18n";
 
 function getLanguageInstruction(lang?: Language): string {
@@ -71,7 +71,7 @@ Core principles:
   }
 
   if (therapySchool) {
-    const school = getTherapySchool(therapySchool);
+    const school = getSchoolById(therapySchool);
     if (school) {
       prompt += `\n\n--- Therapy School ---\n${school.promptInstructions}`;
     }
@@ -250,7 +250,7 @@ Core principles:
   prompt += getLanguageInstruction(params.language);
 
   if (therapySchool) {
-    const school = getTherapySchool(therapySchool);
+    const school = getSchoolById(therapySchool);
     if (school) {
       prompt += `\n\nTherapy school: ${school.name}\n${school.promptInstructions}`;
     }

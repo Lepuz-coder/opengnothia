@@ -2,6 +2,89 @@ import type { AIProviderConfig } from "@/types";
 
 export const providers: AIProviderConfig[] = [
   {
+    id: "anthropic",
+    name: "Anthropic",
+    description: "Claude modelleri",
+    baseUrl: "https://api.anthropic.com/v1",
+    requiresKey: true,
+    models: [
+      // Claude Opus
+      {
+        id: "claude-opus-4-6",
+        name: "Claude Opus 4.6 (Önerilen)",
+        contextWindow: 200000,
+        costPer1kInput: 0.005,
+        costPer1kOutput: 0.025,
+        supportsThinking: true,
+      },
+      {
+        id: "claude-opus-4-5-20251101",
+        name: "Claude Opus 4.5",
+        contextWindow: 200000,
+        costPer1kInput: 0.005,
+        costPer1kOutput: 0.025,
+        supportsThinking: true,
+      },
+      {
+        id: "claude-opus-4-1-20250805",
+        name: "Claude Opus 4.1",
+        contextWindow: 200000,
+        costPer1kInput: 0.015,
+        costPer1kOutput: 0.075,
+        supportsThinking: true,
+      },
+      {
+        id: "claude-opus-4-20250514",
+        name: "Claude Opus 4",
+        contextWindow: 200000,
+        costPer1kInput: 0.015,
+        costPer1kOutput: 0.075,
+        supportsThinking: true,
+      },
+      // Claude Sonnet
+      {
+        id: "claude-sonnet-4-5-20250929",
+        name: "Claude Sonnet 4.5",
+        contextWindow: 200000,
+        costPer1kInput: 0.003,
+        costPer1kOutput: 0.015,
+        supportsThinking: true,
+      },
+      {
+        id: "claude-sonnet-4-20250514",
+        name: "Claude Sonnet 4",
+        contextWindow: 200000,
+        costPer1kInput: 0.003,
+        costPer1kOutput: 0.015,
+        supportsThinking: true,
+      },
+      // Claude Haiku
+      {
+        id: "claude-haiku-4-5-20251001",
+        name: "Claude Haiku 4.5",
+        contextWindow: 200000,
+        costPer1kInput: 0.001,
+        costPer1kOutput: 0.005,
+        supportsThinking: true,
+      },
+      {
+        id: "claude-3-5-haiku-20241022",
+        name: "Claude Haiku 3.5",
+        contextWindow: 200000,
+        costPer1kInput: 0.0008,
+        costPer1kOutput: 0.004,
+        supportsThinking: true,
+      },
+      {
+        id: "claude-3-haiku-20240307",
+        name: "Claude Haiku 3",
+        contextWindow: 200000,
+        costPer1kInput: 0.00025,
+        costPer1kOutput: 0.00125,
+      },
+    ],
+  },
+  {
     id: "openai",
     name: "OpenAI",
     description: "GPT ve o-serisi modeller",
@@ -94,90 +177,7 @@ export const providers: AIProviderConfig[] = [
         costPer1kInput: 0.00015,
         costPer1kOutput: 0.0006,
       },
-   
-    ],
-  },
-  {
-    id: "anthropic",
-    name: "Anthropic",
-    description: "Claude modelleri",
-    baseUrl: "https://api.anthropic.com/v1",
-    requiresKey: true,
-    models: [
-      // Claude Opus
-      {
-        id: "claude-opus-4-6",
-        name: "Claude Opus 4.6 (Önerilen)",
-        contextWindow: 200000,
-        costPer1kInput: 0.005,
-        costPer1kOutput: 0.025,
-        supportsThinking: true,
-      },
-      {
-        id: "claude-opus-4-5-20251101",
-        name: "Claude Opus 4.5",
-        contextWindow: 200000,
-        costPer1kInput: 0.005,
-        costPer1kOutput: 0.025,
-        supportsThinking: true,
-      },
-      {
-        id: "claude-opus-4-1-20250805",
-        name: "Claude Opus 4.1",
-        contextWindow: 200000,
-        costPer1kInput: 0.015,
-        costPer1kOutput: 0.075,
-        supportsThinking: true,
-      },
-      {
-        id: "claude-opus-4-20250514",
-        name: "Claude Opus 4",
-        contextWindow: 200000,
-        costPer1kInput: 0.015,
-        costPer1kOutput: 0.075,
-        supportsThinking: true,
-      },
-      // Claude Sonnet
-      {
-        id: "claude-sonnet-4-5-20250929",
-        name: "Claude Sonnet 4.5",
-        contextWindow: 200000,
-        costPer1kInput: 0.003,
-        costPer1kOutput: 0.015,
-        supportsThinking: true,
-      },
-      {
-        id: "claude-sonnet-4-20250514",
-        name: "Claude Sonnet 4",
-        contextWindow: 200000,
-        costPer1kInput: 0.003,
-        costPer1kOutput: 0.015,
-        supportsThinking: true,
-      },
-      // Claude Haiku
-      {
-        id: "claude-haiku-4-5-20251001",
-        name: "Claude Haiku 4.5",
-        contextWindow: 200000,
-        costPer1kInput: 0.001,
-        costPer1kOutput: 0.005,
-        supportsThinking: true,
-      },
-      {
-        id: "claude-3-5-haiku-20241022",
-        name: "Claude Haiku 3.5",
-        contextWindow: 200000,
-        costPer1kInput: 0.0008,
-        costPer1kOutput: 0.004,
-        supportsThinking: true,
-      },
-      {
-        id: "claude-3-haiku-20240307",
-        name: "Claude Haiku 3",
-        contextWindow: 200000,
-        costPer1kInput: 0.00025,
-        costPer1kOutput: 0.00125,
-      },
+
     ],
   },
 ];

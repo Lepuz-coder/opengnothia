@@ -1,5 +1,5 @@
-import { Brain } from "lucide-react";
 import { cn } from "@/lib/cn";
+import logoImg from "@/assets/logo.png";
 
 interface OnboardingShellProps {
   step: number;
@@ -12,12 +12,15 @@ export function OnboardingShell({ step, totalSteps, children }: OnboardingShellP
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-surface-950 via-surface-900 to-surface-950 overflow-y-auto py-8">
       {/* Logo */}
       <div className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center">
-          <Brain className="w-6 h-6 text-white" />
+        <img src={logoImg} alt="OpenGnothia" className="w-10 h-10" />
+        <div className="flex flex-col items-center">
+          <span className="text-2xl font-bold bg-gradient-to-r from-primary-500 to-accent-500 bg-clip-text text-transparent leading-tight">
+            OpenGnothia
+          </span>
+          <span className="text-[11px] tracking-[0.2em] uppercase text-[var(--text-muted)] font-medium">
+            Know Thyself
+          </span>
         </div>
-        <span className="text-2xl font-bold bg-gradient-to-r from-primary-500 to-accent-500 bg-clip-text text-transparent">
-          OpenGnothia
-        </span>
       </div>
 
       {/* Progress */}

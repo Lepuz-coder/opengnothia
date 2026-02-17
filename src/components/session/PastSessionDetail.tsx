@@ -5,7 +5,7 @@ import { ArrowLeft, Loader2, Trash2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { ChatContainer } from "@/components/chat/ChatContainer";
-import { getSessionById, deleteSession } from "@/services/db/queries";
+import { getSessionById, deleteSession, getSessionTotalCost } from "@/services/db/queries";
 import type { Session } from "@/types";
 
 interface PastSessionDetailProps {
@@ -19,13 +19,17 @@ export function PastSessionDetail({ sessionId, onBack }: PastSessionDetailProps)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
+  const [sessionCost, setSessionCost] = useState(0);
 
   useEffect(() => {
     setLoading(true);
-    getSessionById(sessionId).then((s) => {
-      setSession(s);
-      setLoading(false);
-    });
+    Promise.all([getSessionById(sessionId), getSessionTotalCost(sessionId)]).then(
+      ([s, cost]) => {
+        setSession(s);
+        setSessionCost(cost);
+        setLoading(false);
+      }
+    );
   }, [sessionId]);
 
   const handleDelete = async () => {
@@ -81,6 +85,12 @@ export function PastSessionDetail({ sessionId, onBack }: PastSessionDetailProps)
           </div>
           <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
             {durationMin != null && <span>{durationMin} dakika</span>}
+            {sessionCost > 0 && (
+              <>
+                <span>·</span>
+                <span>${sessionCost.toFixed(4)}</span>
+              </>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">

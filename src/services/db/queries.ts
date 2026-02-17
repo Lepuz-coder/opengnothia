@@ -397,6 +397,15 @@ export async function saveTokenUsage(record: {
   );
 }
 
+export async function getSessionTotalCost(sessionId: string): Promise<number> {
+  const db = await getDatabase();
+  const rows = await db.select<{ total_cost: number }[]>(
+    "SELECT COALESCE(SUM(cost), 0) as total_cost FROM token_usage WHERE session_id = ?",
+    [sessionId]
+  );
+  return rows[0]?.total_cost ?? 0;
+}
+
 export async function getTokenUsageRecords(limit = 1000): Promise<TokenUsageRecord[]> {
   const db = await getDatabase();
   return db.select<TokenUsageRecord[]>(

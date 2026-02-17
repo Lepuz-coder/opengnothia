@@ -7,6 +7,8 @@ import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useAppStore } from "@/stores/useAppStore";
 import { useTranslation, getDayNames, getDateLocale } from "@/i18n";
 import { streamMessage } from "@/services/ai/aiService";
+import { AIError } from "@/services/ai/AIError";
+import { getErrorDisplayInfo, type ErrorDisplayInfo } from "@/services/ai/errorMessages";
 import { calculateCost } from "@/services/ai/costCalculator";
 import { buildDreamAnalysisPrompt, buildPatientNotesUpdatePrompt, dreamPatientNotesMessage } from "@/services/ai/promptBuilder";
 import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
@@ -21,6 +23,7 @@ import {
   getPatientNotesUpdatedAt,
   saveTokenUsage,
 } from "@/services/db/queries";
+import { ErrorModal } from "@/components/ui/ErrorModal";
 import { Plus, ArrowLeft, Sparkles, Trash2, Loader2, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -101,7 +104,7 @@ export default function DreamsPage() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [analysisModalOpen, setAnalysisModalOpen] = useState(false);
   const [editingDreamId, setEditingDreamId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [errorModalInfo, setErrorModalInfo] = useState<ErrorDisplayInfo | null>(null);
 
   // Calendar state
   const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear());
@@ -213,7 +216,7 @@ export default function DreamsPage() {
   const handleAnalyze = async () => {
     if (!selectedDream) return;
     setAnalyzing(true);
-    setError(null);
+    setErrorModalInfo(null);
     setAnalysisModalOpen(true);
 
     try {
@@ -289,7 +292,8 @@ export default function DreamsPage() {
       if (updated) setSelectedDream(updated);
       await loadDreams();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t.errors.analysisError);
+      const statusCode = err instanceof AIError ? err.statusCode : undefined;
+      setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider));
     } finally {
       setAnalyzing(false);
     }
@@ -308,7 +312,7 @@ export default function DreamsPage() {
     const full = await getDreamById(dream.id);
     if (full) {
       setSelectedDream(full);
-      setError(null);
+      setErrorModalInfo(null);
       setView("detail");
     }
   };
@@ -396,7 +400,7 @@ export default function DreamsPage() {
     return (
       <div className="max-w-2xl mx-auto">
         <button
-          onClick={() => { if (!analyzing) { setView("calendar"); setSelectedDream(null); setError(null); } }}
+          onClick={() => { if (!analyzing) { setView("calendar"); setSelectedDream(null); setErrorModalInfo(null); } }}
           disabled={analyzing}
           className={`flex items-center gap-1.5 text-sm transition-colors mb-6 ${analyzing ? "text-[var(--text-muted)] opacity-50 cursor-not-allowed" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}
         >
@@ -490,12 +494,17 @@ export default function DreamsPage() {
             )}
           </div>
 
-          {error && (
-            <div className="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
-              <p className="text-sm text-red-400">{error}</p>
-            </div>
-          )}
         </Modal>
+
+        {/* API Error Modal */}
+        <ErrorModal
+          isOpen={errorModalInfo !== null}
+          onClose={() => setErrorModalInfo(null)}
+          title={errorModalInfo?.title ?? ""}
+          message={errorModalInfo?.message ?? ""}
+          showSettingsLink={errorModalInfo?.showSettingsLink ?? false}
+          onGoToSettings={() => { setErrorModalInfo(null); setView("calendar"); }}
+        />
 
         {/* Delete confirmation modal */}
         <Modal isOpen={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} title={t.dreams.deleteDream}>

@@ -39,10 +39,13 @@ export default function SettingsPage() {
   const currentProvider = getProvider(settings.provider);
   const providerOptions = providers.map((p) => ({ value: p.id, label: p.name }));
   const modelOptions = currentProvider?.models.map((m) => ({ value: m.id, label: m.name })) ?? [];
-  const memoryModelOptions = currentProvider?.models.map((m) => ({
-    value: m.id,
-    label: m.id === "claude-sonnet-4-5-20250929" ? `${m.name} (Önerilen)` : m.name,
-  })) ?? [];
+  const memoryModelOptions = currentProvider?.models.map((m) => {
+    const baseName = m.name.replace(" (Önerilen)", "");
+    return {
+      value: m.id,
+      label: m.id === "claude-sonnet-4-5-20250929" ? `${baseName} (Önerilen)` : baseName,
+    };
+  }) ?? [];
   const showThinkingToggle = modelSupportsThinking(settings.provider, settings.model);
   const showMemoryThinkingToggle = modelSupportsThinking(settings.provider, settings.memoryModel);
 

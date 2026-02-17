@@ -332,7 +332,7 @@ export const tr: Translations = {
     status529Title: "API Aşırı Yüklenmiş",
     status529Message: "Anthropic API şu anda aşırı yüklenmiş durumda. Lütfen bir süre bekleyip tekrar dene.",
     unknownStatusTitle: "API Hatası",
-    unknownStatusMessage: "AI hizmetiyle iletişim sırasında beklenmeyen bir hata oluştu. Lütfen tekrar dene veya ayarlarını kontrol et.",
+    unknownStatusMessage: "AI hizmetiyle iletişim sırasında beklenmeyen bir hata oluştu. Api erişim tokenın bozulmuş ya da bakiye kalmamış olabilir. Lütfen tekrar dene veya ayarlarını kontrol et.",
   },
   sidebar: {
     noteTaking: "Not alınıyor...",
@@ -402,7 +402,7 @@ export const tr: Translations = {
     selectSchoolConfirm: "Konuşmalarınızda bu ekol ile ilerlenecek. Emin misiniz?",
     deleteSchool: "Ekolü Sil",
     deleteSchoolConfirm: "Bu ekolü silmek istediğine emin misin? Bu işlem geri alınamaz.",
-    builtIn: "Yerleşik",
+    builtIn: "Sabit",
     custom: "Özel",
     resetPrompt: "Promptu Sıfırla",
     resetPromptConfirm: "Promptu varsayılana sıfırlamak istediğine emin misin?",

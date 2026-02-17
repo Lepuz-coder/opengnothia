@@ -47,6 +47,7 @@ export interface Translations {
     insights: string;
     breathing: string;
     expenses: string;
+    schools: string;
     settings: string;
   };
   gender: {
@@ -386,6 +387,33 @@ export interface Translations {
     enableLock: string;
     disableLock: string;
     confirmDisable: string;
+  };
+  schools: {
+    title: string;
+    description: string;
+    activeSchool: string;
+    viewPrompt: string;
+    editPrompt: string;
+    promptInstructions: string;
+    addSchool: string;
+    newSchool: string;
+    schoolName: string;
+    schoolShortName: string;
+    schoolDescription: string;
+    schoolPrompt: string;
+    selectSchool: string;
+    selectSchoolConfirm: string;
+    deleteSchool: string;
+    deleteSchoolConfirm: string;
+    builtIn: string;
+    custom: string;
+    resetPrompt: string;
+    resetPromptConfirm: string;
+    promptOverridden: string;
+    namePlaceholder: string;
+    shortNamePlaceholder: string;
+    descriptionPlaceholder: string;
+    promptPlaceholder: string;
   };
   placeholder: {
     featureComingSoon: string;

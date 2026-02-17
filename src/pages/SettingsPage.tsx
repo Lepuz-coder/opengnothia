@@ -8,10 +8,10 @@ import { Select } from "@/components/ui/Select";
 import { Toggle } from "@/components/ui/Toggle";
 import { useAppStore } from "@/stores/useAppStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
+import { useSchoolsStore } from "@/stores/useSchoolsStore";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslation } from "@/i18n";
 import { providers, getProvider, modelSupportsThinking } from "@/constants/providers";
-import { getTherapySchools } from "@/constants/therapySchools";
 import { getUserProfile, upsertUserProfile, clearAllData } from "@/services/db/queries";
 import { Modal } from "@/components/ui/Modal";
 import { invoke } from "@tauri-apps/api/core";
@@ -255,6 +255,8 @@ export default function SettingsPage() {
     await store.set("passwordSalt", "");
     await store.set("passwordHint", "");
     await store.set("biometricEnabled", false);
+    await store.set("customSchools", []);
+    await store.set("promptOverrides", {});
     await store.save();
     setLockEnabledGlobal(false);
     setBiometricEnabledState(false);
@@ -274,6 +276,7 @@ export default function SettingsPage() {
       memoryThinkingLevel: "medium" as ThinkingLevel,
       providerMemoryThinkingSettings: {},
     });
+    useSchoolsStore.getState().loadFromStore({ customSchools: [], promptOverrides: {} });
     setShowDeleteModal(false);
     setOnboarded(false);
   }
@@ -466,17 +469,6 @@ export default function SettingsPage() {
             />
           )}
         </div>
-      </Card>
-
-      {/* Therapy School */}
-      <Card>
-        <h2 className="font-semibold mb-4">{t.settings.therapySchool}</h2>
-        <Select
-          label={t.settings.schoolLabel}
-          options={getTherapySchools().map((s) => ({ value: s.id, label: s.name }))}
-          value={settings.therapySchool}
-          onChange={(e) => settings.setTherapySchool(e.target.value as TherapySchool)}
-        />
       </Card>
 
       {/* Security */}

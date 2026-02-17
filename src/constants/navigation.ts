@@ -26,5 +26,6 @@ export const navItems: NavItem[] = [
   { path: "/insights", labelKey: "insights", icon: Lightbulb },
   { path: "/tools", labelKey: "breathing", icon: Wind },
   { path: "/expenses", labelKey: "expenses", icon: Receipt },
+  { path: "/schools", labelKey: "schools", icon: GraduationCap },
   { path: "/settings", labelKey: "settings", icon: Settings },
 ];

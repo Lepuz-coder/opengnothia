@@ -87,11 +87,21 @@ export default function SettingsPage() {
     await store.set("theme", theme);
     await store.set("thinkingEnabled", settings.thinkingEnabled);
     await store.set("thinkingLevel", settings.thinkingLevel);
-    await store.set("providerThinkingSettings", settings.providerThinkingSettings);
+    // Ensure current provider's thinking settings are included in providerThinkingSettings
+    const updatedThinkingSettings = {
+      ...settings.providerThinkingSettings,
+      [settings.provider]: { enabled: settings.thinkingEnabled, level: settings.thinkingLevel },
+    };
+    await store.set("providerThinkingSettings", updatedThinkingSettings);
     await store.set("memoryModel", settings.memoryModel);
     await store.set("memoryThinkingEnabled", settings.memoryThinkingEnabled);
     await store.set("memoryThinkingLevel", settings.memoryThinkingLevel);
-    await store.set("providerMemoryThinkingSettings", settings.providerMemoryThinkingSettings);
+    // Ensure current provider's memory thinking settings are included
+    const updatedMemoryThinkingSettings = {
+      ...settings.providerMemoryThinkingSettings,
+      [settings.provider]: { enabled: settings.memoryThinkingEnabled, level: settings.memoryThinkingLevel },
+    };
+    await store.set("providerMemoryThinkingSettings", updatedMemoryThinkingSettings);
     await store.set("therapySchool", settings.therapySchool);
     await store.save();
 

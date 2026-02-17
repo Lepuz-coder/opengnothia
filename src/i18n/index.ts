@@ -414,6 +414,8 @@ export interface Translations {
     shortNamePlaceholder: string;
     descriptionPlaceholder: string;
     promptPlaceholder: string;
+    searchPlaceholder: string;
+    noSearchResults: string;
   };
   placeholder: {
     featureComingSoon: string;

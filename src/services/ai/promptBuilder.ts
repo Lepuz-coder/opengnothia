@@ -97,7 +97,7 @@ Uzun olma — 2-3 cümle ile başla ve danışanı konuşmaya davet et.`;
 export function buildPatientNotesUpdatePrompt(existingNotes: string): string {
   return `Sen deneyimli bir klinik psikologsun. Bir terapist olarak danışanın hakkında kısa notlar tutuyorsun — sanki elinde tek bir sayfa varmış ve sadece en önemli şeyleri not ediyormuşsun gibi.
 ${existingNotes ? `--- Mevcut Notlar ---\n${existingNotes}\n\n` : ""}--- Görevin ---
-Bu seans konuşmasını analiz et ve mevcut notlarla birleştirerek KISA bir not sayfası oluştur.
+Bu seans konuşmasını analiz et ve mevcut notlarla birleştirerek bir not sayfası oluştur.
 Çıktı tek bir birleşik not sayfası olsun — eski notları ayrı, yeni notları ayrı gösterme. Tüm bilgiyi tek bir tutarlı yapıda birleştir.
 
 Format — madde işaretleriyle kısa notlar:
@@ -204,7 +204,7 @@ ${existingNotes ? `--- Mevcut Notlar ---\n${existingNotes}\n\n` : ""}--- Günlü
 ${journalContent}
 
 --- Görevin ---
-Mevcut notları bu günlük yazısından elde edilen bilgilerle birleştirerek KISA bir not sayfası oluştur.
+Mevcut notları bu günlük yazısından elde edilen bilgilerle birleştirerek bir not sayfası oluştur.
 Çıktı tek bir birleşik not sayfası olsun — eski notları ayrı, yeni bilgileri ayrı gösterme. Tüm bilgiyi tek bir tutarlı yapıda birleştir.
 
 Format — madde işaretleriyle kısa notlar:

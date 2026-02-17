@@ -25,7 +25,7 @@ import { calculateCost } from "@/services/ai/costCalculator";
 import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildPatientNotesUpdatePrompt, buildCompactionPrompt, GREETING_TRIGGER, BACKGROUND_NOTES_SYSTEM_PROMPT, SESSION_SUMMARY_SYSTEM_PROMPT } from "@/services/ai/promptBuilder";
 import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
 import { createSession, updateSessionMessages, completeSession, deleteSession, getUserProfile, getTodayCheckIn, getRecentSessions, getPatientNotes, getPatientNotesUpdatedAt, getCompletedSessionCount, saveTokenUsage } from "@/services/db/queries";
-import { getTherapySchools, getTherapySchool, getTherapySchoolName } from "@/constants/therapySchools";
+import { getAllSchools, getSchoolById } from "@/stores/useSchoolsStore";
 import { providers, getProvider, modelSupportsThinking } from "@/constants/providers";
 import { ErrorModal } from "@/components/ui/ErrorModal";
 import { Square, Loader2, FileText, Sparkles } from "lucide-react";
@@ -525,7 +525,7 @@ export default function SessionPage() {
             <label className="block text-sm font-medium mb-2">{t.session.therapySchool}</label>
             <div className="flex items-center gap-2">
               <div className="flex-1 px-4 py-2.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)]">
-                <span className="text-sm font-medium">{getTherapySchool(settings.therapySchool)?.name ?? "BDT"}</span>
+                <span className="text-sm font-medium">{getSchoolById(settings.therapySchool)?.name ?? "BDT"}</span>
               </div>
               <Button variant="secondary" size="sm" onClick={() => setSchoolPickerOpen(true)}>
                 {t.common.change}
@@ -573,7 +573,7 @@ export default function SessionPage() {
         {/* School picker modal */}
         <Modal isOpen={schoolPickerOpen} onClose={() => setSchoolPickerOpen(false)} title={t.session.selectTherapySchool}>
           <div className="grid grid-cols-2 gap-2">
-            {getTherapySchools().map((school) => (
+            {getAllSchools().map((school) => (
               <button
                 key={school.id}
                 onClick={async () => {
@@ -646,7 +646,7 @@ export default function SessionPage() {
         <div className="flex items-center gap-2">
           <h2 className="font-semibold">{t.session.sessionTitle}</h2>
           <Badge variant="primary">
-            {t.session.psychologist} · {getTherapySchoolName(settings.therapySchool)}
+            {t.session.psychologist} · {getSchoolById(settings.therapySchool)?.shortName ?? settings.therapySchool}
           </Badge>
         </div>
         <div className="flex items-center gap-3">

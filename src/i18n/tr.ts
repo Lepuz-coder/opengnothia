@@ -411,6 +411,8 @@ export const tr: Translations = {
     shortNamePlaceholder: "Kısa ad gir",
     descriptionPlaceholder: "Ekolün kısa açıklaması...",
     promptPlaceholder: "AI'ın bu ekolde nasıl davranması gerektiğini açıkla...",
+    searchPlaceholder: "Ekollerde ara...",
+    noSearchResults: "için sonuç bulunamadı",
   },
   placeholder: {
     featureComingSoon: "Bu özellik yakında eklenecek.",

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, ArrowLeft, Check, Trash2, RotateCcw, Pencil, Save, CheckCircle } from "lucide-react";
+import { Plus, ArrowLeft, Check, Trash2, RotateCcw, Pencil, Save, CheckCircle, Search, X } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -23,6 +23,8 @@ export default function SchoolsPage() {
   const [showResetModal, setShowResetModal] = useState(false);
   const [showSelectModal, setShowSelectModal] = useState(false);
   const [pendingSelectId, setPendingSelectId] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [saved, setSaved] = useState(false);
 
   // Edit form state
@@ -38,6 +40,12 @@ export default function SchoolsPage() {
   const [newPrompt, setNewPrompt] = useState("");
 
   const allSchools = getAllSchools(language);
+  const filteredSchools = searchQuery.trim()
+    ? allSchools.filter((s) => {
+        const q = searchQuery.toLowerCase();
+        return s.name.toLowerCase().includes(q) || s.shortName.toLowerCase().includes(q) || s.description.toLowerCase().includes(q);
+      })
+    : allSchools;
   const editingSchool = editingSchoolId ? getSchoolById(editingSchoolId, language) : null;
 
   async function persistSchoolsData() {
@@ -96,13 +104,15 @@ export default function SchoolsPage() {
   }
 
   async function handleDeleteSchool() {
-    if (!editingSchoolId) return;
-    if (therapySchool === editingSchoolId) {
+    const idToDelete = pendingDeleteId ?? editingSchoolId;
+    if (!idToDelete) return;
+    if (therapySchool === idToDelete) {
       await persistSelectedSchool("psychodynamic");
     }
-    deleteSchool(editingSchoolId);
+    deleteSchool(idToDelete);
     setShowDeleteModal(false);
-    setEditingSchoolId(null);
+    setPendingDeleteId(null);
+    if (editingSchoolId === idToDelete) setEditingSchoolId(null);
     await persistSchoolsData();
   }
 
@@ -329,71 +339,109 @@ export default function SchoolsPage() {
         </Button>
       </div>
 
-      <div className="space-y-3">
-        {allSchools.map((school) => {
-          const isSelected = therapySchool === school.id;
-          const builtIn = isBuiltInSchool(school.id);
-          const hasOverride = builtIn && !!promptOverrides[school.id];
+      {/* Search bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={t.schools.searchPlaceholder}
+          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
 
-          return (
-            <Card
-              key={school.id}
-              className={cn(
-                "cursor-pointer transition-all hover:border-primary-500/30",
-                isSelected && "border-primary-500 ring-1 ring-primary-500/20"
-              )}
-              onClick={() => openSchoolDetail(school)}
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold truncate">{school.name}</h3>
-                    {builtIn ? (
-                      <span className="shrink-0 px-2 py-0.5 text-[10px] rounded-full bg-primary-500/10 text-primary-400">
-                        {t.schools.builtIn}
+      <div className="space-y-3">
+        {filteredSchools.length === 0 ? (
+          <Card className="text-center py-12">
+            <Search className="w-8 h-8 mx-auto text-[var(--text-muted)] mb-3" />
+            <p className="text-[var(--text-muted)]">
+              "{searchQuery}" {t.schools.noSearchResults}
+            </p>
+          </Card>
+        ) : (
+          filteredSchools.map((school) => {
+            const isSelected = therapySchool === school.id;
+            const builtIn = isBuiltInSchool(school.id);
+            const hasOverride = builtIn && !!promptOverrides[school.id];
+
+            return (
+              <Card
+                key={school.id}
+                className={cn(
+                  "cursor-pointer transition-all hover:border-primary-500/30",
+                  isSelected && "border-primary-500 ring-1 ring-primary-500/20"
+                )}
+                onClick={() => openSchoolDetail(school)}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold truncate">{school.name}</h3>
+                      {builtIn ? (
+                        <span className="shrink-0 px-2 py-0.5 text-[10px] rounded-full bg-primary-500/10 text-primary-400">
+                          {t.schools.builtIn}
+                        </span>
+                      ) : (
+                        <span className="shrink-0 px-2 py-0.5 text-[10px] rounded-full bg-accent-500/10 text-accent-400">
+                          {t.schools.custom}
+                        </span>
+                      )}
+                      {hasOverride && (
+                        <span className="shrink-0 px-2 py-0.5 text-[10px] rounded-full bg-yellow-500/10 text-yellow-500">
+                          {t.schools.promptOverridden}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-[var(--text-muted)] line-clamp-2">
+                      {school.description}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {isSelected ? (
+                      <span className="flex items-center gap-1.5 text-xs text-green-500 whitespace-nowrap">
+                        <Check className="w-4 h-4" />
+                        {t.schools.activeSchool}
                       </span>
                     ) : (
-                      <span className="shrink-0 px-2 py-0.5 text-[10px] rounded-full bg-accent-500/10 text-accent-400">
-                        {t.schools.custom}
-                      </span>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={(e) => { e.stopPropagation(); requestSelectSchool(school.id); }}
+                      >
+                        {t.schools.selectSchool}
+                      </Button>
                     )}
-                    {hasOverride && (
-                      <span className="shrink-0 px-2 py-0.5 text-[10px] rounded-full bg-yellow-500/10 text-yellow-500">
-                        {t.schools.promptOverridden}
-                      </span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); openSchoolDetail(school); }}
+                      className="p-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                      title={t.schools.editPrompt}
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    {!builtIn && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setPendingDeleteId(school.id); setShowDeleteModal(true); }}
+                        className="p-2 rounded-lg hover:bg-red-500/10 transition-colors text-[var(--text-muted)] hover:text-red-500"
+                        title={t.schools.deleteSchool}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     )}
                   </div>
-                  <p className="text-sm text-[var(--text-muted)] line-clamp-2">
-                    {school.description}
-                  </p>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {isSelected ? (
-                    <span className="flex items-center gap-1.5 text-xs text-green-500 whitespace-nowrap">
-                      <Check className="w-4 h-4" />
-                      {t.schools.activeSchool}
-                    </span>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={(e) => { e.stopPropagation(); requestSelectSchool(school.id); }}
-                    >
-                      {t.schools.selectSchool}
-                    </Button>
-                  )}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); openSchoolDetail(school); }}
-                    className="p-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                    title={t.schools.editPrompt}
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </Card>
-          );
-        })}
+              </Card>
+            );
+          })
+        )}
       </div>
 
       {/* Select school confirmation modal */}
@@ -411,6 +459,25 @@ export default function SchoolsPage() {
           </Button>
           <Button size="sm" onClick={confirmSelectSchool}>
             {t.common.yes}
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Delete school modal (list view) */}
+      <Modal
+        isOpen={showDeleteModal && !editingSchoolId}
+        onClose={() => { setShowDeleteModal(false); setPendingDeleteId(null); }}
+        title={t.schools.deleteSchool}
+      >
+        <p className="text-sm text-[var(--text-secondary)] mb-4">
+          {t.schools.deleteSchoolConfirm}
+        </p>
+        <div className="flex justify-end gap-3">
+          <Button variant="secondary" size="sm" onClick={() => { setShowDeleteModal(false); setPendingDeleteId(null); }}>
+            {t.common.cancel}
+          </Button>
+          <Button variant="danger" size="sm" onClick={handleDeleteSchool}>
+            {t.common.delete}
           </Button>
         </div>
       </Modal>

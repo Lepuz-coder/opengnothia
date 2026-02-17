@@ -411,6 +411,8 @@ export const en: Translations = {
     shortNamePlaceholder: "Enter short name",
     descriptionPlaceholder: "Brief description of the school...",
     promptPlaceholder: "Describe how the AI should behave in this school...",
+    searchPlaceholder: "Search schools...",
+    noSearchResults: "no results found",
   },
   placeholder: {
     featureComingSoon: "This feature is coming soon.",

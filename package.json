@@ -1,7 +1,13 @@
 {
   "name": "opengnothia",
-  "private": true,
+  "private": false,
   "version": "0.1.0",
+  "description": "AI-powered self-therapy desktop application",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Lepuz-coder/opengnothia.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",

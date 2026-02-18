@@ -6,9 +6,9 @@ import { Select } from "@/components/ui/Select";
 import { Toggle } from "@/components/ui/Toggle";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useTranslation } from "@/i18n";
-import { providers, getProvider, modelSupportsThinking } from "@/constants/providers";
+import { providers, getProvider, modelSupportsThinking, modelSupportsAdaptiveThinking } from "@/constants/providers";
 import { testApiKey } from "@/services/ai/aiService";
-import type { ThinkingLevel } from "@/types";
+import type { ThinkingLevel, ThinkingType } from "@/types";
 
 interface ApiSetupStepProps {
   onNext: () => void;
@@ -20,7 +20,9 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
   const {
     provider, setProvider, apiKey, setApiKey,
     model, setModel, thinkingEnabled, setThinkingEnabled, thinkingLevel, setThinkingLevel,
+    thinkingType, setThinkingType,
     memoryModel, setMemoryModel, memoryThinkingEnabled, setMemoryThinkingEnabled, memoryThinkingLevel, setMemoryThinkingLevel,
+    memoryThinkingType, setMemoryThinkingType,
   } = useSettingsStore();
   const [testStatus, setTestStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [testError, setTestError] = useState("");
@@ -37,6 +39,8 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
   })) ?? [];
   const showThinkingToggle = modelSupportsThinking(provider, model);
   const showMemoryThinkingToggle = modelSupportsThinking(provider, memoryModel);
+  const showAdaptiveOption = modelSupportsAdaptiveThinking(provider, model);
+  const showMemoryAdaptiveOption = modelSupportsAdaptiveThinking(provider, memoryModel);
 
   async function handleTest() {
     setTestStatus("loading");
@@ -103,6 +107,11 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
             if (!modelSupportsThinking(provider, e.target.value)) {
               setThinkingEnabled(false);
             }
+            if (modelSupportsAdaptiveThinking(provider, e.target.value)) {
+              setThinkingType("adaptive");
+            } else {
+              setThinkingType("budget");
+            }
           }}
         />
       )}
@@ -116,6 +125,23 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
           />
           <p className="text-xs text-[var(--text-muted)] mt-1 ml-14">
             {t.settings.thinkingModeDescription}
+          </p>
+        </div>
+      )}
+
+      {showThinkingToggle && thinkingEnabled && showAdaptiveOption && (
+        <div>
+          <Select
+            label={t.settings.thinkingType}
+            options={[
+              { value: "adaptive", label: t.settings.thinkingTypeAdaptive },
+              { value: "budget", label: t.settings.thinkingTypeBudget },
+            ]}
+            value={thinkingType}
+            onChange={(e) => setThinkingType(e.target.value as ThinkingType)}
+          />
+          <p className="text-xs text-[var(--text-muted)] mt-1">
+            {thinkingType === "adaptive" ? t.settings.thinkingTypeAdaptiveDesc : t.settings.thinkingTypeBudgetDesc}
           </p>
         </div>
       )}
@@ -152,6 +178,11 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
             if (!modelSupportsThinking(provider, e.target.value)) {
               setMemoryThinkingEnabled(false);
             }
+            if (modelSupportsAdaptiveThinking(provider, e.target.value)) {
+              setMemoryThinkingType("adaptive");
+            } else {
+              setMemoryThinkingType("budget");
+            }
           }}
         />
       )}
@@ -165,6 +196,23 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
           />
           <p className="text-xs text-[var(--text-muted)] mt-1 ml-14">
             {t.settings.memoryThinkingDescription}
+          </p>
+        </div>
+      )}
+
+      {showMemoryThinkingToggle && memoryThinkingEnabled && showMemoryAdaptiveOption && (
+        <div>
+          <Select
+            label={t.settings.thinkingType}
+            options={[
+              { value: "adaptive", label: t.settings.thinkingTypeAdaptive },
+              { value: "budget", label: t.settings.thinkingTypeBudget },
+            ]}
+            value={memoryThinkingType}
+            onChange={(e) => setMemoryThinkingType(e.target.value as ThinkingType)}
+          />
+          <p className="text-xs text-[var(--text-muted)] mt-1">
+            {memoryThinkingType === "adaptive" ? t.settings.thinkingTypeAdaptiveDesc : t.settings.thinkingTypeBudgetDesc}
           </p>
         </div>
       )}

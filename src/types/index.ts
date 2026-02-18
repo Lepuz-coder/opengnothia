@@ -3,6 +3,7 @@ export type Theme = "light" | "dark" | "system";
 export type Approach = "practical" | "depth" | "balanced";
 export type SessionStatus = "idle" | "pre" | "active" | "post";
 export type ThinkingLevel = "low" | "medium" | "high" | "max";
+export type ThinkingType = "adaptive" | "budget";
 export type AIProvider = "openai" | "anthropic";
 export type TherapySchool = string;
 
@@ -90,6 +91,7 @@ export interface AIModel {
   costPer1kInput?: number;
   costPer1kOutput?: number;
   supportsThinking?: boolean;
+  supportsAdaptiveThinking?: boolean;
 }
 
 export interface Dream {

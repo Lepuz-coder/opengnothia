@@ -2,7 +2,7 @@ import { useAppStore } from "@/stores/useAppStore";
 import { sendMessage } from "@/services/ai/aiService";
 import { calculateCost } from "@/services/ai/costCalculator";
 import { upsertPatientNotes, saveTokenUsage } from "@/services/db/queries";
-import type { AIProvider, ChatMessage, TokenUsage } from "@/types";
+import type { AIProvider, ChatMessage, ThinkingLevel, ThinkingType, TokenUsage } from "@/types";
 
 
 interface BackgroundNotesParams {
@@ -12,6 +12,9 @@ interface BackgroundNotesParams {
   messages: ChatMessage[];
   systemPrompt: string;
   customBaseUrl?: string;
+  thinkingEnabled?: boolean;
+  thinkingLevel?: ThinkingLevel;
+  thinkingType?: ThinkingType;
   callType: string;
   sessionId?: string | null;
 }
@@ -47,6 +50,9 @@ export function takeBackgroundNotes(params: BackgroundNotesParams) {
     messages: params.messages,
     systemPrompt: params.systemPrompt,
     customBaseUrl: params.customBaseUrl,
+    thinkingEnabled: params.thinkingEnabled,
+    thinkingLevel: params.thinkingLevel,
+    thinkingType: params.thinkingType,
     maxTokens: 20000,
   })
     .then(async (result) => {

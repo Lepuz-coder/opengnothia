@@ -285,6 +285,7 @@ export default function JournalPage() {
         customBaseUrl: settings.customBaseUrl || undefined,
         thinkingEnabled: settings.thinkingEnabled,
         thinkingLevel: settings.thinkingLevel,
+        thinkingType: settings.thinkingType,
         abortSignal: new AbortController().signal,
         onThinking: () => {},
         onContent: (chunk) => {
@@ -320,6 +321,9 @@ export default function JournalPage() {
         messages: [{ id: "journal-notes", role: "user", content: journalPatientNotesMessage(selectedEntry.content, fullAnalysis), timestamp: new Date().toISOString() }],
         systemPrompt: notesPrompt,
         customBaseUrl: settings.customBaseUrl || undefined,
+        thinkingEnabled: settings.memoryThinkingEnabled,
+        thinkingLevel: settings.memoryThinkingLevel,
+        thinkingType: settings.memoryThinkingType,
         callType: "patient_notes",
       });
 

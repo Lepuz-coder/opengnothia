@@ -1,4 +1,4 @@
-import type { AIProvider, ChatMessage, ThinkingLevel, TokenUsage } from "@/types";
+import type { AIProvider, ChatMessage, ThinkingLevel, ThinkingType, TokenUsage } from "@/types";
 
 interface SendMessageParams {
   provider: AIProvider;
@@ -9,12 +9,14 @@ interface SendMessageParams {
   customBaseUrl?: string;
   thinkingEnabled?: boolean;
   thinkingLevel?: ThinkingLevel;
+  thinkingType?: ThinkingType;
   maxTokens?: number;
 }
 
 interface StreamRequestParams extends SendMessageParams {
   thinkingEnabled: boolean;
   thinkingLevel?: ThinkingLevel;
+  thinkingType?: ThinkingType;
 }
 
 const THINKING_BUDGETS: Record<ThinkingLevel, { budget_tokens: number; max_tokens: number }> = {
@@ -22,6 +24,20 @@ const THINKING_BUDGETS: Record<ThinkingLevel, { budget_tokens: number; max_token
   medium: { budget_tokens: 10000, max_tokens: 16000 },
   high: { budget_tokens: 25000, max_tokens: 32000 },
   max: { budget_tokens: 50000, max_tokens: 64000 },
+};
+
+const ADAPTIVE_EFFORT: Record<ThinkingLevel, string> = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+  max: "max",
+};
+
+const ADAPTIVE_MAX_TOKENS: Record<ThinkingLevel, number> = {
+  low: 16000,
+  medium: 16000,
+  high: 32000,
+  max: 64000,
 };
 
 const OPENAI_REASONING_EFFORT: Record<ThinkingLevel, string> = {
@@ -217,7 +233,26 @@ const openaiAdapter: ProviderAdapter = {
 };
 
 const anthropicAdapter: ProviderAdapter = {
-  formatRequest({ apiKey, model, messages, systemPrompt, maxTokens }) {
+  formatRequest({ apiKey, model, messages, systemPrompt, maxTokens, thinkingEnabled, thinkingLevel, thinkingType }) {
+    const body: Record<string, unknown> = {
+      model,
+      system: systemPrompt,
+      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+    };
+    if (thinkingEnabled) {
+      const level = thinkingLevel ?? "medium";
+      if (thinkingType === "adaptive") {
+        body.thinking = { type: "adaptive" };
+        body.output_config = { effort: ADAPTIVE_EFFORT[level] };
+        body.max_tokens = ADAPTIVE_MAX_TOKENS[level];
+      } else {
+        const budget = THINKING_BUDGETS[level];
+        body.thinking = { type: "enabled", budget_tokens: budget.budget_tokens };
+        body.max_tokens = budget.max_tokens;
+      }
+    } else {
+      body.max_tokens = maxTokens || 8192;
+    }
     return {
       url: "https://api.anthropic.com/v1/messages",
       init: {
@@ -228,12 +263,7 @@ const anthropicAdapter: ProviderAdapter = {
           "anthropic-version": "2023-06-01",
           "anthropic-dangerous-direct-browser-access": "true",
         },
-        body: JSON.stringify({
-          model,
-          system: systemPrompt,
-          messages: messages.map((m) => ({ role: m.role, content: m.content })),
-          max_tokens: maxTokens || 8192,
-        }),
+        body: JSON.stringify(body),
       },
     };
   },
@@ -248,7 +278,7 @@ const anthropicAdapter: ProviderAdapter = {
       : null;
     return { content, usage };
   },
-  formatStreamRequest({ apiKey, model, messages, systemPrompt, thinkingEnabled, thinkingLevel }) {
+  formatStreamRequest({ apiKey, model, messages, systemPrompt, thinkingEnabled, thinkingLevel, thinkingType }) {
     const body: Record<string, unknown> = {
       model,
       stream: true,
@@ -256,9 +286,16 @@ const anthropicAdapter: ProviderAdapter = {
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
     };
     if (thinkingEnabled) {
-      const budget = THINKING_BUDGETS[thinkingLevel ?? "medium"];
-      body.thinking = { type: "enabled", budget_tokens: budget.budget_tokens };
-      body.max_tokens = budget.max_tokens;
+      const level = thinkingLevel ?? "medium";
+      if (thinkingType === "adaptive") {
+        body.thinking = { type: "adaptive" };
+        body.output_config = { effort: ADAPTIVE_EFFORT[level] };
+        body.max_tokens = ADAPTIVE_MAX_TOKENS[level];
+      } else {
+        const budget = THINKING_BUDGETS[level];
+        body.thinking = { type: "enabled", budget_tokens: budget.budget_tokens };
+        body.max_tokens = budget.max_tokens;
+      }
       // temperature must NOT be sent when thinking is enabled
     } else {
       body.max_tokens = 8192;

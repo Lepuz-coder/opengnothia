@@ -1,4 +1,4 @@
-import type { AIProvider, ChatMessage, ThinkingLevel, TokenUsage } from "@/types";
+import type { AIProvider, ChatMessage, ThinkingLevel, ThinkingType, TokenUsage } from "@/types";
 import { getAdapter } from "./providers";
 import { getCurrentLanguage, getTranslation } from "@/i18n";
 import { TEST_MESSAGE, TEST_SYSTEM_PROMPT } from "./promptBuilder";
@@ -11,6 +11,9 @@ export async function sendMessage(params: {
   messages: ChatMessage[];
   systemPrompt: string;
   customBaseUrl?: string;
+  thinkingEnabled?: boolean;
+  thinkingLevel?: ThinkingLevel;
+  thinkingType?: ThinkingType;
   maxTokens?: number;
 }): Promise<{ content: string; usage: TokenUsage | null }> {
   const adapter = getAdapter(params.provider);
@@ -56,6 +59,7 @@ export async function streamMessage(params: {
   customBaseUrl?: string;
   thinkingEnabled: boolean;
   thinkingLevel?: ThinkingLevel;
+  thinkingType?: ThinkingType;
   abortSignal?: AbortSignal;
   onThinking: (chunk: string) => void;
   onContent: (chunk: string) => void;

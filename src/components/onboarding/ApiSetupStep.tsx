@@ -107,11 +107,7 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
             if (!modelSupportsThinking(provider, e.target.value)) {
               setThinkingEnabled(false);
             }
-            if (modelSupportsAdaptiveThinking(provider, e.target.value)) {
-              setThinkingType("adaptive");
-            } else {
-              setThinkingType("budget");
-            }
+            setThinkingType("budget");
           }}
         />
       )}
@@ -134,8 +130,8 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
           <Select
             label={t.settings.thinkingType}
             options={[
-              { value: "adaptive", label: t.settings.thinkingTypeAdaptive },
               { value: "budget", label: t.settings.thinkingTypeBudget },
+              { value: "adaptive", label: t.settings.thinkingTypeAdaptive },
             ]}
             value={thinkingType}
             onChange={(e) => setThinkingType(e.target.value as ThinkingType)}
@@ -178,11 +174,7 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
             if (!modelSupportsThinking(provider, e.target.value)) {
               setMemoryThinkingEnabled(false);
             }
-            if (modelSupportsAdaptiveThinking(provider, e.target.value)) {
-              setMemoryThinkingType("adaptive");
-            } else {
-              setMemoryThinkingType("budget");
-            }
+            setMemoryThinkingType("budget");
           }}
         />
       )}
@@ -205,8 +197,8 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
           <Select
             label={t.settings.thinkingType}
             options={[
-              { value: "adaptive", label: t.settings.thinkingTypeAdaptive },
               { value: "budget", label: t.settings.thinkingTypeBudget },
+              { value: "adaptive", label: t.settings.thinkingTypeAdaptive },
             ]}
             value={memoryThinkingType}
             onChange={(e) => setMemoryThinkingType(e.target.value as ThinkingType)}

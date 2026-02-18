@@ -28,6 +28,7 @@ export interface ChatMessage {
   timestamp: string;
   thinking?: string;
   isStreaming?: boolean;
+  isThinkingActive?: boolean;
   isCompactSummary?: boolean;
 }
 

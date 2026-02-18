@@ -418,6 +418,9 @@ export const tr: Translations = {
     promptPlaceholder: "AI'ın bu ekolde nasıl davranması gerektiğini açıkla...",
     searchPlaceholder: "Ekollerde ara...",
     noSearchResults: "için sonuç bulunamadı",
+    findIdealSchool: "Bana Uygun Ekol Seç",
+    applySchool: "Ekolü Uygula",
+    recommendationStartTrigger: "Bana uygun bir terapi ekolü bulmama yardım et.",
   },
   placeholder: {
     featureComingSoon: "Bu özellik yakında eklenecek.",

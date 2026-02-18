@@ -421,6 +421,9 @@ export interface Translations {
     promptPlaceholder: string;
     searchPlaceholder: string;
     noSearchResults: string;
+    findIdealSchool: string;
+    applySchool: string;
+    recommendationStartTrigger: string;
   };
   placeholder: {
     featureComingSoon: string;

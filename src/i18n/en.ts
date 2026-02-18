@@ -418,6 +418,9 @@ export const en: Translations = {
     promptPlaceholder: "Describe how the AI should behave in this school...",
     searchPlaceholder: "Search schools...",
     noSearchResults: "no results found",
+    findIdealSchool: "Find My Ideal School",
+    applySchool: "Apply School",
+    recommendationStartTrigger: "Help me find a suitable therapy school.",
   },
   placeholder: {
     featureComingSoon: "This feature is coming soon.",

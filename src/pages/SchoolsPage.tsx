@@ -1,21 +1,34 @@
-import { useState } from "react";
-import { Plus, ArrowLeft, Check, Trash2, RotateCcw, Pencil, Save, CheckCircle, Search, X } from "lucide-react";
+import { useState, useRef } from "react";
+import { Plus, ArrowLeft, Check, Trash2, RotateCcw, Pencil, Save, CheckCircle, Search, X, Compass } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
+import { ErrorModal } from "@/components/ui/ErrorModal";
+import { ChatContainer } from "@/components/chat/ChatContainer";
+import { ChatInput } from "@/components/chat/ChatInput";
 import { useTranslation } from "@/i18n";
 import { useSettingsStore } from "@/stores/useSettingsStore";
+import { useAppStore } from "@/stores/useAppStore";
 import { useSchoolsStore, getAllSchools, isBuiltInSchool, getSchoolById } from "@/stores/useSchoolsStore";
 import { getLocalizedTherapySchool } from "@/i18n/therapySchools";
 import { loadSettings } from "@/lib/store";
 import { cn } from "@/lib/cn";
+import { streamMessage } from "@/services/ai/aiService";
+import { AIError } from "@/services/ai/AIError";
+import { getErrorDisplayInfo, type ErrorDisplayInfo } from "@/services/ai/errorMessages";
+import { calculateCost } from "@/services/ai/costCalculator";
+import { buildSchoolRecommendationPrompt } from "@/services/ai/promptBuilder";
+import { saveTokenUsage } from "@/services/db/queries";
 import type { TherapySchoolDef } from "@/constants/therapySchools";
+import type { ChatMessage } from "@/types";
 
 export default function SchoolsPage() {
   const { t, language } = useTranslation();
-  const { therapySchool, setTherapySchool } = useSettingsStore();
+  const settings = useSettingsStore();
+  const { therapySchool, setTherapySchool } = settings;
   const { customSchools, promptOverrides, addSchool, updateSchool, deleteSchool, setPromptOverride, removePromptOverride } = useSchoolsStore();
+  const setSidebarHidden = useAppStore((s) => s.setSidebarHidden);
 
   const [editingSchoolId, setEditingSchoolId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -26,6 +39,17 @@ export default function SchoolsPage() {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [saved, setSaved] = useState(false);
+
+  // Recommendation chat state
+  const [showRecommendation, setShowRecommendation] = useState(false);
+  const [recMessages, setRecMessages] = useState<ChatMessage[]>([]);
+  const [recIsLoading, setRecIsLoading] = useState(false);
+  const [recIsStreaming, setRecIsStreaming] = useState(false);
+  const [recStreamingMsgId, setRecStreamingMsgId] = useState<string | null>(null);
+  const [recRecommendedSchool, setRecRecommendedSchool] = useState<TherapySchoolDef | null>(null);
+  const [recPhase, setRecPhase] = useState<"chat" | "result">("chat");
+  const [recError, setRecError] = useState<ErrorDisplayInfo | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Edit form state
   const [editName, setEditName] = useState("");
@@ -145,6 +169,288 @@ export default function SchoolsPage() {
     await persistSelectedSchool(pendingSelectId);
     setShowSelectModal(false);
     setPendingSelectId(null);
+  }
+
+  // --- Recommendation chat functions ---
+
+  function streamRecommendation(
+    messages: ChatMessage[],
+    assistantMsgId: string,
+  ) {
+    let accumulatedContent = "";
+    let accumulatedThinking = "";
+
+    const systemPrompt = buildSchoolRecommendationPrompt(language, allSchools);
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    streamMessage({
+      provider: settings.provider,
+      apiKey: settings.apiKey,
+      model: settings.model,
+      messages,
+      systemPrompt,
+      customBaseUrl: settings.customBaseUrl || undefined,
+      thinkingEnabled: settings.thinkingEnabled,
+      thinkingLevel: settings.thinkingLevel,
+      thinkingType: settings.thinkingType,
+      abortSignal: abortController.signal,
+      onThinking: (chunk) => {
+        accumulatedThinking += chunk;
+        setRecMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantMsgId
+              ? { ...m, thinking: accumulatedThinking, isThinkingActive: true }
+              : m
+          )
+        );
+      },
+      onContent: (chunk) => {
+        accumulatedContent += chunk;
+        // Strip complete markers and any trailing partial marker (<<<...) so user never sees them
+        const displayContent = accumulatedContent
+          .replace(/<<<SCHOOL:[\w]+>>>/g, "")
+          .replace(/\n?<<<[^\n]*$/, "")
+          .trimEnd();
+        setRecMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantMsgId
+              ? { ...m, content: displayContent, isThinkingActive: false }
+              : m
+          )
+        );
+      },
+      onDone: () => {
+        const markerMatch = accumulatedContent.match(/<<<SCHOOL:([\w]+)>>>/);
+        let displayContent = accumulatedContent;
+        let detectedSchool: TherapySchoolDef | null = null;
+
+        if (markerMatch) {
+          const schoolId = markerMatch[1];
+          displayContent = accumulatedContent.replace(/<<<SCHOOL:[\w]+>>>/g, "").trim();
+          detectedSchool = getSchoolById(schoolId, language) ?? null;
+        }
+
+        setRecMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantMsgId
+              ? { ...m, content: displayContent, isStreaming: false, isThinkingActive: false }
+              : m
+          )
+        );
+        setRecIsStreaming(false);
+        setRecStreamingMsgId(null);
+
+        if (detectedSchool) {
+          setRecRecommendedSchool(detectedSchool);
+          setRecPhase("result");
+        }
+      },
+      onUsage: (usage) => {
+        const cost = calculateCost(settings.provider, settings.model, usage.inputTokens, usage.outputTokens);
+        saveTokenUsage({
+          session_id: null,
+          provider: settings.provider,
+          model: settings.model,
+          input_tokens: usage.inputTokens,
+          output_tokens: usage.outputTokens,
+          cost,
+          call_type: "recommendation",
+        });
+      },
+      onError: (error) => {
+        setRecMessages((prev) => prev.filter((m) => m.id !== assistantMsgId));
+        setRecIsStreaming(false);
+        setRecStreamingMsgId(null);
+        setRecIsLoading(false);
+        const statusCode = error instanceof AIError ? error.statusCode : undefined;
+        setRecError(getErrorDisplayInfo(t, statusCode, settings.provider));
+      },
+    }).catch((err) => {
+      setRecIsStreaming(false);
+      setRecStreamingMsgId(null);
+      setRecIsLoading(false);
+      const statusCode = err instanceof AIError ? err.statusCode : undefined;
+      setRecError(getErrorDisplayInfo(t, statusCode, settings.provider));
+    });
+  }
+
+  function startRecommendation() {
+    if (showRecommendation || recIsStreaming) return;
+    setSidebarHidden(true);
+    setShowRecommendation(true);
+    setRecIsLoading(true);
+
+    const triggerMsg: ChatMessage = {
+      id: "rec-trigger",
+      role: "user",
+      content: t.schools.recommendationStartTrigger,
+      timestamp: new Date().toISOString(),
+    };
+
+    const assistantMsgId = crypto.randomUUID();
+    const assistantMsg: ChatMessage = {
+      id: assistantMsgId,
+      role: "assistant",
+      content: "",
+      timestamp: new Date().toISOString(),
+      thinking: "",
+      isStreaming: true,
+      isThinkingActive: false,
+    };
+
+    setRecMessages([assistantMsg]);
+    setRecStreamingMsgId(assistantMsgId);
+    setRecIsStreaming(true);
+    setRecIsLoading(false);
+
+    streamRecommendation([triggerMsg], assistantMsgId);
+  }
+
+  function handleRecommendationSend(content: string) {
+    if (recIsStreaming) return;
+
+    const userMsg: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content,
+      timestamp: new Date().toISOString(),
+    };
+
+    const updatedMessages = [...recMessages, userMsg];
+    setRecMessages(updatedMessages);
+
+    const assistantMsgId = crypto.randomUUID();
+    const assistantMsg: ChatMessage = {
+      id: assistantMsgId,
+      role: "assistant",
+      content: "",
+      timestamp: new Date().toISOString(),
+      thinking: "",
+      isStreaming: true,
+      isThinkingActive: false,
+    };
+
+    setRecMessages((prev) => [...prev, assistantMsg]);
+    setRecStreamingMsgId(assistantMsgId);
+    setRecIsStreaming(true);
+
+    // Build messages array for API: include the hidden trigger + all visible messages (excluding the new streaming placeholder)
+    const triggerMsg: ChatMessage = {
+      id: "rec-trigger",
+      role: "user",
+      content: t.schools.recommendationStartTrigger,
+      timestamp: new Date().toISOString(),
+    };
+    const apiMessages = [triggerMsg, ...updatedMessages];
+
+    streamRecommendation(apiMessages, assistantMsgId);
+  }
+
+  async function handleApplyRecommendation() {
+    if (!recRecommendedSchool) return;
+    await persistSelectedSchool(recRecommendedSchool.id);
+    setSidebarHidden(false);
+    setShowRecommendation(false);
+    setRecMessages([]);
+    setRecPhase("chat");
+    setRecRecommendedSchool(null);
+    setRecError(null);
+  }
+
+  function handleCancelRecommendation() {
+    abortControllerRef.current?.abort();
+    setSidebarHidden(false);
+    setShowRecommendation(false);
+    setRecMessages([]);
+    setRecIsLoading(false);
+    setRecIsStreaming(false);
+    setRecStreamingMsgId(null);
+    setRecPhase("chat");
+    setRecRecommendedSchool(null);
+    setRecError(null);
+  }
+
+  // Recommendation view
+  if (showRecommendation) {
+    return (
+      <div className="flex flex-col h-screen">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-3 border-b border-[var(--border-color)]/50 bg-[var(--bg-primary)]">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleCancelRecommendation}
+              className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <h2 className="font-semibold">{t.schools.findIdealSchool}</h2>
+          </div>
+          <button
+            onClick={handleCancelRecommendation}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+          >
+            <X className="w-4 h-4" />
+            {t.common.close}
+          </button>
+        </div>
+
+        {/* Chat area */}
+        <ChatContainer
+          messages={recMessages}
+          isLoading={recIsLoading}
+          isStreaming={recIsStreaming}
+        />
+
+        {/* Result card */}
+        {recPhase === "result" && recRecommendedSchool && (
+          <div className="px-4 pb-2">
+            <div className="max-w-3xl mx-auto">
+              <Card className="border-primary-500 ring-1 ring-primary-500/20">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <CheckCircle className="w-5 h-5 text-primary-500" />
+                      <h3 className="font-semibold">{recRecommendedSchool.name}</h3>
+                    </div>
+                    <p className="text-sm text-[var(--text-muted)]">
+                      {recRecommendedSchool.description}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-3 mt-4">
+                  <Button onClick={handleApplyRecommendation}>
+                    <Check className="w-4 h-4" />
+                    {t.schools.applySchool}
+                  </Button>
+                  <Button variant="secondary" onClick={handleCancelRecommendation}>
+                    {t.common.cancel}
+                  </Button>
+                </div>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {/* Input */}
+        {recPhase === "chat" && (
+          <ChatInput
+            onSend={handleRecommendationSend}
+            disabled={recIsLoading || recIsStreaming}
+          />
+        )}
+
+        {/* Error Modal */}
+        <ErrorModal
+          isOpen={recError !== null}
+          onClose={() => setRecError(null)}
+          title={recError?.title ?? ""}
+          message={recError?.message ?? ""}
+          showSettingsLink={recError?.showSettingsLink ?? false}
+          onGoToSettings={() => setRecError(null)}
+        />
+      </div>
+    );
   }
 
   // Detail view
@@ -358,6 +664,12 @@ export default function SchoolsPage() {
           </button>
         )}
       </div>
+
+      {/* Find ideal school button */}
+      <Button variant="secondary" className="w-full" onClick={startRecommendation}>
+        <Compass className="w-4 h-4" />
+        {t.schools.findIdealSchool}
+      </Button>
 
       <div className="space-y-3">
         {filteredSchools.length === 0 ? (

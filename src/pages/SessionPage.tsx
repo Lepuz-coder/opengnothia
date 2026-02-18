@@ -144,6 +144,7 @@ export default function SessionPage() {
         customBaseUrl: settings.customBaseUrl || undefined,
         thinkingEnabled: settings.thinkingEnabled,
         thinkingLevel: settings.thinkingLevel,
+        thinkingType: settings.thinkingType,
         abortSignal: abortController.signal,
         onThinking: (chunk) => {
           useSessionStore.getState().appendStreamThinking(chunk);
@@ -306,6 +307,7 @@ export default function SessionPage() {
         customBaseUrl: settings.customBaseUrl || undefined,
         thinkingEnabled: settings.thinkingEnabled,
         thinkingLevel: settings.thinkingLevel,
+        thinkingType: settings.thinkingType,
         abortSignal: abortController.signal,
         onThinking: (chunk) => {
           useSessionStore.getState().appendStreamThinking(chunk);
@@ -393,6 +395,9 @@ export default function SessionPage() {
         messages: conversationForNotes,
         systemPrompt: BACKGROUND_NOTES_SYSTEM_PROMPT,
         customBaseUrl: settings.customBaseUrl || undefined,
+        thinkingEnabled: settings.memoryThinkingEnabled,
+        thinkingLevel: settings.memoryThinkingLevel,
+        thinkingType: settings.memoryThinkingType,
         callType: "patient_notes",
         sessionId: useSessionStore.getState().sessionId,
       });

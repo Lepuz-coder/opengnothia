@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { getProvider } from "@/constants/providers";
-import type { AIProvider, Approach, Language, TherapySchool, ThinkingLevel } from "@/types";
+import type { AIProvider, Approach, Language, TherapySchool, ThinkingLevel, ThinkingType } from "@/types";
 
 interface SettingsState {
   language: Language;
@@ -14,12 +14,14 @@ interface SettingsState {
   therapySchool: TherapySchool;
   thinkingEnabled: boolean;
   thinkingLevel: ThinkingLevel;
+  thinkingType: ThinkingType;
   providerApiKeys: Record<string, string>;
-  providerThinkingSettings: Record<string, { enabled: boolean; level: ThinkingLevel }>;
+  providerThinkingSettings: Record<string, { enabled: boolean; level: ThinkingLevel; type?: ThinkingType }>;
   memoryModel: string;
   memoryThinkingEnabled: boolean;
   memoryThinkingLevel: ThinkingLevel;
-  providerMemoryThinkingSettings: Record<string, { enabled: boolean; level: ThinkingLevel }>;
+  memoryThinkingType: ThinkingType;
+  providerMemoryThinkingSettings: Record<string, { enabled: boolean; level: ThinkingLevel; type?: ThinkingType }>;
   setLanguage: (language: Language) => void;
   setProvider: (provider: AIProvider) => void;
   setApiKey: (key: string) => void;
@@ -31,9 +33,11 @@ interface SettingsState {
   setThinkingEnabled: (enabled: boolean) => void;
   setTherapySchool: (school: TherapySchool) => void;
   setThinkingLevel: (level: ThinkingLevel) => void;
+  setThinkingType: (type: ThinkingType) => void;
   setMemoryModel: (model: string) => void;
   setMemoryThinkingEnabled: (enabled: boolean) => void;
   setMemoryThinkingLevel: (level: ThinkingLevel) => void;
+  setMemoryThinkingType: (type: ThinkingType) => void;
   loadFromStore: (data: Partial<SettingsState>) => void;
 }
 
@@ -49,11 +53,13 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   therapySchool: "psychodynamic",
   thinkingEnabled: true,
   thinkingLevel: "medium",
+  thinkingType: "adaptive",
   providerApiKeys: {},
   providerThinkingSettings: {},
   memoryModel: "claude-sonnet-4-5-20250929",
   memoryThinkingEnabled: true,
   memoryThinkingLevel: "medium",
+  memoryThinkingType: "adaptive",
   providerMemoryThinkingSettings: {},
   setLanguage: (language) => set({ language }),
   setProvider: (provider) => {
@@ -64,28 +70,30 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     // Save current provider's chat thinking settings
     const updatedThinking = {
       ...state.providerThinkingSettings,
-      [state.provider]: { enabled: state.thinkingEnabled, level: state.thinkingLevel },
+      [state.provider]: { enabled: state.thinkingEnabled, level: state.thinkingLevel, type: state.thinkingType },
     };
 
     // Save current provider's memory thinking settings
     const updatedMemoryThinking = {
       ...state.providerMemoryThinkingSettings,
-      [state.provider]: { enabled: state.memoryThinkingEnabled, level: state.memoryThinkingLevel },
+      [state.provider]: { enabled: state.memoryThinkingEnabled, level: state.memoryThinkingLevel, type: state.memoryThinkingType },
     };
 
     // Restore new provider's chat thinking settings (or defaults)
-    const restored = updatedThinking[provider] ?? { enabled: false, level: "medium" as ThinkingLevel };
+    const restored = updatedThinking[provider] ?? { enabled: false, level: "medium" as ThinkingLevel, type: "budget" as ThinkingType };
     let restoredLevel = restored.level;
     if (provider === "openai" && restoredLevel === "max") {
       restoredLevel = "high";
     }
+    const restoredType = provider === "openai" ? "budget" as ThinkingType : (restored.type ?? "budget" as ThinkingType);
 
     // Restore new provider's memory thinking settings (or defaults)
-    const restoredMemory = updatedMemoryThinking[provider] ?? { enabled: false, level: "medium" as ThinkingLevel };
+    const restoredMemory = updatedMemoryThinking[provider] ?? { enabled: false, level: "medium" as ThinkingLevel, type: "budget" as ThinkingType };
     let restoredMemoryLevel = restoredMemory.level;
     if (provider === "openai" && restoredMemoryLevel === "max") {
       restoredMemoryLevel = "high";
     }
+    const restoredMemoryType = provider === "openai" ? "budget" as ThinkingType : (restoredMemory.type ?? "budget" as ThinkingType);
 
     // Reset models to new provider's first model
     const newProvider = getProvider(provider);
@@ -100,9 +108,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       providerApiKeys: updatedKeys,
       thinkingEnabled: restored.enabled,
       thinkingLevel: restoredLevel,
+      thinkingType: restoredType,
       providerThinkingSettings: updatedThinking,
       memoryThinkingEnabled: restoredMemory.enabled,
       memoryThinkingLevel: restoredMemoryLevel,
+      memoryThinkingType: restoredMemoryType,
       providerMemoryThinkingSettings: updatedMemoryThinking,
     });
   },
@@ -121,8 +131,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setThinkingEnabled: (thinkingEnabled) => set({ thinkingEnabled }),
   setTherapySchool: (therapySchool) => set({ therapySchool }),
   setThinkingLevel: (thinkingLevel) => set({ thinkingLevel }),
+  setThinkingType: (thinkingType) => set({ thinkingType }),
   setMemoryModel: (memoryModel) => set({ memoryModel }),
   setMemoryThinkingEnabled: (memoryThinkingEnabled) => set({ memoryThinkingEnabled }),
   setMemoryThinkingLevel: (memoryThinkingLevel) => set({ memoryThinkingLevel }),
+  setMemoryThinkingType: (memoryThinkingType) => set({ memoryThinkingType }),
   loadFromStore: (data) => set(data),
 }));

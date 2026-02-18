@@ -16,6 +16,7 @@ export const providers: AIProviderConfig[] = [
         costPer1kInput: 0.005,
         costPer1kOutput: 0.025,
         supportsThinking: true,
+        supportsAdaptiveThinking: true,
       },
       {
         id: "claude-opus-4-5-20251101",
@@ -191,4 +192,11 @@ export function modelSupportsThinking(providerId: string, modelId: string): bool
   if (!provider) return false;
   const model = provider.models.find((m) => m.id === modelId);
   return model?.supportsThinking ?? false;
+}
+
+export function modelSupportsAdaptiveThinking(providerId: string, modelId: string): boolean {
+  const provider = getProvider(providerId);
+  if (!provider) return false;
+  const model = provider.models.find((m) => m.id === modelId);
+  return model?.supportsAdaptiveThinking ?? false;
 }

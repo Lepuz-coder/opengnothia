@@ -206,6 +206,11 @@ export interface Translations {
     thinkingMedium: string;
     thinkingHigh: string;
     thinkingMax: string;
+    thinkingType: string;
+    thinkingTypeAdaptive: string;
+    thinkingTypeAdaptiveDesc: string;
+    thinkingTypeBudget: string;
+    thinkingTypeBudgetDesc: string;
     memoryModel: string;
     memoryModelDescription: string;
     memoryThinkingDescription: string;

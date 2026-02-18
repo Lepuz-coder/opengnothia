@@ -50,12 +50,14 @@ function AppContent() {
         const therapySchool = await store.get<string>("therapySchool");
         const thinkingEnabled = await store.get<boolean>("thinkingEnabled");
         const thinkingLevel = await store.get<string>("thinkingLevel");
+        const thinkingType = await store.get<string>("thinkingType");
         let providerApiKeys = await store.get<Record<string, string>>("providerApiKeys");
-        const providerThinkingSettings = await store.get<Record<string, { enabled: boolean; level: string }>>("providerThinkingSettings");
+        const providerThinkingSettings = await store.get<Record<string, { enabled: boolean; level: string; type?: string }>>("providerThinkingSettings");
         const memoryModel = await store.get<string>("memoryModel");
         const memoryThinkingEnabled = await store.get<boolean>("memoryThinkingEnabled");
         const memoryThinkingLevel = await store.get<string>("memoryThinkingLevel");
-        const providerMemoryThinkingSettings = await store.get<Record<string, { enabled: boolean; level: string }>>("providerMemoryThinkingSettings");
+        const memoryThinkingType = await store.get<string>("memoryThinkingType");
+        const providerMemoryThinkingSettings = await store.get<Record<string, { enabled: boolean; level: string; type?: string }>>("providerMemoryThinkingSettings");
 
         // Load schools data
         const customSchools = await store.get<any[]>("customSchools");
@@ -91,11 +93,13 @@ function AppContent() {
           ...(therapySchool && { therapySchool: therapySchool as any }),
           ...(thinkingEnabled != null && { thinkingEnabled }),
           ...(thinkingLevel && { thinkingLevel: thinkingLevel as any }),
+          ...(thinkingType && { thinkingType: thinkingType as any }),
           ...(providerApiKeys && { providerApiKeys }),
           ...(providerThinkingSettings && { providerThinkingSettings: providerThinkingSettings as any }),
           ...(memoryModel && { memoryModel }),
           ...(memoryThinkingEnabled != null && { memoryThinkingEnabled }),
           ...(memoryThinkingLevel && { memoryThinkingLevel: memoryThinkingLevel as any }),
+          ...(memoryThinkingType && { memoryThinkingType: memoryThinkingType as any }),
           ...(providerMemoryThinkingSettings && { providerMemoryThinkingSettings: providerMemoryThinkingSettings as any }),
         });
       } catch {

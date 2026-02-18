@@ -11,12 +11,12 @@ import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useSchoolsStore } from "@/stores/useSchoolsStore";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslation } from "@/i18n";
-import { providers, getProvider, modelSupportsThinking } from "@/constants/providers";
+import { providers, getProvider, modelSupportsThinking, modelSupportsAdaptiveThinking } from "@/constants/providers";
 import { getUserProfile, upsertUserProfile, clearAllData } from "@/services/db/queries";
 import { Modal } from "@/components/ui/Modal";
 import { invoke } from "@tauri-apps/api/core";
 import { generateSalt, hashPassword, verifyPassword } from "@/lib/security";
-import type { AIProvider, Language, TherapySchool, ThinkingLevel } from "@/types";
+import type { AIProvider, Language, TherapySchool, ThinkingLevel, ThinkingType } from "@/types";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -76,6 +76,8 @@ export default function SettingsPage() {
   }) ?? [];
   const showThinkingToggle = modelSupportsThinking(settings.provider, settings.model);
   const showMemoryThinkingToggle = modelSupportsThinking(settings.provider, settings.memoryModel);
+  const showAdaptiveOption = modelSupportsAdaptiveThinking(settings.provider, settings.model);
+  const showMemoryAdaptiveOption = modelSupportsAdaptiveThinking(settings.provider, settings.memoryModel);
 
   async function handleSave() {
     const store = await loadSettings();
@@ -87,19 +89,21 @@ export default function SettingsPage() {
     await store.set("theme", theme);
     await store.set("thinkingEnabled", settings.thinkingEnabled);
     await store.set("thinkingLevel", settings.thinkingLevel);
+    await store.set("thinkingType", settings.thinkingType);
     // Ensure current provider's thinking settings are included in providerThinkingSettings
     const updatedThinkingSettings = {
       ...settings.providerThinkingSettings,
-      [settings.provider]: { enabled: settings.thinkingEnabled, level: settings.thinkingLevel },
+      [settings.provider]: { enabled: settings.thinkingEnabled, level: settings.thinkingLevel, type: settings.thinkingType },
     };
     await store.set("providerThinkingSettings", updatedThinkingSettings);
     await store.set("memoryModel", settings.memoryModel);
     await store.set("memoryThinkingEnabled", settings.memoryThinkingEnabled);
     await store.set("memoryThinkingLevel", settings.memoryThinkingLevel);
+    await store.set("memoryThinkingType", settings.memoryThinkingType);
     // Ensure current provider's memory thinking settings are included
     const updatedMemoryThinkingSettings = {
       ...settings.providerMemoryThinkingSettings,
-      [settings.provider]: { enabled: settings.memoryThinkingEnabled, level: settings.memoryThinkingLevel },
+      [settings.provider]: { enabled: settings.memoryThinkingEnabled, level: settings.memoryThinkingLevel, type: settings.memoryThinkingType },
     };
     await store.set("providerMemoryThinkingSettings", updatedMemoryThinkingSettings);
     await store.set("therapySchool", settings.therapySchool);
@@ -255,10 +259,12 @@ export default function SettingsPage() {
     await store.set("therapySchool", "psychodynamic");
     await store.set("thinkingEnabled", true);
     await store.set("thinkingLevel", "medium");
+    await store.set("thinkingType", "adaptive");
     await store.set("providerThinkingSettings", {});
     await store.set("memoryModel", "claude-sonnet-4-5-20250929");
     await store.set("memoryThinkingEnabled", true);
     await store.set("memoryThinkingLevel", "medium");
+    await store.set("memoryThinkingType", "adaptive");
     await store.set("providerMemoryThinkingSettings", {});
     await store.set("lockEnabled", false);
     await store.set("passwordHash", "");
@@ -280,10 +286,12 @@ export default function SettingsPage() {
       therapySchool: "psychodynamic" as TherapySchool,
       thinkingEnabled: true,
       thinkingLevel: "medium" as ThinkingLevel,
+      thinkingType: "adaptive" as ThinkingType,
       providerThinkingSettings: {},
       memoryModel: "claude-sonnet-4-5-20250929",
       memoryThinkingEnabled: true,
       memoryThinkingLevel: "medium" as ThinkingLevel,
+      memoryThinkingType: "adaptive" as ThinkingType,
       providerMemoryThinkingSettings: {},
     });
     useSchoolsStore.getState().loadFromStore({ customSchools: [], promptOverrides: {} });
@@ -398,6 +406,11 @@ export default function SettingsPage() {
                 if (!modelSupportsThinking(settings.provider, e.target.value)) {
                   settings.setThinkingEnabled(false);
                 }
+                if (modelSupportsAdaptiveThinking(settings.provider, e.target.value)) {
+                  settings.setThinkingType("adaptive");
+                } else {
+                  settings.setThinkingType("budget");
+                }
               }}
             />
           )}
@@ -411,6 +424,23 @@ export default function SettingsPage() {
               />
               <p className="text-xs text-[var(--text-muted)] mt-1 ml-14">
                 {t.settings.thinkingModeDescription}
+              </p>
+            </div>
+          )}
+
+          {showThinkingToggle && settings.thinkingEnabled && showAdaptiveOption && (
+            <div>
+              <Select
+                label={t.settings.thinkingType}
+                options={[
+                  { value: "adaptive", label: t.settings.thinkingTypeAdaptive },
+                  { value: "budget", label: t.settings.thinkingTypeBudget },
+                ]}
+                value={settings.thinkingType}
+                onChange={(e) => settings.setThinkingType(e.target.value as ThinkingType)}
+              />
+              <p className="text-xs text-[var(--text-muted)] mt-1">
+                {settings.thinkingType === "adaptive" ? t.settings.thinkingTypeAdaptiveDesc : t.settings.thinkingTypeBudgetDesc}
               </p>
             </div>
           )}
@@ -448,6 +478,11 @@ export default function SettingsPage() {
                 if (!modelSupportsThinking(settings.provider, e.target.value)) {
                   settings.setMemoryThinkingEnabled(false);
                 }
+                if (modelSupportsAdaptiveThinking(settings.provider, e.target.value)) {
+                  settings.setMemoryThinkingType("adaptive");
+                } else {
+                  settings.setMemoryThinkingType("budget");
+                }
               }}
             />
           )}
@@ -461,6 +496,23 @@ export default function SettingsPage() {
               />
               <p className="text-xs text-[var(--text-muted)] mt-1 ml-14">
                 {t.settings.memoryThinkingDescription}
+              </p>
+            </div>
+          )}
+
+          {showMemoryThinkingToggle && settings.memoryThinkingEnabled && showMemoryAdaptiveOption && (
+            <div>
+              <Select
+                label={t.settings.thinkingType}
+                options={[
+                  { value: "adaptive", label: t.settings.thinkingTypeAdaptive },
+                  { value: "budget", label: t.settings.thinkingTypeBudget },
+                ]}
+                value={settings.memoryThinkingType}
+                onChange={(e) => settings.setMemoryThinkingType(e.target.value as ThinkingType)}
+              />
+              <p className="text-xs text-[var(--text-muted)] mt-1">
+                {settings.memoryThinkingType === "adaptive" ? t.settings.thinkingTypeAdaptiveDesc : t.settings.thinkingTypeBudgetDesc}
               </p>
             </div>
           )}

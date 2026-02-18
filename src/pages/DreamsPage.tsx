@@ -284,6 +284,9 @@ export default function DreamsPage() {
         ],
         systemPrompt: notesPrompt,
         customBaseUrl: settings.customBaseUrl || undefined,
+        thinkingEnabled: settings.memoryThinkingEnabled,
+        thinkingLevel: settings.memoryThinkingLevel,
+        thinkingType: settings.memoryThinkingType,
         callType: "patient_notes",
       });
 

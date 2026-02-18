@@ -421,6 +421,12 @@ export const en: Translations = {
     findIdealSchool: "Find My Ideal School",
     applySchool: "Apply School",
     recommendationStartTrigger: "Help me find a suitable therapy school.",
+    chooseSchoolMethod: "Choose Therapy School",
+    chooseSchoolMethodDescription: "Select the therapy school for your sessions. You can change it later in settings.",
+    chooseManually: "I Want to Choose Myself",
+    chooseManuallyDescription: "Browse all schools and pick the one that suits you.",
+    chooseWithAI: "Find My Ideal School",
+    chooseWithAIDescription: "Chat with AI to discover the best school for you.",
   },
   placeholder: {
     featureComingSoon: "This feature is coming soon.",

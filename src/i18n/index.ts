@@ -424,6 +424,12 @@ export interface Translations {
     findIdealSchool: string;
     applySchool: string;
     recommendationStartTrigger: string;
+    chooseSchoolMethod: string;
+    chooseSchoolMethodDescription: string;
+    chooseManually: string;
+    chooseManuallyDescription: string;
+    chooseWithAI: string;
+    chooseWithAIDescription: string;
   };
   placeholder: {
     featureComingSoon: string;

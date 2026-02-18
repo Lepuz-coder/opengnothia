@@ -9,6 +9,7 @@ import { WelcomeStep } from "@/components/onboarding/WelcomeStep";
 import { ApiSetupStep } from "@/components/onboarding/ApiSetupStep";
 import { InterviewStep } from "@/components/onboarding/InterviewStep";
 import { SecuritySetupStep } from "@/components/onboarding/SecuritySetupStep";
+import { SchoolSelectionStep } from "@/components/onboarding/SchoolSelectionStep";
 import { ReadyStep } from "@/components/onboarding/ReadyStep";
 
 export default function OnboardingPage() {
@@ -65,14 +66,19 @@ export default function OnboardingPage() {
     setStep(5);
   }
 
+  function handleSchoolNext() {
+    setStep(6);
+  }
+
   return (
-    <OnboardingShell step={step} totalSteps={6}>
+    <OnboardingShell step={step} totalSteps={7}>
       {step === 0 && <LanguageStep onNext={() => setStep(1)} />}
       {step === 1 && <WelcomeStep onNext={() => setStep(2)} />}
       {step === 2 && <ApiSetupStep onNext={() => setStep(3)} onBack={() => setStep(1)} />}
       {step === 3 && <InterviewStep onNext={handleInterviewNext} onBack={() => setStep(2)} />}
       {step === 4 && <SecuritySetupStep onNext={handleSecurityNext} onBack={() => setStep(3)} />}
-      {step === 5 && <ReadyStep onComplete={handleComplete} />}
+      {step === 5 && <SchoolSelectionStep onNext={handleSchoolNext} onBack={() => setStep(4)} />}
+      {step === 6 && <ReadyStep onComplete={handleComplete} />}
     </OnboardingShell>
   );
 }

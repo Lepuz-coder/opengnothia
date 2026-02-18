@@ -421,6 +421,12 @@ export const tr: Translations = {
     findIdealSchool: "Bana Uygun Ekol Seç",
     applySchool: "Ekolü Uygula",
     recommendationStartTrigger: "Bana uygun bir terapi ekolü bulmama yardım et.",
+    chooseSchoolMethod: "Terapi Ekolü Seçimi",
+    chooseSchoolMethodDescription: "Seanslarında kullanılacak terapi ekolünü seç. Daha sonra ayarlardan değiştirebilirsin.",
+    chooseManually: "Kendim Seçmek İstiyorum",
+    chooseManuallyDescription: "Tüm ekoller arasından kendine uygun olanı seç.",
+    chooseWithAI: "Bana Uygun Ekolü Seç",
+    chooseWithAIDescription: "AI ile sohbet ederek sana en uygun ekolü bul.",
   },
   placeholder: {
     featureComingSoon: "Bu özellik yakında eklenecek.",

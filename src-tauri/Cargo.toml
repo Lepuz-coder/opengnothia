@@ -1,10 +1,10 @@
 [package]
-name = "app"
+name = "opengnothia"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
-license = ""
-repository = ""
+description = "AI-powered self-therapy desktop application"
+authors = ["OpenGnothia Contributors"]
+license = "MIT"
+repository = "https://github.com/Lepuz-coder/opengnothia"
 edition = "2021"
 rust-version = "1.77.2"
 

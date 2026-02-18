@@ -13,7 +13,7 @@ interface ChatMessageProps {
 export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === "user";
   const hasThinking = Boolean(message.thinking && message.thinking.length > 0);
-  const isThinkingPhase = message.isStreaming && hasThinking && !message.content;
+  const isThinkingPhase = message.isStreaming && (message.isThinkingActive === true || (hasThinking && !message.content));
   const { t, language } = useTranslation();
   const locale = getDateLocale(language);
 

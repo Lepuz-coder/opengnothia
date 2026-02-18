@@ -152,7 +152,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     if (!streamingMessageId) return;
     set((s) => ({
       messages: s.messages.map((m) =>
-        m.id === streamingMessageId ? { ...m, content: m.content + chunk } : m
+        m.id === streamingMessageId ? { ...m, content: m.content + chunk, isThinkingActive: false } : m
       ),
     }));
   },
@@ -162,7 +162,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     if (!streamingMessageId) return;
     set((s) => ({
       messages: s.messages.map((m) =>
-        m.id === streamingMessageId ? { ...m, thinking: (m.thinking ?? "") + chunk } : m
+        m.id === streamingMessageId ? { ...m, thinking: (m.thinking ?? "") + chunk, isThinkingActive: true } : m
       ),
     }));
   },

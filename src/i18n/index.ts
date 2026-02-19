@@ -243,6 +243,7 @@ export interface Translations {
     aiConnection: string;
     aiConnectionDescription: string;
     apiKeyPlaceholder: string;
+    howToGetApiKey: string;
     chatModelOnboarding: string;
     chatModelOnboardingDescription: string;
     memoryModelOnboarding: string;

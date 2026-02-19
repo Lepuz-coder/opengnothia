@@ -20,6 +20,7 @@
     "store:allow-length",
     "store:allow-load",
     "store:allow-save",
-    "store:allow-clear"
+    "store:allow-clear",
+    "opener:default"
   ]
 }

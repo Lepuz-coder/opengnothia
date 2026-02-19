@@ -1,6 +1,6 @@
 [package]
 name = "opengnothia"
-version = "0.1.0"
+version = "1.0.1"
 description = "AI-powered self-therapy desktop application"
 authors = ["OpenGnothia Contributors"]
 license = "MIT"
@@ -25,6 +25,7 @@ tauri = { version = "2.10.0", features = [] }
 tauri-plugin-log = "2"
 tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 tauri-plugin-store = "2"
+tauri-plugin-opener = "2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"

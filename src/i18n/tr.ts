@@ -240,6 +240,7 @@ export const tr: Translations = {
     aiConnection: "AI Bağlantısı",
     aiConnectionDescription: "Kullanmak istediğin AI sağlayıcısını seç ve API anahtarını gir.",
     apiKeyPlaceholder: "API anahtarını gir",
+    howToGetApiKey: "API Anahtarı nasıl alabilirim?",
     chatModelOnboarding: "Genel Chat Modeli",
     chatModelOnboardingDescription: "Seans, özet, rüya analizi ve günlük analizi için kullanılır.",
     memoryModelOnboarding: "Hafıza Modeli",

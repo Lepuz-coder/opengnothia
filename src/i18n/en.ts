@@ -240,6 +240,7 @@ export const en: Translations = {
     aiConnection: "AI Connection",
     aiConnectionDescription: "Choose the AI provider you want to use and enter your API key.",
     apiKeyPlaceholder: "Enter your API key",
+    howToGetApiKey: "How can I get an API key?",
     chatModelOnboarding: "General Chat Model",
     chatModelOnboardingDescription: "Used for sessions, summaries, dream and journal analysis.",
     memoryModelOnboarding: "Memory Model",

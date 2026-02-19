@@ -8,6 +8,7 @@ import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useTranslation } from "@/i18n";
 import { providers, getProvider, modelSupportsThinking, modelSupportsAdaptiveThinking } from "@/constants/providers";
 import { testApiKey } from "@/services/ai/aiService";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import type { ThinkingLevel, ThinkingType } from "@/types";
 
 interface ApiSetupStepProps {
@@ -80,13 +81,29 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
       />
 
       {currentProvider?.requiresKey && (
-        <Input
-          label={t.settings.apiKey}
-          type="password"
-          value={apiKey}
-          onChange={(e) => { setApiKey(e.target.value); setTestStatus("idle"); }}
-          placeholder={provider === "openai" ? "sk-..." : provider === "anthropic" ? "sk-ant-..." : t.onboarding.apiKeyPlaceholder}
-        />
+        <>
+          <Input
+            label={t.settings.apiKey}
+            type="password"
+            value={apiKey}
+            onChange={(e) => { setApiKey(e.target.value); setTestStatus("idle"); }}
+            placeholder={provider === "openai" ? "sk-..." : provider === "anthropic" ? "sk-ant-..." : t.onboarding.apiKeyPlaceholder}
+          />
+          <a
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              openUrl(
+                provider === "anthropic"
+                  ? "https://www.opengnothia.com/tr/blog/claude-api-key"
+                  : "https://www.opengnothia.com/tr/blog/openai-api-key"
+              );
+            }}
+            className="text-xs text-[var(--accent-color)] hover:underline cursor-pointer -mt-3 inline-block"
+          >
+            {t.onboarding.howToGetApiKey}
+          </a>
+        </>
       )}
 
       {/* Chat Model */}

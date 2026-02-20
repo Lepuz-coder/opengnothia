@@ -91,7 +91,7 @@ export default function SettingsPage() {
     const baseName = m.name.replace(` (${t.settings.recommended})`, "").replace(" (Recommended)", "").replace(" (Önerilen)", "");
     return {
       value: m.id,
-      label: m.id === "claude-sonnet-4-5-20250929" ? `${baseName} (${t.settings.recommended})` : baseName,
+      label: m.id === "claude-sonnet-4-6" ? `${baseName} (${t.settings.recommended})` : baseName,
     };
   }) ?? [];
   const showThinkingToggle = modelSupportsThinking(settings.provider, settings.model);
@@ -285,7 +285,7 @@ export default function SettingsPage() {
     await store.set("thinkingLevel", "medium");
     await store.set("thinkingType", "budget");
     await store.set("providerThinkingSettings", {});
-    await store.set("memoryModel", "claude-sonnet-4-5-20250929");
+    await store.set("memoryModel", "claude-sonnet-4-6");
     await store.set("memoryThinkingEnabled", true);
     await store.set("memoryThinkingLevel", "medium");
     await store.set("memoryThinkingType", "budget");
@@ -316,7 +316,7 @@ export default function SettingsPage() {
       thinkingLevel: "medium" as ThinkingLevel,
       thinkingType: "budget" as ThinkingType,
       providerThinkingSettings: {},
-      memoryModel: "claude-sonnet-4-5-20250929",
+      memoryModel: "claude-sonnet-4-6",
       memoryThinkingEnabled: true,
       memoryThinkingLevel: "medium" as ThinkingLevel,
       memoryThinkingType: "budget" as ThinkingType,

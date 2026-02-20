@@ -110,6 +110,18 @@ export const en: Translations = {
     deleting: "Deleting...",
     sessionNotFound: "Session not found.",
     goBack: "Go Back",
+    extractedInsights: "Insights from This Session",
+    extractingInsights: "Extracting insights...",
+    insightExtractionError: "Could not extract insights from this session.",
+    insightSteps: [
+      "Analyzing conversation...",
+      "Identifying patterns...",
+      "Detecting emotional themes...",
+      "Extracting key insights...",
+      "Organizing findings...",
+      "Finalizing...",
+    ],
+    newGroup: "New",
   },
   journal: {
     title: "Journal",
@@ -298,6 +310,7 @@ export const en: Translations = {
       dream_analysis: "Dream Analysis",
       journal_analysis: "Journal Analysis",
       weekly_summary: "Weekly Summary",
+      insight_extraction: "Insight Extraction",
     },
   },
   programs: {

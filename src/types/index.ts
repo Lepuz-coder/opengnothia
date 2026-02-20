@@ -132,6 +132,15 @@ export interface Insight {
   updated_at: string;
 }
 
+export interface ExtractedInsight {
+  id: string;
+  group_id: string | null;
+  new_group: { name: string; emoji: string; description: string; color: string } | null;
+  content: string;
+  group_name?: string;
+  group_emoji?: string;
+}
+
 export interface WeeklySummary {
   id: string;
   week_start: string;
@@ -153,7 +162,7 @@ export interface TokenUsageRecord {
   input_tokens: number;
   output_tokens: number;
   cost: number;
-  call_type: "greeting" | "chat" | "recommendation" | "summary" | "patient_notes" | "dream_analysis" | "journal_analysis" | "compaction" | "weekly_summary";
+  call_type: "greeting" | "chat" | "recommendation" | "summary" | "patient_notes" | "dream_analysis" | "journal_analysis" | "compaction" | "weekly_summary" | "insight_extraction";
   created_at: string;
 }
 

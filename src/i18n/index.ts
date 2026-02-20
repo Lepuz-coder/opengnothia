@@ -113,6 +113,11 @@ export interface Translations {
     deleting: string;
     sessionNotFound: string;
     goBack: string;
+    extractedInsights: string;
+    extractingInsights: string;
+    insightExtractionError: string;
+    insightSteps: string[];
+    newGroup: string;
   };
   journal: {
     title: string;
@@ -301,6 +306,7 @@ export interface Translations {
       dream_analysis: string;
       journal_analysis: string;
       weekly_summary: string;
+      insight_extraction: string;
     };
   };
   programs: {

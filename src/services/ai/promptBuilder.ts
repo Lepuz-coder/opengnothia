@@ -19,6 +19,7 @@ export const JOURNAL_ANALYSIS_TRIGGER = "Analyze my journal entry.";
 export const DREAM_ANALYSIS_TRIGGER = "Analyze my dream.";
 export const BACKGROUND_NOTES_SYSTEM_PROMPT = "You are an experienced clinical psychologist. Update the patient notes.";
 export const SESSION_SUMMARY_SYSTEM_PROMPT = "You are an experienced clinical psychologist and you are this client's therapist. You are talking with the client at the end of the session.";
+export const INSIGHT_EXTRACTION_SYSTEM_PROMPT = "You are an experienced clinical psychologist. Help the client discover personal insights and recurring patterns from their session.";
 
 export function journalPatientNotesMessage(content: string, analysis: string): string {
   return `The client shared this journal entry: ${content}\n\nJournal analysis: ${analysis}`;
@@ -392,6 +393,71 @@ Rules:
   if (patientNotes && patientNotes.trim().length > 0) {
     prompt += `\n\n--- Cumulative Patient Notes (Background Information) ---\nThese are clinical notes compiled from previous sessions. Use them to maintain continuity and consider the client's overall state when writing the summary:\n${patientNotes}`;
   }
+
+  return prompt;
+}
+
+export function buildInsightExtractionPrompt(
+  existingGroups: { id: string; name: string; emoji: string; description: string | null }[],
+  language?: Language,
+): string {
+  let prompt = `Analyze the therapy session conversation above and identify recurring patterns, realizations, and self-awareness moments.
+
+An insight is a pattern, tendency, or realization the user can recognize in themselves — something they would want to remember and track about their own behavior, emotions, or thought processes.`;
+
+  prompt += getLanguageInstruction(language);
+
+  if (existingGroups.length > 0) {
+    prompt += `\n\n--- Existing Insight Groups ---\nThe client already has these insight groups. When an extracted insight fits an existing group, use its id. Only create a new group if no existing group is a good semantic match.\n\n`;
+    for (const g of existingGroups) {
+      prompt += `- id: "${g.id}" | ${g.emoji} ${g.name}`;
+      if (g.description) prompt += ` — ${g.description}`;
+      prompt += `\n`;
+    }
+  }
+
+  prompt += `\n\n--- Your Task ---
+Extract 2-5 personal insights from this session. For each insight:
+1. Determine if it belongs to an existing group (use group_id) or needs a new group (set group_id to null and provide new_group).
+2. Write the insight as if the user is noting it down for themselves — use "I" or direct "you" language. Keep it concise (1-2 sentences), then end with a short actionable suggestion starting with "..." that hints how they could work on it (e.g. "...Bunu fark ettiğimde durup karşımdakine ne hissettiğimi söylemeyi deneyebilirim.").
+
+New groups should have:
+- name: A short, descriptive name (2-4 words)
+- emoji: A single relevant emoji
+- description: A brief description of what insights this group contains (1 sentence)
+- color: A hex color code from this palette: #3ABAB4, #E8A838, #6366F1, #EC4899, #10B981, #F43F5E, #8B5CF6, #F97316, #06B6D4, #84CC16
+
+CRITICAL RULES:
+- Focus on recurring patterns, behavioral tendencies, emotional reactions, and moments of self-awareness — things the user would want to track about themselves
+- Write insight content in the client's language (the language used in the session)
+- Synthesize and frame as a self-discovery, not a clinical observation
+- Example good insight: "I notice I shut down when I feel judged, instead of expressing what I actually need. ...Next time I could pause and try saying what I actually feel before withdrawing."
+- Example bad insight: "The client exhibits avoidance behavior in response to perceived criticism."
+- If the session was too brief or shallow for insights, return an empty array
+- Return ONLY valid JSON, no other text
+
+Return format:
+\`\`\`json
+{
+  "insights": [
+    {
+      "group_id": "existing-group-id-or-null",
+      "new_group": null,
+      "content": "The insight text"
+    },
+    {
+      "group_id": null,
+      "new_group": {
+        "name": "Group Name",
+        "emoji": "emoji",
+        "description": "Brief description",
+        "color": "#hexcolor"
+      },
+      "content": "The insight text"
+    }
+  ]
+}
+\`\`\``;
 
   return prompt;
 }

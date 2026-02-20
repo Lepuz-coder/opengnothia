@@ -36,7 +36,7 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
   })) ?? [];
   const memoryModelOptions = currentProvider?.models.map((m) => ({
     value: m.id,
-    label: m.id === "claude-sonnet-4-5-20250929" ? `${m.name} (${t.settings.recommended})` : m.name,
+    label: m.id === "claude-sonnet-4-6" ? `${m.name} (${t.settings.recommended})` : m.name,
   })) ?? [];
   const showThinkingToggle = modelSupportsThinking(provider, model);
   const showMemoryThinkingToggle = modelSupportsThinking(provider, memoryModel);

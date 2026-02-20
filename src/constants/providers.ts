@@ -44,6 +44,15 @@ export const providers: AIProviderConfig[] = [
       },
       // Claude Sonnet
       {
+        id: "claude-sonnet-4-6",
+        name: "Claude Sonnet 4.6",
+        contextWindow: 200000,
+        costPer1kInput: 0.003,
+        costPer1kOutput: 0.015,
+        supportsThinking: true,
+        supportsAdaptiveThinking: true,
+      },
+      {
         id: "claude-sonnet-4-5-20250929",
         name: "Claude Sonnet 4.5",
         contextWindow: 200000,

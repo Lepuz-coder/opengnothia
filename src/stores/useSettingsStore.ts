@@ -64,7 +64,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   thinkingType: "budget",
   providerApiKeys: {},
   providerThinkingSettings: {},
-  memoryModel: "claude-sonnet-4-5-20250929",
+  memoryModel: "claude-sonnet-4-6",
   memoryThinkingEnabled: true,
   memoryThinkingLevel: "medium",
   memoryThinkingType: "budget",

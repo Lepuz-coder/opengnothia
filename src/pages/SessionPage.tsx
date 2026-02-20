@@ -32,8 +32,10 @@ import { createSession, updateSessionMessages, completeSession, deleteSession, g
 import { getAllSchools, getSchoolById } from "@/stores/useSchoolsStore";
 import { providers, getProvider, modelSupportsThinking } from "@/constants/providers";
 import { ErrorModal } from "@/components/ui/ErrorModal";
-import { Square, Loader2, FileText, Sparkles } from "lucide-react";
-import type { AIProvider, ChatMessage, ThinkingLevel, TokenUsage, ExtractedInsight } from "@/types";
+import { Square, Loader2, FileText, Sparkles, Mic, MessageSquare, Pause, Play } from "lucide-react";
+import { useVoiceConversation, type VoiceLoopStatus } from "@/hooks/useVoiceConversation";
+import { VoiceConversationView } from "@/components/session/VoiceConversationView";
+import type { AIProvider, ChatMessage, ThinkingLevel, TokenUsage, ExtractedInsight, SessionMode } from "@/types";
 
 async function trackUsage(
   provider: AIProvider,
@@ -77,6 +79,29 @@ function formatTokenCount(n: number): string {
   return String(n);
 }
 
+function VoiceStatusBadge({ status, t }: { status: VoiceLoopStatus; t: ReturnType<typeof useTranslation>["t"] }) {
+  const labels: Partial<Record<VoiceLoopStatus, string>> = {
+    waiting_for_ai: t.chat.thinking,
+    synthesizing: t.voice.synthesizing,
+    playing: t.voice.playing,
+    listening: t.voice.listening,
+    transcribing: t.voice.transcribing,
+    confirming_transcript: t.voice.confirmTranscript,
+    paused: t.voice.voicePaused,
+  };
+  const label = labels[status];
+  if (!label) return null;
+  const isActive = status !== "paused";
+  return (
+    <Badge variant={isActive ? "primary" : "default"}>
+      <span className="flex items-center gap-1.5">
+        {isActive && <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />}
+        {label}
+      </span>
+    </Badge>
+  );
+}
+
 export default function SessionPage() {
   const navigate = useNavigate();
   const session = useSessionStore();
@@ -95,6 +120,14 @@ export default function SessionPage() {
   const [transcriptKeyModalOpen, setTranscriptKeyModalOpen] = useState(false);
   const chatInputRef = useRef<ChatInputHandle>(null);
   const recorder = useAudioRecorder();
+  const [selectedMode, setSelectedMode] = useState<SessionMode>("chat");
+  const sendMessageRef = useRef<(text: string) => void>(() => {});
+  const voiceFeedRef = useRef<(chunk: string) => void>(() => {});
+  const voiceFlushRef = useRef<() => void>(() => {});
+  const voiceLoop = useVoiceConversation({
+    onTranscriptionReady: (text) => sendMessageRef.current(text),
+    language,
+  });
   const isSunday = new Date().getDay() === 0;
 
   // Restore sidebar when leaving session page
@@ -158,12 +191,18 @@ export default function SessionPage() {
         },
         onContent: (chunk) => {
           useSessionStore.getState().appendStreamContent(chunk);
+          if (useSessionStore.getState().sessionMode === "voice") {
+            voiceFeedRef.current(chunk);
+          }
         },
         onDone: () => {
           useSessionStore.getState().finishStreaming();
           const sessionId = useSessionStore.getState().sessionId;
           if (sessionId) {
             updateSessionMessages(sessionId, useSessionStore.getState().messages);
+          }
+          if (useSessionStore.getState().sessionMode === "voice") {
+            voiceFlushRef.current();
           }
         },
         onUsage: (usage) => {
@@ -321,12 +360,18 @@ export default function SessionPage() {
         },
         onContent: (chunk) => {
           useSessionStore.getState().appendStreamContent(chunk);
+          if (useSessionStore.getState().sessionMode === "voice") {
+            voiceFeedRef.current(chunk);
+          }
         },
         onDone: () => {
           useSessionStore.getState().finishStreaming();
           const sessionId = useSessionStore.getState().sessionId;
           if (sessionId) {
             updateSessionMessages(sessionId, useSessionStore.getState().messages);
+          }
+          if (useSessionStore.getState().sessionMode === "voice") {
+            voiceFlushRef.current();
           }
         },
         onUsage: (usage) => {
@@ -359,6 +404,11 @@ export default function SessionPage() {
       setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider));
     }
   }, [settings, performCompaction]);
+
+  // Keep refs in sync for voice loop
+  sendMessageRef.current = handleSendMessage;
+  voiceFeedRef.current = voiceLoop.feedStreamChunk;
+  voiceFlushRef.current = voiceLoop.flushStream;
 
   const extractInsights = useCallback(async (messages: ChatMessage[]) => {
     const store = useSessionStore.getState();
@@ -464,6 +514,7 @@ export default function SessionPage() {
     prevIsSummaryStreaming.current = session.isSummaryStreaming;
   }, [session.isSummaryStreaming, session.status, session.summary, extractInsights]);
 
+
   const handleMicClick = useCallback(async () => {
     const transcriptApiKey = useSettingsStore.getState().transcriptApiKey;
     if (!transcriptApiKey) {
@@ -518,6 +569,7 @@ export default function SessionPage() {
   }, [settings, recorder]);
 
   const handleEndSession = useCallback(async () => {
+    voiceLoop.stopLoop();
     const { isStreaming } = useSessionStore.getState();
     if (isStreaming) return;
 
@@ -737,6 +789,43 @@ export default function SessionPage() {
             </div>
           </div>
 
+          {/* Session Mode Selection */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-2">{t.voice.modeSelection}</label>
+            <p className="text-xs text-[var(--text-muted)] mb-3">{t.voice.modeSelectionDescription}</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setSelectedMode("chat")}
+                className={`p-3 rounded-xl border text-left transition-all ${
+                  selectedMode === "chat"
+                    ? "border-primary-500 bg-primary-500/10"
+                    : "border-[var(--border-color)] hover:border-[var(--text-muted)]"
+                }`}
+              >
+                <MessageSquare className="w-5 h-5 mb-1" />
+                <span className="text-sm font-medium block">{t.voice.chatConversation}</span>
+              </button>
+              <button
+                onClick={() => {
+                  const key = useSettingsStore.getState().transcriptApiKey;
+                  if (!key) {
+                    setTranscriptKeyModalOpen(true);
+                    return;
+                  }
+                  setSelectedMode("voice");
+                }}
+                className={`p-3 rounded-xl border text-left transition-all ${
+                  selectedMode === "voice"
+                    ? "border-primary-500 bg-primary-500/10"
+                    : "border-[var(--border-color)] hover:border-[var(--text-muted)]"
+                }`}
+              >
+                <Mic className="w-5 h-5 mb-1" />
+                <span className="text-sm font-medium block">{t.voice.voiceConversation}</span>
+              </button>
+            </div>
+          </div>
+
           {/* Start button */}
           <Button
             disabled={apiTesting}
@@ -757,8 +846,12 @@ export default function SessionPage() {
               }
               setStartModalOpen(false);
               setSchoolPickerOpen(false);
+              useSessionStore.getState().setSessionMode(selectedMode);
               await handleStartSession();
               handleGreeting();
+              if (selectedMode === "voice") {
+                voiceLoop.startLoop();
+              }
             }}
             size="lg"
             className="w-full mt-6"
@@ -876,6 +969,30 @@ export default function SessionPage() {
             </div>
           </div>
           <div className="w-px h-4 bg-[var(--border-color)]" />
+          {/* Voice mode controls */}
+          {session.sessionMode === "voice" && voiceLoop.status !== "idle" && (
+            <>
+              <VoiceStatusBadge status={voiceLoop.status} t={t} />
+              <button
+                onClick={voiceLoop.status === "paused" ? voiceLoop.resumeLoop : voiceLoop.pauseLoop}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs hover:bg-[var(--bg-tertiary)] transition-colors"
+              >
+                {voiceLoop.status === "paused" ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
+                {voiceLoop.status === "paused" ? t.voice.resumeVoice : t.voice.pauseVoice}
+              </button>
+              <button
+                onClick={() => {
+                  voiceLoop.stopLoop();
+                  useSessionStore.getState().setSessionMode("chat");
+                }}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] transition-colors"
+              >
+                <MessageSquare className="w-3 h-3" />
+                {t.voice.switchToChat}
+              </button>
+              <div className="w-px h-4 bg-[var(--border-color)]" />
+            </>
+          )}
           {session.startedAt && <SessionTimer startedAt={session.startedAt} />}
           <button
             onClick={() => setEndConfirmOpen(true)}
@@ -887,23 +1004,45 @@ export default function SessionPage() {
         </div>
       </div>
 
-      {/* Chat */}
-      <ChatContainer messages={session.messages} isLoading={session.isLoading} isStreaming={session.isStreaming} isCompacting={session.isCompacting} />
+      {/* Content area: voice mode vs chat mode */}
+      {session.sessionMode === "voice" && voiceLoop.status !== "idle" ? (
+        <VoiceConversationView
+          voiceStatus={voiceLoop.status}
+          currentAIText={voiceLoop.currentAIText}
+          lastUserTranscript={voiceLoop.lastUserTranscript}
+          isStreaming={session.isStreaming}
+          audioLevel={voiceLoop.recorder.audioLevel}
+          onRecordingStop={voiceLoop.handleRecordingStop}
+          onConfirmTranscript={voiceLoop.confirmTranscript}
+          onRetryRecording={voiceLoop.retryRecording}
+          error={voiceLoop.error}
+        />
+      ) : (
+        <>
+          {/* Chat */}
+          <ChatContainer messages={session.messages} isLoading={session.isLoading} isStreaming={session.isStreaming} isCompacting={session.isCompacting} />
 
-      {/* Input */}
-      <ChatInput
-        ref={chatInputRef}
-        onSend={handleSendMessage}
-        disabled={session.isLoading || session.isStreaming || session.isCompacting}
-        recordingState={recorder.state}
-        audioLevel={recorder.audioLevel}
-        onMicClick={handleMicClick}
-        onMicStop={handleMicStop}
-      />
-      {recorder.error && (
-        <div className="px-4 -mt-3 pb-2">
-          <p className="text-xs text-red-400 text-center">{recorder.error}</p>
-        </div>
+          {/* Input */}
+          <ChatInput
+            ref={chatInputRef}
+            onSend={(msg) => {
+              if (session.sessionMode === "voice" && voiceLoop.status !== "idle") {
+                voiceLoop.pauseLoop();
+              }
+              handleSendMessage(msg);
+            }}
+            disabled={session.isLoading || session.isStreaming || session.isCompacting}
+            recordingState={recorder.state}
+            audioLevel={recorder.audioLevel}
+            onMicClick={handleMicClick}
+            onMicStop={handleMicStop}
+          />
+          {recorder.error && (
+            <div className="px-4 -mt-3 pb-2">
+              <p className="text-xs text-red-400 text-center">{recorder.error}</p>
+            </div>
+          )}
+        </>
       )}
 
       {/* Transcript API key modal */}

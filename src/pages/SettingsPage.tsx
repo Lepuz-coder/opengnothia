@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Save, CheckCircle, Shield, Lock } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Save, CheckCircle, Shield, Lock, Loader2, Volume2 } from "lucide-react";
 import { loadSettings } from "@/lib/store";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -16,7 +16,8 @@ import { getUserProfile, upsertUserProfile, clearAllData } from "@/services/db/q
 import { Modal } from "@/components/ui/Modal";
 import { invoke } from "@tauri-apps/api/core";
 import { generateSalt, hashPassword, verifyPassword } from "@/lib/security";
-import type { AIProvider, Language, TherapySchool, ThinkingLevel, ThinkingType } from "@/types";
+import { synthesizeSpeech, playAudioBlob } from "@/services/ai/ttsService";
+import type { AIProvider, Language, TherapySchool, ThinkingLevel, ThinkingType, TTSModel, TTSVoice } from "@/types";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -32,6 +33,8 @@ export default function SettingsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [transcriptKeyFocused, setTranscriptKeyFocused] = useState(false);
+  const [previewPlaying, setPreviewPlaying] = useState<string | null>(null);
+  const previewStopRef = useRef<(() => void) | null>(null);
 
   // Security state
   const [biometricEnabled, setBiometricEnabledState] = useState(false);
@@ -109,6 +112,8 @@ export default function SettingsPage() {
     await store.set("providerMemoryThinkingSettings", updatedMemoryThinkingSettings);
     await store.set("therapySchool", settings.therapySchool);
     await store.set("transcriptApiKey", settings.transcriptApiKey);
+    await store.set("ttsModel", settings.ttsModel);
+    await store.set("ttsVoice", settings.ttsVoice);
     await store.save();
 
     await upsertUserProfile({
@@ -274,6 +279,8 @@ export default function SettingsPage() {
     await store.set("passwordHint", "");
     await store.set("biometricEnabled", false);
     await store.set("transcriptApiKey", "");
+    await store.set("ttsModel", "tts-1");
+    await store.set("ttsVoice", "alloy");
     await store.set("customSchools", []);
     await store.set("promptOverrides", {});
     await store.save();
@@ -297,6 +304,8 @@ export default function SettingsPage() {
       memoryThinkingType: "budget" as ThinkingType,
       providerMemoryThinkingSettings: {},
       transcriptApiKey: "",
+      ttsModel: "tts-1" as TTSModel,
+      ttsVoice: "alloy" as TTSVoice,
     });
     useSchoolsStore.getState().loadFromStore({ customSchools: [], promptOverrides: {} });
     setShowDeleteModal(false);
@@ -549,6 +558,85 @@ export default function SettingsPage() {
           onBlur={() => setTranscriptKeyFocused(false)}
           placeholder="sk-..."
         />
+      </Card>
+
+      {/* Voice Settings */}
+      <Card>
+        <h2 className="font-semibold mb-2">{t.voice.title}</h2>
+        <p className="text-xs text-[var(--text-muted)] mb-4">
+          {t.voice.description}
+        </p>
+        <div className="space-y-4">
+          <Select
+            label={t.voice.ttsModel}
+            options={[
+              { value: "tts-1", label: "TTS-1 ($0.015/1K chars)" },
+              { value: "tts-1-hd", label: "TTS-1 HD ($0.030/1K chars)" },
+            ]}
+            value={settings.ttsModel}
+            onChange={(e) => settings.setTtsModel(e.target.value as TTSModel)}
+          />
+          <p className="text-xs text-[var(--text-muted)] -mt-2">
+            {t.voice.ttsModelDescription}
+          </p>
+
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-[var(--text-secondary)]">
+              {t.voice.voiceSelect}
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {(["alloy", "ash", "ballad", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer"] as const).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => settings.setTtsVoice(v)}
+                  className={`flex items-center justify-between px-3 py-2 rounded-xl border text-sm transition-all ${
+                    settings.ttsVoice === v
+                      ? "border-primary-500 bg-primary-500/10"
+                      : "border-[var(--border-color)] hover:border-[var(--text-muted)]"
+                  }`}
+                >
+                  <span className="capitalize font-medium">{v}</span>
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (previewPlaying || !settings.transcriptApiKey) return;
+                      previewStopRef.current?.();
+                      setPreviewPlaying(v);
+                      try {
+                        const result = await synthesizeSpeech(
+                          t.voice.previewText,
+                          settings.transcriptApiKey,
+                          settings.ttsModel,
+                          v,
+                        );
+                        const playback = playAudioBlob(result.audioBlob);
+                        previewStopRef.current = playback.stop;
+                        await playback.promise;
+                      } catch (err) {
+                        console.error("Preview failed:", err);
+                      }
+                      setPreviewPlaying(null);
+                      previewStopRef.current = null;
+                    }}
+                    disabled={previewPlaying !== null || !settings.transcriptApiKey}
+                    className="text-xs text-primary-500 hover:text-primary-400 disabled:text-[var(--text-muted)] disabled:cursor-not-allowed"
+                  >
+                    {previewPlaying === v ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Volume2 className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                </button>
+              ))}
+            </div>
+            {!settings.transcriptApiKey && (
+              <p className="text-xs text-[var(--text-muted)] mt-1">
+                {t.transcript.openaiApiKey}
+              </p>
+            )}
+          </div>
+        </div>
       </Card>
 
       {/* Security */}

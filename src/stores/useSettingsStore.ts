@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { getProvider } from "@/constants/providers";
-import type { AIProvider, Approach, Language, TherapySchool, ThinkingLevel, ThinkingType } from "@/types";
+import type { AIProvider, Approach, Language, TherapySchool, ThinkingLevel, ThinkingType, TTSModel, TTSVoice } from "@/types";
 
 interface SettingsState {
   language: Language;
@@ -23,6 +23,8 @@ interface SettingsState {
   memoryThinkingType: ThinkingType;
   providerMemoryThinkingSettings: Record<string, { enabled: boolean; level: ThinkingLevel; type?: ThinkingType }>;
   transcriptApiKey: string;
+  ttsModel: TTSModel;
+  ttsVoice: TTSVoice;
   setLanguage: (language: Language) => void;
   setProvider: (provider: AIProvider) => void;
   setApiKey: (key: string) => void;
@@ -40,6 +42,8 @@ interface SettingsState {
   setMemoryThinkingLevel: (level: ThinkingLevel) => void;
   setMemoryThinkingType: (type: ThinkingType) => void;
   setTranscriptApiKey: (key: string) => void;
+  setTtsModel: (model: TTSModel) => void;
+  setTtsVoice: (voice: TTSVoice) => void;
   loadFromStore: (data: Partial<SettingsState>) => void;
 }
 
@@ -64,6 +68,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   memoryThinkingType: "budget",
   providerMemoryThinkingSettings: {},
   transcriptApiKey: "",
+  ttsModel: "tts-1",
+  ttsVoice: "alloy",
   setLanguage: (language) => set({ language }),
   setProvider: (provider) => {
     const state = get();
@@ -140,5 +146,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setMemoryThinkingLevel: (memoryThinkingLevel) => set({ memoryThinkingLevel }),
   setMemoryThinkingType: (memoryThinkingType) => set({ memoryThinkingType }),
   setTranscriptApiKey: (transcriptApiKey) => set({ transcriptApiKey }),
+  setTtsModel: (ttsModel) => set({ ttsModel }),
+  setTtsVoice: (ttsVoice) => set({ ttsVoice }),
   loadFromStore: (data) => set(data),
 }));

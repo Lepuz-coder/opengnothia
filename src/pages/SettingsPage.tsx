@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router";
 import { Save, CheckCircle, Shield, Lock, Loader2, Volume2 } from "lucide-react";
+import { Tabs } from "@/components/ui/Tabs";
 import { loadSettings } from "@/lib/store";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -17,7 +19,7 @@ import { Modal } from "@/components/ui/Modal";
 import { invoke } from "@tauri-apps/api/core";
 import { generateSalt, hashPassword, verifyPassword } from "@/lib/security";
 import { synthesizeSpeech, playAudioBlob } from "@/services/ai/ttsService";
-import type { AIProvider, Language, TherapySchool, ThinkingLevel, ThinkingType, TTSModel, TTSVoice } from "@/types";
+import type { AIProvider, Language, SessionMode, TherapySchool, ThinkingLevel, ThinkingType, TTSModel, TTSVoice } from "@/types";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -35,6 +37,12 @@ export default function SettingsPage() {
   const [transcriptKeyFocused, setTranscriptKeyFocused] = useState(false);
   const [previewPlaying, setPreviewPlaying] = useState<string | null>(null);
   const previewStopRef = useRef<(() => void) | null>(null);
+  const [searchParams] = useSearchParams();
+  const validTabs = ["general", "ai", "voice", "security"] as const;
+  const initialTab = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState<(typeof validTabs)[number]>(
+    validTabs.includes(initialTab as any) ? (initialTab as (typeof validTabs)[number]) : "general"
+  );
 
   // Security state
   const [biometricEnabled, setBiometricEnabledState] = useState(false);
@@ -64,6 +72,14 @@ export default function SettingsPage() {
     });
     invoke<boolean>("biometric_available").then(setBiometricAvailable).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== "voice") {
+      previewStopRef.current?.();
+      previewStopRef.current = null;
+      setPreviewPlaying(null);
+    }
+  }, [activeTab]);
 
   const currentProvider = getProvider(settings.provider);
   const providerOptions = providers.map((p) => ({ value: p.id, label: p.name }));
@@ -114,6 +130,7 @@ export default function SettingsPage() {
     await store.set("transcriptApiKey", settings.transcriptApiKey);
     await store.set("ttsModel", settings.ttsModel);
     await store.set("ttsVoice", settings.ttsVoice);
+    await store.set("preferredSessionMode", settings.preferredSessionMode);
     await store.save();
 
     await upsertUserProfile({
@@ -281,6 +298,7 @@ export default function SettingsPage() {
     await store.set("transcriptApiKey", "");
     await store.set("ttsModel", "tts-1");
     await store.set("ttsVoice", "alloy");
+    await store.set("preferredSessionMode", "chat");
     await store.set("customSchools", []);
     await store.set("promptOverrides", {});
     await store.save();
@@ -306,6 +324,7 @@ export default function SettingsPage() {
       transcriptApiKey: "",
       ttsModel: "tts-1" as TTSModel,
       ttsVoice: "alloy" as TTSVoice,
+      preferredSessionMode: "chat" as SessionMode,
     });
     useSchoolsStore.getState().loadFromStore({ customSchools: [], promptOverrides: {} });
     setShowDeleteModal(false);
@@ -316,6 +335,20 @@ export default function SettingsPage() {
     <div className="max-w-2xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold">{t.settings.title}</h1>
 
+      <Tabs
+        tabs={[
+          { id: "general", label: t.settings.tabs.general },
+          { id: "ai", label: t.settings.tabs.ai },
+          { id: "voice", label: t.settings.tabs.voice },
+          { id: "security", label: t.settings.tabs.security },
+        ]}
+        activeTab={activeTab}
+        onChange={(id) => setActiveTab(id as typeof activeTab)}
+      />
+
+      {/* Tab: General */}
+      {activeTab === "general" && (
+      <div className="space-y-6">
       {/* Language */}
       <Card>
         <h2 className="font-semibold mb-4">{t.settings.language}</h2>
@@ -369,7 +402,12 @@ export default function SettingsPage() {
           />
         </div>
       </Card>
+      </div>
+      )}
 
+      {/* Tab: AI */}
+      {activeTab === "ai" && (
+      <div className="space-y-6">
       {/* AI Connection */}
       <Card>
         <h2 className="font-semibold mb-4">{t.settings.aiConnection}</h2>
@@ -537,7 +575,12 @@ export default function SettingsPage() {
           )}
         </div>
       </Card>
+      </div>
+      )}
 
+      {/* Tab: Voice */}
+      {activeTab === "voice" && (
+      <div className="space-y-6">
       {/* Transcript Settings */}
       <Card>
         <h2 className="font-semibold mb-2">{t.transcript.title}</h2>
@@ -638,7 +681,12 @@ export default function SettingsPage() {
           </div>
         </div>
       </Card>
+      </div>
+      )}
 
+      {/* Tab: Security */}
+      {activeTab === "security" && (
+      <div className="space-y-6">
       {/* Security */}
       <Card>
         <h2 className="font-semibold mb-2">{t.security.appLock}</h2>
@@ -701,6 +749,19 @@ export default function SettingsPage() {
         )}
       </Card>
 
+      {/* Danger zone */}
+      <Card className="border-red-900">
+        <h2 className="font-semibold mb-2 text-red-600">{t.settings.dangerZone}</h2>
+        <p className="text-sm text-[var(--text-muted)] mb-4">
+          {t.settings.dangerDescription}
+        </p>
+        <Button variant="danger" size="sm" onClick={handleDeleteAllData}>
+          {t.settings.deleteAllData}
+        </Button>
+      </Card>
+      </div>
+      )}
+
       {/* Save */}
       <div className="flex items-center gap-3">
         <Button onClick={handleSave}>
@@ -713,17 +774,6 @@ export default function SettingsPage() {
           </span>
         )}
       </div>
-
-      {/* Danger zone */}
-      <Card className="border-red-900">
-        <h2 className="font-semibold mb-2 text-red-600">{t.settings.dangerZone}</h2>
-        <p className="text-sm text-[var(--text-muted)] mb-4">
-          {t.settings.dangerDescription}
-        </p>
-        <Button variant="danger" size="sm" onClick={handleDeleteAllData}>
-          {t.settings.deleteAllData}
-        </Button>
-      </Card>
 
       <Modal
         isOpen={showDeleteModal}

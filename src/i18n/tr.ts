@@ -243,6 +243,12 @@ export const tr: Translations = {
     permanentlyDelete: "Kalıcı Olarak Sil",
     connectionSuccess: "Bağlantı başarılı",
     connectionFailed: "Bağlantı başarısız",
+    tabs: {
+      general: "Genel",
+      ai: "AI",
+      voice: "Ses",
+      security: "Güvenlik",
+    },
   },
   onboarding: {
     welcome: "Hoş geldin",
@@ -472,7 +478,9 @@ export const tr: Translations = {
     voicePreview: "Önizle",
     previewText: "Merhaba, seni dinlemek ve desteklemek için buradayım. Bugün nasıl hissediyorsun?",
     voiceConversation: "Sesli Konuşma",
+    voiceDescription: "Sesli konuşarak doğal bir sohbet deneyimi yaşa. Mikrofon ve hoparlör gerektirir.",
     chatConversation: "Yazılı Konuşma",
+    chatDescription: "Mesajlarını yazarak iletişim kur. Düşüncelerini istediğin hızda ifade et.",
     modeSelection: "Seans Modu",
     modeSelectionDescription: "Seans sırasında nasıl iletişim kurmak istediğini seç.",
     synthesizing: "Ses oluşturuluyor...",
@@ -489,6 +497,9 @@ export const tr: Translations = {
     confirmTranscript: "Mesajını kontrol et",
     confirmAndSend: "Onayla ve Gönder",
     retryRecording: "Tekrar Kaydet",
+    apiKeyErrorTitle: "Ses Bağlantı Hatası",
+    apiKeyError: "Ses özellikleri için gerekli OpenAI API anahtarı geçersiz veya eksik. Lütfen ses ayarlarını kontrol edin.",
+    goToVoiceSettings: "Ses Ayarları",
   },
   placeholder: {
     featureComingSoon: "Bu özellik yakında eklenecek.",

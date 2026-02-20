@@ -32,6 +32,7 @@ import { createSession, updateSessionMessages, completeSession, deleteSession, g
 import { getAllSchools, getSchoolById } from "@/stores/useSchoolsStore";
 import { providers, getProvider, modelSupportsThinking } from "@/constants/providers";
 import { ErrorModal } from "@/components/ui/ErrorModal";
+import { testTranscriptApiKey } from "@/services/ai/ttsService";
 import { Square, Loader2, FileText, Sparkles, Mic, MessageSquare, Pause, Play } from "lucide-react";
 import { useVoiceConversation, type VoiceLoopStatus } from "@/hooks/useVoiceConversation";
 import { VoiceConversationView } from "@/components/session/VoiceConversationView";
@@ -117,10 +118,11 @@ export default function SessionPage() {
   const pastSessionsRef = useRef<PastSessionsListHandle>(null);
   const [weekSummaryInfo, setWeekSummaryInfo] = useState<WeekSummaryInfo>({ weekSessionCount: 0, hasWeeklySummary: false, summaryLoading: false, generating: false });
   const [errorModalInfo, setErrorModalInfo] = useState<ErrorDisplayInfo | null>(null);
+  const [errorSettingsPath, setErrorSettingsPath] = useState("/settings");
   const [transcriptKeyModalOpen, setTranscriptKeyModalOpen] = useState(false);
   const chatInputRef = useRef<ChatInputHandle>(null);
   const recorder = useAudioRecorder();
-  const [selectedMode, setSelectedMode] = useState<SessionMode>("chat");
+  const [selectedMode, setSelectedMode] = useState<SessionMode>(settings.preferredSessionMode);
   const sendMessageRef = useRef<(text: string) => void>(() => {});
   const voiceFeedRef = useRef<(chunk: string) => void>(() => {});
   const voiceFlushRef = useRef<() => void>(() => {});
@@ -796,32 +798,63 @@ export default function SessionPage() {
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => setSelectedMode("chat")}
-                className={`p-3 rounded-xl border text-left transition-all ${
+                className={`relative p-4 rounded-xl border-2 text-left transition-all duration-200 ${
                   selectedMode === "chat"
-                    ? "border-primary-500 bg-primary-500/10"
-                    : "border-[var(--border-color)] hover:border-[var(--text-muted)]"
+                    ? "border-primary-500 bg-primary-500/5 shadow-[0_0_12px_-3px] shadow-primary-500/25"
+                    : "border-[var(--border-color)] hover:border-[var(--text-muted)] hover:bg-[var(--bg-secondary)]/50"
                 }`}
               >
-                <MessageSquare className="w-5 h-5 mb-1" />
-                <span className="text-sm font-medium block">{t.voice.chatConversation}</span>
+                <div className="flex items-start justify-between mb-2.5">
+                  <div className={`p-2 rounded-lg transition-colors ${
+                    selectedMode === "chat" ? "bg-primary-500/15" : "bg-[var(--bg-secondary)]"
+                  }`}>
+                    <MessageSquare className={`w-5 h-5 ${selectedMode === "chat" ? "text-primary-500" : "text-[var(--text-muted)]"}`} />
+                  </div>
+                  <div className={`w-4.5 h-4.5 rounded-full border-2 flex items-center justify-center transition-all ${
+                    selectedMode === "chat"
+                      ? "border-primary-500"
+                      : "border-[var(--text-muted)]/40"
+                  }`}>
+                    {selectedMode === "chat" && (
+                      <div className="w-2 h-2 rounded-full bg-primary-500" />
+                    )}
+                  </div>
+                </div>
+                <span className="text-sm font-semibold block mb-1">{t.voice.chatConversation}</span>
+                <span className="text-xs text-[var(--text-muted)] block leading-relaxed">{t.voice.chatDescription}</span>
               </button>
               <button
                 onClick={() => {
+                  setSelectedMode("voice");
                   const key = useSettingsStore.getState().transcriptApiKey;
                   if (!key) {
                     setTranscriptKeyModalOpen(true);
-                    return;
                   }
-                  setSelectedMode("voice");
                 }}
-                className={`p-3 rounded-xl border text-left transition-all ${
+                className={`relative p-4 rounded-xl border-2 text-left transition-all duration-200 ${
                   selectedMode === "voice"
-                    ? "border-primary-500 bg-primary-500/10"
-                    : "border-[var(--border-color)] hover:border-[var(--text-muted)]"
+                    ? "border-primary-500 bg-primary-500/5 shadow-[0_0_12px_-3px] shadow-primary-500/25"
+                    : "border-[var(--border-color)] hover:border-[var(--text-muted)] hover:bg-[var(--bg-secondary)]/50"
                 }`}
               >
-                <Mic className="w-5 h-5 mb-1" />
-                <span className="text-sm font-medium block">{t.voice.voiceConversation}</span>
+                <div className="flex items-start justify-between mb-2.5">
+                  <div className={`p-2 rounded-lg transition-colors ${
+                    selectedMode === "voice" ? "bg-primary-500/15" : "bg-[var(--bg-secondary)]"
+                  }`}>
+                    <Mic className={`w-5 h-5 ${selectedMode === "voice" ? "text-primary-500" : "text-[var(--text-muted)]"}`} />
+                  </div>
+                  <div className={`w-4.5 h-4.5 rounded-full border-2 flex items-center justify-center transition-all ${
+                    selectedMode === "voice"
+                      ? "border-primary-500"
+                      : "border-[var(--text-muted)]/40"
+                  }`}>
+                    {selectedMode === "voice" && (
+                      <div className="w-2 h-2 rounded-full bg-primary-500" />
+                    )}
+                  </div>
+                </div>
+                <span className="text-sm font-semibold block mb-1">{t.voice.voiceConversation}</span>
+                <span className="text-xs text-[var(--text-muted)] block leading-relaxed">{t.voice.voiceDescription}</span>
               </button>
             </div>
           </div>
@@ -841,12 +874,49 @@ export default function SessionPage() {
               if (!result.success) {
                 setStartModalOpen(false);
                 setSchoolPickerOpen(false);
+                setErrorSettingsPath("/settings");
                 setErrorModalInfo(getErrorDisplayInfo(t, result.statusCode, settings.provider));
                 return;
+              }
+              // Validate voice API key if voice mode selected
+              if (selectedMode === "voice") {
+                const transcriptKey = useSettingsStore.getState().transcriptApiKey;
+                if (!transcriptKey) {
+                  setStartModalOpen(false);
+                  setSchoolPickerOpen(false);
+                  setErrorSettingsPath("/settings?tab=voice");
+                  setErrorModalInfo({
+                    title: t.voice.apiKeyErrorTitle,
+                    message: t.voice.apiKeyError,
+                    showSettingsLink: true,
+                    settingsButtonLabel: t.voice.goToVoiceSettings,
+                  });
+                  return;
+                }
+                setApiTesting(true);
+                const voiceResult = await testTranscriptApiKey(transcriptKey);
+                setApiTesting(false);
+                if (!voiceResult.success) {
+                  setStartModalOpen(false);
+                  setSchoolPickerOpen(false);
+                  setErrorSettingsPath("/settings?tab=voice");
+                  setErrorModalInfo({
+                    title: t.voice.apiKeyErrorTitle,
+                    message: t.voice.apiKeyError,
+                    showSettingsLink: true,
+                    settingsButtonLabel: t.voice.goToVoiceSettings,
+                  });
+                  return;
+                }
               }
               setStartModalOpen(false);
               setSchoolPickerOpen(false);
               useSessionStore.getState().setSessionMode(selectedMode);
+              settings.setPreferredSessionMode(selectedMode);
+              loadSettings().then((store) => {
+                store.set("preferredSessionMode", selectedMode);
+                store.save();
+              });
               await handleStartSession();
               handleGreeting();
               if (selectedMode === "voice") {
@@ -900,7 +970,8 @@ export default function SessionPage() {
           title={errorModalInfo?.title ?? ""}
           message={errorModalInfo?.message ?? ""}
           showSettingsLink={errorModalInfo?.showSettingsLink ?? false}
-          onGoToSettings={() => { setErrorModalInfo(null); navigate("/settings"); }}
+          settingsButtonLabel={errorModalInfo?.settingsButtonLabel}
+          onGoToSettings={() => { setErrorModalInfo(null); navigate(errorSettingsPath); }}
         />
       </div>
     );
@@ -1048,7 +1119,12 @@ export default function SessionPage() {
       {/* Transcript API key modal */}
       <TranscriptApiKeyModal
         isOpen={transcriptKeyModalOpen}
-        onClose={() => setTranscriptKeyModalOpen(false)}
+        onClose={() => {
+          setTranscriptKeyModalOpen(false);
+          if (!useSettingsStore.getState().transcriptApiKey) {
+            setSelectedMode("chat");
+          }
+        }}
         onSave={handleTranscriptKeySave}
       />
 

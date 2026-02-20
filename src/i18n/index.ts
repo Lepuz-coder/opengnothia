@@ -239,6 +239,12 @@ export interface Translations {
     permanentlyDelete: string;
     connectionSuccess: string;
     connectionFailed: string;
+    tabs: {
+      general: string;
+      ai: string;
+      voice: string;
+      security: string;
+    };
   };
   onboarding: {
     welcome: string;
@@ -468,7 +474,9 @@ export interface Translations {
     voicePreview: string;
     previewText: string;
     voiceConversation: string;
+    voiceDescription: string;
     chatConversation: string;
+    chatDescription: string;
     modeSelection: string;
     modeSelectionDescription: string;
     synthesizing: string;
@@ -485,6 +493,9 @@ export interface Translations {
     confirmTranscript: string;
     confirmAndSend: string;
     retryRecording: string;
+    apiKeyErrorTitle: string;
+    apiKeyError: string;
+    goToVoiceSettings: string;
   };
   placeholder: {
     featureComingSoon: string;

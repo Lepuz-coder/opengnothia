@@ -41,6 +41,9 @@ Mental health support should be accessible, private, and personalized. OpenGnoth
 <div align="center">
   <table>
     <tr>
+      <td colspan="2" align="center"><img src="assets/screenshots/session_on.png" alt="Live Therapy Session" width="600" /><br /><sub><b>Live Therapy Session</b></sub></td>
+    </tr>
+    <tr>
       <td align="center"><img src="assets/screenshots/session_page_v2.png" alt="AI Therapy Session" width="400" /><br /><sub><b>AI Therapy Session</b></sub></td>
       <td align="center"><img src="assets/screenshots/mood_tracking_v2.png" alt="Mood Tracking" width="400" /><br /><sub><b>Mood Tracking</b></sub></td>
     </tr>

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { ChatMessage, SessionStatus, SessionSummary } from "@/types";
+import type { ChatMessage, SessionStatus, SessionSummary, ExtractedInsight } from "@/types";
 
 interface SessionState {
   status: SessionStatus;
@@ -20,6 +20,9 @@ interface SessionState {
   isCompacting: boolean;
   compactedContext: string | null;
   compactedAtIndex: number;
+  extractedInsights: ExtractedInsight[];
+  isExtractingInsights: boolean;
+  insightExtractionError: boolean;
 
   setStatus: (status: SessionStatus) => void;
   startSession: (moodBefore: number) => void;
@@ -48,6 +51,11 @@ interface SessionState {
   startCompaction: () => void;
   finishCompaction: () => void;
   applyCompaction: (context: string) => void;
+
+  setExtractedInsights: (insights: ExtractedInsight[]) => void;
+  setExtractingInsights: (loading: boolean) => void;
+  setInsightExtractionError: (error: boolean) => void;
+  removeExtractedInsight: (id: string) => void;
 }
 
 function generateId() {
@@ -73,6 +81,9 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   isCompacting: false,
   compactedContext: null,
   compactedAtIndex: 0,
+  extractedInsights: [],
+  isExtractingInsights: false,
+  insightExtractionError: false,
 
   setStatus: (status) => set({ status }),
 
@@ -126,6 +137,9 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       isCompacting: false,
       compactedContext: null,
       compactedAtIndex: 0,
+      extractedInsights: [],
+      isExtractingInsights: false,
+      insightExtractionError: false,
     }),
 
   startStreaming: () => {
@@ -242,4 +256,10 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
   applyCompaction: (context) =>
     set((s) => ({ compactedContext: context, compactedAtIndex: s.messages.length, currentInputTokens: 0 })),
+
+  setExtractedInsights: (extractedInsights) => set({ extractedInsights }),
+  setExtractingInsights: (isExtractingInsights) => set({ isExtractingInsights }),
+  setInsightExtractionError: (insightExtractionError) => set({ insightExtractionError }),
+  removeExtractedInsight: (id) =>
+    set((s) => ({ extractedInsights: s.extractedInsights.filter((i) => i.id !== id) })),
 }));

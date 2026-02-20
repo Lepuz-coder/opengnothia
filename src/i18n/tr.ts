@@ -110,6 +110,18 @@ export const tr: Translations = {
     deleting: "Siliniyor...",
     sessionNotFound: "Seans bulunamadı.",
     goBack: "Geri Dön",
+    extractedInsights: "Bu Seanstan Çıkarılan İçgörüler",
+    extractingInsights: "İçgörüler çıkarılıyor...",
+    insightExtractionError: "Bu seanstan içgörü çıkarılamadı.",
+    insightSteps: [
+      "Konuşma analiz ediliyor...",
+      "Örüntüler belirleniyor...",
+      "Duygusal temalar tespit ediliyor...",
+      "Temel içgörüler çıkarılıyor...",
+      "Bulgular düzenleniyor...",
+      "Sonuçlandırılıyor...",
+    ],
+    newGroup: "Yeni",
   },
   journal: {
     title: "Günlük",
@@ -298,6 +310,7 @@ export const tr: Translations = {
       dream_analysis: "Rüya Analizi",
       journal_analysis: "Günlük Analizi",
       weekly_summary: "Haftalık Özet",
+      insight_extraction: "İçgörü Çıkarımı",
     },
   },
   programs: {

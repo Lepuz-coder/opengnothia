@@ -22,14 +22,14 @@ import { sendMessage, streamMessage, testApiKey } from "@/services/ai/aiService"
 import { AIError } from "@/services/ai/AIError";
 import { getErrorDisplayInfo, type ErrorDisplayInfo } from "@/services/ai/errorMessages";
 import { calculateCost } from "@/services/ai/costCalculator";
-import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildPatientNotesUpdatePrompt, buildCompactionPrompt, GREETING_TRIGGER, BACKGROUND_NOTES_SYSTEM_PROMPT, SESSION_SUMMARY_SYSTEM_PROMPT } from "@/services/ai/promptBuilder";
+import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildPatientNotesUpdatePrompt, buildCompactionPrompt, buildInsightExtractionPrompt, GREETING_TRIGGER, BACKGROUND_NOTES_SYSTEM_PROMPT, SESSION_SUMMARY_SYSTEM_PROMPT, INSIGHT_EXTRACTION_SYSTEM_PROMPT } from "@/services/ai/promptBuilder";
 import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
-import { createSession, updateSessionMessages, completeSession, deleteSession, getUserProfile, getTodayCheckIn, getRecentSessions, getPatientNotes, getPatientNotesUpdatedAt, getCompletedSessionCount, saveTokenUsage } from "@/services/db/queries";
+import { createSession, updateSessionMessages, completeSession, deleteSession, getUserProfile, getTodayCheckIn, getRecentSessions, getPatientNotes, getPatientNotesUpdatedAt, getCompletedSessionCount, saveTokenUsage, getInsightGroups, createInsightGroup, createInsight } from "@/services/db/queries";
 import { getAllSchools, getSchoolById } from "@/stores/useSchoolsStore";
 import { providers, getProvider, modelSupportsThinking } from "@/constants/providers";
 import { ErrorModal } from "@/components/ui/ErrorModal";
 import { Square, Loader2, FileText, Sparkles } from "lucide-react";
-import type { AIProvider, ChatMessage, ThinkingLevel, TokenUsage } from "@/types";
+import type { AIProvider, ChatMessage, ThinkingLevel, TokenUsage, ExtractedInsight } from "@/types";
 
 async function trackUsage(
   provider: AIProvider,
@@ -353,6 +353,110 @@ export default function SessionPage() {
     }
   }, [settings, performCompaction]);
 
+  const extractInsights = useCallback(async (messages: ChatMessage[]) => {
+    const store = useSessionStore.getState();
+    store.setExtractingInsights(true);
+    store.setInsightExtractionError(false);
+
+    try {
+      const existingGroups = await getInsightGroups();
+
+      const insightPrompt = buildInsightExtractionPrompt(
+        existingGroups.map((g) => ({
+          id: g.id,
+          name: g.name,
+          emoji: g.emoji,
+          description: g.description,
+        })),
+        language,
+      );
+
+      const conversationForInsights: ChatMessage[] = [
+        ...messages,
+        {
+          id: "insight-request",
+          role: "user",
+          content: insightPrompt,
+          timestamp: new Date().toISOString(),
+        },
+      ];
+
+      const result = await sendMessage({
+        provider: settings.provider,
+        apiKey: settings.apiKey,
+        model: settings.memoryModel,
+        messages: conversationForInsights,
+        systemPrompt: INSIGHT_EXTRACTION_SYSTEM_PROMPT,
+        customBaseUrl: settings.customBaseUrl || undefined,
+        thinkingEnabled: settings.memoryThinkingEnabled,
+        thinkingLevel: settings.memoryThinkingLevel,
+        thinkingType: settings.memoryThinkingType,
+      });
+
+      const sid = useSessionStore.getState().sessionId;
+      trackUsage(settings.provider, settings.memoryModel, sid, "insight_extraction", result.usage);
+
+      let parsed: { insights: Array<{
+        group_id: string | null;
+        new_group: { name: string; emoji: string; description: string; color: string } | null;
+        content: string;
+      }> };
+
+      try {
+        let jsonStr = result.content.trim();
+        const fenceMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (fenceMatch) {
+          jsonStr = fenceMatch[1].trim();
+        }
+        parsed = JSON.parse(jsonStr);
+      } catch {
+        console.error("Failed to parse insight extraction response:", result.content);
+        useSessionStore.getState().setExtractingInsights(false);
+        useSessionStore.getState().setInsightExtractionError(true);
+        return;
+      }
+
+      if (!parsed.insights || !Array.isArray(parsed.insights)) {
+        useSessionStore.getState().setExtractingInsights(false);
+        return;
+      }
+
+      const extractedInsights: ExtractedInsight[] = parsed.insights
+        .filter((i) => i.content && i.content.trim().length > 0)
+        .map((i) => {
+          const existingGroup = i.group_id
+            ? existingGroups.find((g) => g.id === i.group_id)
+            : null;
+          return {
+            id: crypto.randomUUID(),
+            group_id: i.group_id,
+            new_group: i.new_group,
+            content: i.content.trim(),
+            group_name: existingGroup?.name ?? i.new_group?.name,
+            group_emoji: existingGroup?.emoji ?? i.new_group?.emoji,
+          };
+        });
+
+      useSessionStore.getState().setExtractedInsights(extractedInsights);
+      useSessionStore.getState().setExtractingInsights(false);
+    } catch (err) {
+      console.error("Insight extraction failed:", err);
+      useSessionStore.getState().setExtractingInsights(false);
+      useSessionStore.getState().setInsightExtractionError(true);
+    }
+  }, [settings, language]);
+
+  // Trigger insight extraction when summary streaming finishes
+  const prevIsSummaryStreaming = useRef(session.isSummaryStreaming);
+  useEffect(() => {
+    if (prevIsSummaryStreaming.current && !session.isSummaryStreaming && session.status === "post" && session.summary) {
+      const endState = useSessionStore.getState();
+      const msgs = getEffectiveMessages(endState.messages, endState.compactedContext, endState.compactedAtIndex);
+      extractInsights(msgs);
+    }
+    prevIsSummaryStreaming.current = session.isSummaryStreaming;
+  }, [session.isSummaryStreaming, session.status, session.summary, extractInsights]);
+
   const handleEndSession = useCallback(async () => {
     const { isStreaming } = useSessionStore.getState();
     if (isStreaming) return;
@@ -463,6 +567,38 @@ export default function SessionPage() {
         summary_narrative: state.summaryNarrative || undefined,
       });
     }
+
+    // Persist extracted insights
+    const insightsToSave = state.extractedInsights;
+    if (insightsToSave.length > 0) {
+      const newGroupIdMap = new Map<string, string>();
+      for (const insight of insightsToSave) {
+        let targetGroupId = insight.group_id;
+
+        if (!targetGroupId && insight.new_group) {
+          const groupKey = insight.new_group.name;
+          if (newGroupIdMap.has(groupKey)) {
+            targetGroupId = newGroupIdMap.get(groupKey)!;
+          } else {
+            targetGroupId = await createInsightGroup({
+              name: insight.new_group.name,
+              emoji: insight.new_group.emoji,
+              description: insight.new_group.description,
+              color: insight.new_group.color,
+            });
+            newGroupIdMap.set(groupKey, targetGroupId);
+          }
+        }
+
+        if (targetGroupId) {
+          await createInsight({
+            group_id: targetGroupId,
+            content: insight.content,
+          });
+        }
+      }
+    }
+
     session.reset();
     setSidebarHidden(false);
     setSaving(false);
@@ -626,6 +762,10 @@ export default function SessionPage() {
           isSummaryStreaming={session.isSummaryStreaming}
           onSave={handleSaveAndClose}
           saving={saving}
+          extractedInsights={session.extractedInsights}
+          isExtractingInsights={session.isExtractingInsights}
+          insightExtractionError={session.insightExtractionError}
+          onRemoveInsight={(id) => useSessionStore.getState().removeExtractedInsight(id)}
         />
         <ErrorModal
           isOpen={errorModalInfo !== null}

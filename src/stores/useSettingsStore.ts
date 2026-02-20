@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { getProvider } from "@/constants/providers";
-import type { AIProvider, Approach, Language, TherapySchool, ThinkingLevel, ThinkingType, TTSModel, TTSVoice } from "@/types";
+import type { AIProvider, Approach, Language, SessionMode, TherapySchool, ThinkingLevel, ThinkingType, TTSModel, TTSVoice } from "@/types";
 
 interface SettingsState {
   language: Language;
@@ -25,6 +25,7 @@ interface SettingsState {
   transcriptApiKey: string;
   ttsModel: TTSModel;
   ttsVoice: TTSVoice;
+  preferredSessionMode: SessionMode;
   setLanguage: (language: Language) => void;
   setProvider: (provider: AIProvider) => void;
   setApiKey: (key: string) => void;
@@ -44,6 +45,7 @@ interface SettingsState {
   setTranscriptApiKey: (key: string) => void;
   setTtsModel: (model: TTSModel) => void;
   setTtsVoice: (voice: TTSVoice) => void;
+  setPreferredSessionMode: (mode: SessionMode) => void;
   loadFromStore: (data: Partial<SettingsState>) => void;
 }
 
@@ -70,6 +72,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   transcriptApiKey: "",
   ttsModel: "tts-1",
   ttsVoice: "alloy",
+  preferredSessionMode: "chat",
   setLanguage: (language) => set({ language }),
   setProvider: (provider) => {
     const state = get();
@@ -148,5 +151,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setTranscriptApiKey: (transcriptApiKey) => set({ transcriptApiKey }),
   setTtsModel: (ttsModel) => set({ ttsModel }),
   setTtsVoice: (ttsVoice) => set({ ttsVoice }),
+  setPreferredSessionMode: (preferredSessionMode) => set({ preferredSessionMode }),
   loadFromStore: (data) => set(data),
 }));

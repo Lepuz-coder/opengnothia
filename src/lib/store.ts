@@ -28,6 +28,7 @@ const STORE_DEFAULTS = {
   transcriptApiKey: "",
   ttsModel: "tts-1",
   ttsVoice: "alloy",
+  preferredSessionMode: "chat",
   customSchools: [] as any[],
   promptOverrides: {} as Record<string, string>,
 };

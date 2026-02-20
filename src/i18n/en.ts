@@ -243,6 +243,12 @@ export const en: Translations = {
     permanentlyDelete: "Permanently Delete",
     connectionSuccess: "Connection successful",
     connectionFailed: "Connection failed",
+    tabs: {
+      general: "General",
+      ai: "AI",
+      voice: "Voice",
+      security: "Security",
+    },
   },
   onboarding: {
     welcome: "Welcome",
@@ -472,7 +478,9 @@ export const en: Translations = {
     voicePreview: "Preview",
     previewText: "Hello, I'm here to listen and support you. How are you feeling today?",
     voiceConversation: "Voice Conversation",
+    voiceDescription: "Have a natural conversation by speaking. Requires microphone and speakers.",
     chatConversation: "Chat Conversation",
+    chatDescription: "Communicate by typing your messages. Express your thoughts at your own pace.",
     modeSelection: "Session Mode",
     modeSelectionDescription: "Choose how you want to communicate during the session.",
     synthesizing: "Generating speech...",
@@ -489,6 +497,9 @@ export const en: Translations = {
     confirmTranscript: "Check your message",
     confirmAndSend: "Confirm & Send",
     retryRecording: "Re-record",
+    apiKeyErrorTitle: "Voice Connection Error",
+    apiKeyError: "The OpenAI API key for voice features is invalid or missing. Please check your voice settings.",
+    goToVoiceSettings: "Voice Settings",
   },
   placeholder: {
     featureComingSoon: "This feature is coming soon.",

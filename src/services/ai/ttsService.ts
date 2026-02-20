@@ -11,6 +11,30 @@ export interface TTSResult {
   characterCount: number;
 }
 
+export async function testTranscriptApiKey(apiKey: string): Promise<{ success: boolean; statusCode?: number }> {
+  try {
+    const response = await fetch("https://api.openai.com/v1/audio/speech", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "tts-1",
+        voice: "alloy",
+        input: "test",
+        response_format: "mp3",
+      }),
+    });
+    if (!response.ok) {
+      return { success: false, statusCode: response.status };
+    }
+    return { success: true };
+  } catch {
+    return { success: false };
+  }
+}
+
 export async function synthesizeSpeech(
   text: string,
   apiKey: string,

@@ -9,6 +9,7 @@ interface ErrorModalProps {
   title: string;
   message: string;
   showSettingsLink: boolean;
+  settingsButtonLabel?: string;
   onGoToSettings?: () => void;
 }
 
@@ -18,6 +19,7 @@ export function ErrorModal({
   title,
   message,
   showSettingsLink,
+  settingsButtonLabel,
   onGoToSettings,
 }: ErrorModalProps) {
   const { t } = useTranslation();
@@ -36,7 +38,7 @@ export function ErrorModal({
       <div className="flex gap-3 justify-end">
         {showSettingsLink && onGoToSettings && (
           <Button variant="secondary" onClick={onGoToSettings}>
-            {t.session.goToSettings}
+            {settingsButtonLabel || t.session.goToSettings}
           </Button>
         )}
         <Button variant="secondary" onClick={onClose}>

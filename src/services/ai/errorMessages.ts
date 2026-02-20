@@ -5,6 +5,7 @@ export interface ErrorDisplayInfo {
   title: string;
   message: string;
   showSettingsLink: boolean;
+  settingsButtonLabel?: string;
 }
 
 export function getErrorDisplayInfo(

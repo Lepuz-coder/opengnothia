@@ -884,6 +884,7 @@ export default function SessionPage() {
         onSend={handleSendMessage}
         disabled={session.isLoading || session.isStreaming || session.isCompacting}
         recordingState={recorder.state}
+        audioLevel={recorder.audioLevel}
         onMicClick={handleMicClick}
         onMicStop={handleMicStop}
       />

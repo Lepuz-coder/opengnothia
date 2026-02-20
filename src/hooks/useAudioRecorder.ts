@@ -1,11 +1,48 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 export type RecordingState = "idle" | "recording" | "transcribing";
 
 export function useAudioRecorder() {
   const [state, setState] = useState<RecordingState>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [audioLevel, setAudioLevel] = useState(0);
+  const smoothedRef = useRef(0);
+
+  // Listen for audio-level events while recording
+  useEffect(() => {
+    if (state !== "recording") {
+      smoothedRef.current = 0;
+      setAudioLevel(0);
+      return;
+    }
+
+    let active = true;
+    let unlisten: (() => void) | undefined;
+
+    listen<number>("audio-level", (event) => {
+      if (!active) return;
+      const raw = event.payload;
+      const prev = smoothedRef.current;
+      // Asymmetric smoothing: fast attack, slow release
+      const factor = raw > prev ? 0.45 : 0.25;
+      const smoothed = prev * (1 - factor) + raw * factor;
+      smoothedRef.current = smoothed;
+      setAudioLevel(smoothed);
+    }).then((fn) => {
+      if (active) {
+        unlisten = fn;
+      } else {
+        fn(); // Already unmounted, clean up immediately
+      }
+    });
+
+    return () => {
+      active = false;
+      unlisten?.();
+    };
+  }, [state]);
 
   const startRecording = useCallback(async () => {
     try {
@@ -42,6 +79,7 @@ export function useAudioRecorder() {
     setState,
     error,
     setError,
+    audioLevel,
     startRecording,
     stopRecording,
     cancelRecording,

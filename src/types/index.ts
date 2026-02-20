@@ -162,7 +162,7 @@ export interface TokenUsageRecord {
   input_tokens: number;
   output_tokens: number;
   cost: number;
-  call_type: "greeting" | "chat" | "recommendation" | "summary" | "patient_notes" | "dream_analysis" | "journal_analysis" | "compaction" | "weekly_summary" | "insight_extraction";
+  call_type: "greeting" | "chat" | "recommendation" | "summary" | "patient_notes" | "dream_analysis" | "journal_analysis" | "compaction" | "weekly_summary" | "insight_extraction" | "stt";
   created_at: string;
 }
 

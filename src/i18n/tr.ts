@@ -316,6 +316,7 @@ export const tr: Translations = {
       journal_analysis: "Günlük Analizi",
       weekly_summary: "Haftalık Özet",
       insight_extraction: "İçgörü Çıkarımı",
+      stt: "Ses Transkripsiyonu",
     },
   },
   programs: {

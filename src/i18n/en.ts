@@ -316,6 +316,7 @@ export const en: Translations = {
       journal_analysis: "Journal Analysis",
       weekly_summary: "Weekly Summary",
       insight_extraction: "Insight Extraction",
+      stt: "Voice Transcription",
     },
   },
   programs: {

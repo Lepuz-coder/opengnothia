@@ -312,6 +312,7 @@ export interface Translations {
       journal_analysis: string;
       weekly_summary: string;
       insight_extraction: string;
+      stt: string;
     };
   };
   programs: {

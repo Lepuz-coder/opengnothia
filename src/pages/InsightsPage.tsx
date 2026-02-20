@@ -733,7 +733,7 @@ export default function InsightsPage() {
           {filteredGroups.map((group) => (
             <div key={group.id}>
               <Card
-                className="cursor-pointer hover:border-[var(--text-muted)] transition-all duration-200 relative overflow-hidden"
+                className="cursor-pointer hover:border-[var(--text-muted)] transition-all duration-200 relative overflow-hidden h-full"
                 onClick={() => handleGroupClick(group)}
               >
                 {/* Color accent bar */}
@@ -741,7 +741,7 @@ export default function InsightsPage() {
                   className="absolute left-0 top-0 bottom-0 w-1"
                   style={{ backgroundColor: group.color }}
                 />
-                <div className="pl-2">
+                <div className="pl-2 flex flex-col h-full">
                   {/* Header */}
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2 min-w-0">
@@ -756,14 +756,12 @@ export default function InsightsPage() {
                   </div>
 
                   {/* Description */}
-                  {group.description && (
-                    <p className="text-sm text-[var(--text-secondary)] line-clamp-2 mb-3">
-                      {group.description}
-                    </p>
-                  )}
+                  <p className="text-sm text-[var(--text-secondary)] line-clamp-2 mb-3 flex-1">
+                    {group.description || "\u00A0"}
+                  </p>
 
                   {/* Footer */}
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mt-auto">
                     <span className="text-xs text-[var(--text-muted)]">
                       {group.last_insight_at
                         ? formatRelativeTime(group.last_insight_at, t.common, locale)

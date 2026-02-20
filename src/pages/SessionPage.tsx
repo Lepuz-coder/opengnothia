@@ -479,14 +479,26 @@ export default function SessionPage() {
       recorder.setState("transcribing");
 
       const transcriptApiKey = useSettingsStore.getState().transcriptApiKey;
-      const text = await transcribeAudio(audioBlob, transcriptApiKey, language);
+      const result = await transcribeAudio(audioBlob, transcriptApiKey, language);
 
-      if (text.trim()) {
-        chatInputRef.current?.insertText(text);
+      if (result.text.trim()) {
+        chatInputRef.current?.insertText(result.text);
       } else {
         recorder.setError(t.transcript.emptyTranscription);
         setTimeout(() => recorder.setError(null), 3000);
       }
+
+      // Track STT cost
+      const sessionId = useSessionStore.getState().sessionId;
+      await saveTokenUsage({
+        session_id: sessionId,
+        provider: "openai",
+        model: "whisper-1",
+        input_tokens: 0,
+        output_tokens: 0,
+        cost: result.cost,
+        call_type: "stt",
+      });
 
       recorder.setState("idle");
     } catch {

@@ -58,6 +58,7 @@ function AppContent() {
         const memoryThinkingLevel = await store.get<string>("memoryThinkingLevel");
         const memoryThinkingType = await store.get<string>("memoryThinkingType");
         const providerMemoryThinkingSettings = await store.get<Record<string, { enabled: boolean; level: string; type?: string }>>("providerMemoryThinkingSettings");
+        const transcriptApiKey = await store.get<string>("transcriptApiKey");
 
         // Load schools data
         const customSchools = await store.get<any[]>("customSchools");
@@ -101,6 +102,7 @@ function AppContent() {
           ...(memoryThinkingLevel && { memoryThinkingLevel: memoryThinkingLevel as any }),
           ...(memoryThinkingType && { memoryThinkingType: memoryThinkingType as any }),
           ...(providerMemoryThinkingSettings && { providerMemoryThinkingSettings: providerMemoryThinkingSettings as any }),
+          ...(transcriptApiKey && { transcriptApiKey }),
         });
       } catch {
         // Store not available yet, use defaults

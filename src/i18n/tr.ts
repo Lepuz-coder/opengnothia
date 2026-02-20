@@ -122,6 +122,11 @@ export const tr: Translations = {
       "Sonuçlandırılıyor...",
     ],
     newGroup: "Yeni",
+    addInsight: "İçgörü Ekle",
+    insightPlaceholder: "İçgörünüzü yazın...",
+    newGroupName: "Grup adı",
+    selectGroupForInsight: "Grup seçin",
+    createNewGroup: "+ Yeni Grup",
   },
   journal: {
     title: "Günlük",

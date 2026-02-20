@@ -766,6 +766,8 @@ export default function SessionPage() {
           isExtractingInsights={session.isExtractingInsights}
           insightExtractionError={session.insightExtractionError}
           onRemoveInsight={(id) => useSessionStore.getState().removeExtractedInsight(id)}
+          onUpdateInsight={(id, content) => useSessionStore.getState().updateExtractedInsight(id, content)}
+          onAddInsight={(insight) => useSessionStore.getState().addExtractedInsight(insight)}
         />
         <ErrorModal
           isOpen={errorModalInfo !== null}

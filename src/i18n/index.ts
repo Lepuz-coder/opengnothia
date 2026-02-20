@@ -118,6 +118,11 @@ export interface Translations {
     insightExtractionError: string;
     insightSteps: string[];
     newGroup: string;
+    addInsight: string;
+    insightPlaceholder: string;
+    newGroupName: string;
+    selectGroupForInsight: string;
+    createNewGroup: string;
   };
   journal: {
     title: string;

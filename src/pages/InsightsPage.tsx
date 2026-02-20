@@ -33,16 +33,7 @@ import {
   Check,
 } from "lucide-react";
 import type { InsightGroup, Insight } from "@/types";
-
-const EMOJI_PRESETS = [
-  "💡", "🧠", "❤️", "🌟", "⭐", "🔥", "💪", "🎯", "📝", "🌈",
-  "🦋", "🌱", "🔑", "💎", "🧩", "🎨", "🌊", "☀️", "🌙", "🕊️",
-];
-
-const COLOR_PRESETS = [
-  "#3ABAB4", "#E8A838", "#6366F1", "#EC4899", "#10B981",
-  "#F43F5E", "#8B5CF6", "#F97316", "#06B6D4", "#84CC16",
-];
+import { EMOJI_PRESETS, COLOR_PRESETS } from "@/constants/insightPresets";
 
 function formatRelativeTime(dateStr: string, t: Translations["common"], locale: string): string {
   const date = new Date(dateStr.includes("T") ? dateStr : dateStr + "Z");

@@ -56,6 +56,8 @@ interface SessionState {
   setExtractingInsights: (loading: boolean) => void;
   setInsightExtractionError: (error: boolean) => void;
   removeExtractedInsight: (id: string) => void;
+  updateExtractedInsight: (id: string, content: string) => void;
+  addExtractedInsight: (insight: ExtractedInsight) => void;
 }
 
 function generateId() {
@@ -262,4 +264,10 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   setInsightExtractionError: (insightExtractionError) => set({ insightExtractionError }),
   removeExtractedInsight: (id) =>
     set((s) => ({ extractedInsights: s.extractedInsights.filter((i) => i.id !== id) })),
+  updateExtractedInsight: (id, content) =>
+    set((s) => ({
+      extractedInsights: s.extractedInsights.map((i) => (i.id === id ? { ...i, content } : i)),
+    })),
+  addExtractedInsight: (insight) =>
+    set((s) => ({ extractedInsights: [...s.extractedInsights, insight] })),
 }));

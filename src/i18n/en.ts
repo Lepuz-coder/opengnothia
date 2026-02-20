@@ -122,6 +122,11 @@ export const en: Translations = {
       "Finalizing...",
     ],
     newGroup: "New",
+    addInsight: "Add Insight",
+    insightPlaceholder: "Write your insight...",
+    newGroupName: "Group name",
+    selectGroupForInsight: "Select group",
+    createNewGroup: "+ New Group",
   },
   journal: {
     title: "Journal",

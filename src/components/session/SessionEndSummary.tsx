@@ -3,9 +3,12 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Loader2, Lightbulb, X } from "lucide-react";
+import { Loader2, Lightbulb, X, Pencil, Plus, Check } from "lucide-react";
 import { useTranslation } from "@/i18n";
-import type { ExtractedInsight } from "@/types";
+import { cn } from "@/lib/cn";
+import { getInsightGroups } from "@/services/db/queries";
+import { EMOJI_PRESETS, COLOR_PRESETS } from "@/constants/insightPresets";
+import type { ExtractedInsight, InsightGroup } from "@/types";
 
 interface SessionEndSummaryProps {
   summaryNarrative: string;
@@ -16,6 +19,8 @@ interface SessionEndSummaryProps {
   isExtractingInsights: boolean;
   insightExtractionError: boolean;
   onRemoveInsight: (id: string) => void;
+  onUpdateInsight: (id: string, content: string) => void;
+  onAddInsight: (insight: ExtractedInsight) => void;
 }
 
 function groupInsightsForDisplay(insights: ExtractedInsight[]) {
@@ -44,6 +49,19 @@ function groupInsightsForDisplay(insights: ExtractedInsight[]) {
   return Array.from(grouped.values());
 }
 
+/** Collect unique new groups from extracted insights (for the group selector). */
+function getNewGroupsFromInsights(insights: ExtractedInsight[]) {
+  const seen = new Set<string>();
+  const result: { name: string; emoji: string; description: string; color: string }[] = [];
+  for (const i of insights) {
+    if (i.new_group && !seen.has(i.new_group.name)) {
+      seen.add(i.new_group.name);
+      result.push(i.new_group);
+    }
+  }
+  return result;
+}
+
 export function SessionEndSummary({
   summaryNarrative,
   isSummaryStreaming,
@@ -53,6 +71,8 @@ export function SessionEndSummary({
   isExtractingInsights,
   insightExtractionError,
   onRemoveInsight,
+  onUpdateInsight,
+  onAddInsight,
 }: SessionEndSummaryProps) {
   const { t } = useTranslation();
 
@@ -79,6 +99,127 @@ export function SessionEndSummary({
   for (let i = stepThresholds.length - 1; i >= 0; i--) {
     if (progress >= stepThresholds[i]) { stepIndex = i; break; }
   }
+
+  // Inline editing state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState("");
+
+  // Add insight state
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [dbGroups, setDbGroups] = useState<InsightGroup[]>([]);
+  const [dbGroupsLoaded, setDbGroupsLoaded] = useState(false);
+  const [addGroupSelection, setAddGroupSelection] = useState<string>(""); // group_id, "new:GroupName", or "__create__"
+  const [addContent, setAddContent] = useState("");
+
+  // New group creation state (inside add form)
+  const [newGroupName, setNewGroupName] = useState("");
+  const [newGroupEmoji, setNewGroupEmoji] = useState("💡");
+  const [newGroupDescription, setNewGroupDescription] = useState("");
+  const [newGroupColor, setNewGroupColor] = useState("#3ABAB4");
+
+  const loadDbGroups = async () => {
+    if (dbGroupsLoaded) return [];
+    try {
+      const groups = await getInsightGroups();
+      setDbGroups(groups);
+      setDbGroupsLoaded(true);
+      return groups;
+    } catch {
+      setDbGroupsLoaded(true);
+      return [];
+    }
+  };
+
+  const selectFirstGroup = (groups: InsightGroup[]) => {
+    const sessionNewGroups = getNewGroupsFromInsights(extractedInsights);
+    if (groups.length > 0) {
+      setAddGroupSelection(groups[0].id);
+    } else if (sessionNewGroups.length > 0) {
+      setAddGroupSelection(`new:${sessionNewGroups[0].name}`);
+    } else {
+      setAddGroupSelection("__create__");
+    }
+  };
+
+  const openAddForm = async () => {
+    setShowAddForm(true);
+    setAddContent("");
+    resetNewGroup();
+    if (dbGroupsLoaded) {
+      selectFirstGroup(dbGroups);
+    } else {
+      const groups = await loadDbGroups();
+      selectFirstGroup(groups);
+    }
+  };
+
+  const resetNewGroup = () => {
+    setNewGroupName("");
+    setNewGroupEmoji("💡");
+    setNewGroupDescription("");
+    setNewGroupColor("#3ABAB4");
+  };
+
+  const handleSaveEdit = (id: string) => {
+    if (!editContent.trim()) return;
+    onUpdateInsight(id, editContent.trim());
+    setEditingId(null);
+  };
+
+  const handleAddInsight = () => {
+    if (!addContent.trim()) return;
+
+    const isCreatingNew = addGroupSelection === "__create__";
+    const isSessionNewGroup = addGroupSelection.startsWith("new:");
+
+    if (isCreatingNew) {
+      if (!newGroupName.trim()) return;
+      const newGroup = {
+        name: newGroupName.trim(),
+        emoji: newGroupEmoji,
+        description: newGroupDescription.trim(),
+        color: newGroupColor,
+      };
+      onAddInsight({
+        id: crypto.randomUUID(),
+        group_id: null,
+        new_group: newGroup,
+        content: addContent.trim(),
+        group_name: newGroup.name,
+        group_emoji: newGroup.emoji,
+      });
+    } else if (isSessionNewGroup) {
+      const groupName = addGroupSelection.slice(4); // remove "new:"
+      const sessionGroups = getNewGroupsFromInsights(extractedInsights);
+      const existingNewGroup = sessionGroups.find((g) => g.name === groupName);
+      onAddInsight({
+        id: crypto.randomUUID(),
+        group_id: null,
+        new_group: existingNewGroup ?? { name: groupName, emoji: "💡", description: "", color: "#3ABAB4" },
+        content: addContent.trim(),
+        group_name: groupName,
+        group_emoji: existingNewGroup?.emoji ?? "💡",
+      });
+    } else {
+      // Existing DB group
+      const dbGroup = dbGroups.find((g) => g.id === addGroupSelection);
+      onAddInsight({
+        id: crypto.randomUUID(),
+        group_id: addGroupSelection,
+        new_group: null,
+        content: addContent.trim(),
+        group_name: dbGroup?.name,
+        group_emoji: dbGroup?.emoji,
+      });
+    }
+
+    setAddContent("");
+    setShowAddForm(false);
+    resetNewGroup();
+  };
+
+  const newGroupsFromSession = getNewGroupsFromInsights(extractedInsights);
+  const isCreatingNewGroup = addGroupSelection === "__create__";
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 p-8">
@@ -116,7 +257,7 @@ export function SessionEndSummary({
       </Card>
 
       {/* Extracted insights */}
-      {(isExtractingInsights || extractedInsights.length > 0 || insightExtractionError) && (
+      {(isExtractingInsights || extractedInsights.length > 0 || insightExtractionError || showAddForm) && (
         <Card>
           <h3 className="font-semibold mb-3 flex items-center gap-2">
             <Lightbulb className="w-4 h-4" />
@@ -143,40 +284,197 @@ export function SessionEndSummary({
               {t.session.insightExtractionError}
             </p>
           ) : (
-            <div className="space-y-4">
-              {groupInsightsForDisplay(extractedInsights).map((group) => (
-                <div key={group.key} className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">{group.emoji}</span>
-                    <span className="text-sm font-medium text-[var(--text-primary)]">
-                      {group.name}
-                    </span>
-                    {group.isNew && (
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-primary-500/10 text-primary-400">
-                        {t.session.newGroup}
+            <>
+              <div className="space-y-4">
+                {groupInsightsForDisplay(extractedInsights).map((group) => (
+                  <div key={group.key} className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">{group.emoji}</span>
+                      <span className="text-sm font-medium text-[var(--text-primary)]">
+                        {group.name}
                       </span>
-                    )}
-                  </div>
-                  {group.insights.map((insight) => (
-                    <div
-                      key={insight.id}
-                      className="flex items-start gap-2 pl-7 group"
-                    >
-                      <p className="flex-1 text-sm text-[var(--text-secondary)] leading-relaxed">
-                        {insight.content}
-                      </p>
-                      <button
-                        onClick={() => onRemoveInsight(insight.id)}
-                        className="flex-shrink-0 p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-500/10 transition-all"
-                        title={t.common.delete}
-                      >
-                        <X className="w-3.5 h-3.5 text-red-400" />
-                      </button>
+                      {group.isNew && (
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-primary-500/10 text-primary-400">
+                          {t.session.newGroup}
+                        </span>
+                      )}
                     </div>
-                  ))}
+                    {group.insights.map((insight) => (
+                      <div key={insight.id} className="pl-7">
+                        {editingId === insight.id ? (
+                          <div className="space-y-2">
+                            <textarea
+                              value={editContent}
+                              onChange={(e) => setEditContent(e.target.value)}
+                              className="w-full bg-[var(--bg-primary)] rounded-xl border border-[var(--border-color)] p-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 min-h-[80px]"
+                              autoFocus
+                            />
+                            <div className="flex justify-end gap-2">
+                              <Button variant="secondary" size="sm" onClick={() => setEditingId(null)}>
+                                {t.common.cancel}
+                              </Button>
+                              <Button size="sm" onClick={() => handleSaveEdit(insight.id)} disabled={!editContent.trim()}>
+                                {t.common.save}
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-start gap-2 group/insight">
+                            <p className="flex-1 text-sm text-[var(--text-secondary)] leading-relaxed">
+                              {insight.content}
+                            </p>
+                            <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover/insight:opacity-100 transition-all">
+                              <button
+                                onClick={() => {
+                                  setEditingId(insight.id);
+                                  setEditContent(insight.content);
+                                }}
+                                className="p-1 rounded-lg hover:bg-[var(--bg-tertiary)] transition-all"
+                                title={t.common.edit}
+                              >
+                                <Pencil className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                              </button>
+                              <button
+                                onClick={() => onRemoveInsight(insight.id)}
+                                className="p-1 rounded-lg hover:bg-red-500/10 transition-all"
+                                title={t.common.delete}
+                              >
+                                <X className="w-3.5 h-3.5 text-red-400" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+
+              {/* Add insight form */}
+              {showAddForm ? (
+                <div className="mt-4 p-4 bg-[var(--bg-primary)] rounded-xl border border-[var(--border-color)] space-y-3">
+                  {/* Group selector */}
+                  {!isCreatingNewGroup ? (
+                    <div>
+                      <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">
+                        {t.session.selectGroupForInsight}
+                      </label>
+                      <div className="flex gap-2">
+                        <select
+                          value={addGroupSelection}
+                          onChange={(e) => setAddGroupSelection(e.target.value)}
+                          className="flex-1 appearance-none rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
+                        >
+                          {dbGroups.map((g) => (
+                            <option key={g.id} value={g.id}>
+                              {g.emoji} {g.name}
+                            </option>
+                          ))}
+                          {newGroupsFromSession.map((g) => (
+                            <option key={`new:${g.name}`} value={`new:${g.name}`}>
+                              {g.emoji} {g.name} ✦
+                            </option>
+                          ))}
+                          <option value="__create__">{t.session.createNewGroup}</option>
+                        </select>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 p-3 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-color)]">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-[var(--text-primary)]">
+                          {t.session.createNewGroup}
+                        </span>
+                        <button
+                          onClick={() => {
+                            // go back to selector if we have options
+                            if (dbGroups.length > 0) {
+                              setAddGroupSelection(dbGroups[0].id);
+                            } else if (newGroupsFromSession.length > 0) {
+                              setAddGroupSelection(`new:${newGroupsFromSession[0].name}`);
+                            }
+                            resetNewGroup();
+                          }}
+                          className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        value={newGroupName}
+                        onChange={(e) => setNewGroupName(e.target.value)}
+                        placeholder={t.session.newGroupName}
+                        className="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
+                        autoFocus
+                      />
+                      <div className="flex flex-wrap gap-1.5">
+                        {EMOJI_PRESETS.slice(0, 10).map((emoji) => (
+                          <button
+                            key={emoji}
+                            onClick={() => setNewGroupEmoji(emoji)}
+                            className={cn(
+                              "w-8 h-8 rounded-lg flex items-center justify-center text-base transition-all",
+                              newGroupEmoji === emoji
+                                ? "bg-primary-500/20 ring-2 ring-primary-500"
+                                : "bg-[var(--bg-primary)] hover:bg-[var(--bg-tertiary)]"
+                            )}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {COLOR_PRESETS.map((color) => (
+                          <button
+                            key={color}
+                            onClick={() => setNewGroupColor(color)}
+                            className={cn(
+                              "w-6 h-6 rounded-full transition-all",
+                              newGroupColor === color
+                                ? "ring-2 ring-offset-2 ring-offset-[var(--bg-secondary)]"
+                                : "hover:scale-110"
+                            )}
+                            style={{ backgroundColor: color }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Content */}
+                  <textarea
+                    value={addContent}
+                    onChange={(e) => setAddContent(e.target.value)}
+                    placeholder={t.session.insightPlaceholder}
+                    className="w-full bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-color)] px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all resize-none min-h-[80px]"
+                  />
+
+                  {/* Actions */}
+                  <div className="flex justify-end gap-2">
+                    <Button variant="secondary" size="sm" onClick={() => { setShowAddForm(false); resetNewGroup(); }}>
+                      {t.common.cancel}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={handleAddInsight}
+                      disabled={!addContent.trim() || (isCreatingNewGroup && !newGroupName.trim())}
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      {t.common.add}
+                    </Button>
+                  </div>
                 </div>
-              ))}
-            </div>
+              ) : (
+                <button
+                  onClick={openAddForm}
+                  className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-[var(--border-color)] text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--text-muted)] transition-all"
+                >
+                  <Plus className="w-4 h-4" />
+                  {t.session.addInsight}
+                </button>
+              )}
+            </>
           )}
         </Card>
       )}

@@ -26,6 +26,8 @@ const STORE_DEFAULTS = {
   passwordHint: "",
   biometricEnabled: false,
   transcriptApiKey: "",
+  ttsModel: "tts-1",
+  ttsVoice: "alloy",
   customSchools: [] as any[],
   promptOverrides: {} as Record<string, string>,
 };

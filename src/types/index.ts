@@ -6,6 +6,9 @@ export type ThinkingLevel = "low" | "medium" | "high" | "max";
 export type ThinkingType = "adaptive" | "budget";
 export type AIProvider = "openai" | "anthropic";
 export type TherapySchool = string;
+export type TTSModel = "tts-1" | "tts-1-hd";
+export type TTSVoice = "alloy" | "ash" | "ballad" | "coral" | "echo" | "fable" | "nova" | "onyx" | "sage" | "shimmer";
+export type SessionMode = "chat" | "voice";
 
 export interface UserProfile {
   id: number;
@@ -162,7 +165,7 @@ export interface TokenUsageRecord {
   input_tokens: number;
   output_tokens: number;
   cost: number;
-  call_type: "greeting" | "chat" | "recommendation" | "summary" | "patient_notes" | "dream_analysis" | "journal_analysis" | "compaction" | "weekly_summary" | "insight_extraction" | "stt";
+  call_type: "greeting" | "chat" | "recommendation" | "summary" | "patient_notes" | "dream_analysis" | "journal_analysis" | "compaction" | "weekly_summary" | "insight_extraction" | "stt" | "tts";
   created_at: string;
 }
 

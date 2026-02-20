@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { ChatMessage, SessionStatus, SessionSummary, ExtractedInsight } from "@/types";
+import type { ChatMessage, SessionStatus, SessionSummary, ExtractedInsight, SessionMode } from "@/types";
 
 interface SessionState {
   status: SessionStatus;
@@ -23,6 +23,7 @@ interface SessionState {
   extractedInsights: ExtractedInsight[];
   isExtractingInsights: boolean;
   insightExtractionError: boolean;
+  sessionMode: SessionMode;
 
   setStatus: (status: SessionStatus) => void;
   startSession: (moodBefore: number) => void;
@@ -58,6 +59,7 @@ interface SessionState {
   removeExtractedInsight: (id: string) => void;
   updateExtractedInsight: (id: string, content: string) => void;
   addExtractedInsight: (insight: ExtractedInsight) => void;
+  setSessionMode: (mode: SessionMode) => void;
 }
 
 function generateId() {
@@ -86,6 +88,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   extractedInsights: [],
   isExtractingInsights: false,
   insightExtractionError: false,
+  sessionMode: "chat",
 
   setStatus: (status) => set({ status }),
 
@@ -142,6 +145,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       extractedInsights: [],
       isExtractingInsights: false,
       insightExtractionError: false,
+      sessionMode: "chat",
     }),
 
   startStreaming: () => {
@@ -270,4 +274,5 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     })),
   addExtractedInsight: (insight) =>
     set((s) => ({ extractedInsights: [...s.extractedInsights, insight] })),
+  setSessionMode: (sessionMode) => set({ sessionMode }),
 }));

@@ -22,7 +22,7 @@ const MIN_HEIGHT = 6;
 const MAX_HEIGHT = 32;
 const LEVEL_SCALE = 8;
 
-function RecordingWave({ audioLevel = 0 }: { audioLevel: number }) {
+export function RecordingWave({ audioLevel = 0 }: { audioLevel: number }) {
   const barsRef = useRef<HTMLDivElement>(null);
   const targetRef = useRef(0);
   const currentRef = useRef(0);
@@ -81,7 +81,7 @@ function RecordingWave({ audioLevel = 0 }: { audioLevel: number }) {
   );
 }
 
-function RecordingTimer() {
+export function RecordingTimer() {
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {

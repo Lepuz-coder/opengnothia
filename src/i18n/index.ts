@@ -313,6 +313,7 @@ export interface Translations {
       weekly_summary: string;
       insight_extraction: string;
       stt: string;
+      tts: string;
     };
   };
   programs: {
@@ -457,6 +458,33 @@ export interface Translations {
     microphoneError: string;
     transcriptionError: string;
     emptyTranscription: string;
+  };
+  voice: {
+    title: string;
+    description: string;
+    ttsModel: string;
+    ttsModelDescription: string;
+    voiceSelect: string;
+    voicePreview: string;
+    previewText: string;
+    voiceConversation: string;
+    chatConversation: string;
+    modeSelection: string;
+    modeSelectionDescription: string;
+    synthesizing: string;
+    playing: string;
+    listening: string;
+    transcribing: string;
+    stopVoice: string;
+    pauseVoice: string;
+    resumeVoice: string;
+    switchToChat: string;
+    ttsError: string;
+    voicePaused: string;
+    sendRecording: string;
+    confirmTranscript: string;
+    confirmAndSend: string;
+    retryRecording: string;
   };
   placeholder: {
     featureComingSoon: string;

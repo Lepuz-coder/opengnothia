@@ -13,6 +13,10 @@ import { Select } from "@/components/ui/Select";
 import { Toggle } from "@/components/ui/Toggle";
 import { ChatContainer } from "@/components/chat/ChatContainer";
 import { ChatInput } from "@/components/chat/ChatInput";
+import type { ChatInputHandle } from "@/components/chat/ChatInput";
+import { TranscriptApiKeyModal } from "@/components/chat/TranscriptApiKeyModal";
+import { useAudioRecorder } from "@/hooks/useAudioRecorder";
+import { transcribeAudio } from "@/services/ai/transcriptionService";
 import { SessionTimer } from "@/components/chat/SessionTimer";
 import { SessionEndSummary } from "@/components/session/SessionEndSummary";
 import { PastSessionsList } from "@/components/session/PastSessionsList";
@@ -88,6 +92,9 @@ export default function SessionPage() {
   const pastSessionsRef = useRef<PastSessionsListHandle>(null);
   const [weekSummaryInfo, setWeekSummaryInfo] = useState<WeekSummaryInfo>({ weekSessionCount: 0, hasWeeklySummary: false, summaryLoading: false, generating: false });
   const [errorModalInfo, setErrorModalInfo] = useState<ErrorDisplayInfo | null>(null);
+  const [transcriptKeyModalOpen, setTranscriptKeyModalOpen] = useState(false);
+  const chatInputRef = useRef<ChatInputHandle>(null);
+  const recorder = useAudioRecorder();
   const isSunday = new Date().getDay() === 0;
 
   // Restore sidebar when leaving session page
@@ -456,6 +463,47 @@ export default function SessionPage() {
     }
     prevIsSummaryStreaming.current = session.isSummaryStreaming;
   }, [session.isSummaryStreaming, session.status, session.summary, extractInsights]);
+
+  const handleMicClick = useCallback(async () => {
+    const transcriptApiKey = useSettingsStore.getState().transcriptApiKey;
+    if (!transcriptApiKey) {
+      setTranscriptKeyModalOpen(true);
+      return;
+    }
+    await recorder.startRecording();
+  }, [recorder]);
+
+  const handleMicStop = useCallback(async () => {
+    try {
+      const audioBlob = await recorder.stopRecording();
+      recorder.setState("transcribing");
+
+      const transcriptApiKey = useSettingsStore.getState().transcriptApiKey;
+      const text = await transcribeAudio(audioBlob, transcriptApiKey, language);
+
+      if (text.trim()) {
+        chatInputRef.current?.insertText(text);
+      } else {
+        recorder.setError(t.transcript.emptyTranscription);
+        setTimeout(() => recorder.setError(null), 3000);
+      }
+
+      recorder.setState("idle");
+    } catch {
+      recorder.setError(t.transcript.transcriptionError);
+      setTimeout(() => recorder.setError(null), 3000);
+      recorder.setState("idle");
+    }
+  }, [recorder, language, t]);
+
+  const handleTranscriptKeySave = useCallback(async (apiKey: string) => {
+    settings.setTranscriptApiKey(apiKey);
+    const store = await loadSettings();
+    await store.set("transcriptApiKey", apiKey);
+    await store.save();
+    setTranscriptKeyModalOpen(false);
+    await recorder.startRecording();
+  }, [settings, recorder]);
 
   const handleEndSession = useCallback(async () => {
     const { isStreaming } = useSessionStore.getState();
@@ -831,7 +879,26 @@ export default function SessionPage() {
       <ChatContainer messages={session.messages} isLoading={session.isLoading} isStreaming={session.isStreaming} isCompacting={session.isCompacting} />
 
       {/* Input */}
-      <ChatInput onSend={handleSendMessage} disabled={session.isLoading || session.isStreaming || session.isCompacting} />
+      <ChatInput
+        ref={chatInputRef}
+        onSend={handleSendMessage}
+        disabled={session.isLoading || session.isStreaming || session.isCompacting}
+        recordingState={recorder.state}
+        onMicClick={handleMicClick}
+        onMicStop={handleMicStop}
+      />
+      {recorder.error && (
+        <div className="px-4 -mt-3 pb-2">
+          <p className="text-xs text-red-400 text-center">{recorder.error}</p>
+        </div>
+      )}
+
+      {/* Transcript API key modal */}
+      <TranscriptApiKeyModal
+        isOpen={transcriptKeyModalOpen}
+        onClose={() => setTranscriptKeyModalOpen(false)}
+        onSave={handleTranscriptKeySave}
+      />
 
       {/* End session confirmation modal */}
       <Modal isOpen={endConfirmOpen} onClose={() => setEndConfirmOpen(false)} title={t.session.endSession}>

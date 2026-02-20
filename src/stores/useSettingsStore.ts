@@ -22,6 +22,7 @@ interface SettingsState {
   memoryThinkingLevel: ThinkingLevel;
   memoryThinkingType: ThinkingType;
   providerMemoryThinkingSettings: Record<string, { enabled: boolean; level: ThinkingLevel; type?: ThinkingType }>;
+  transcriptApiKey: string;
   setLanguage: (language: Language) => void;
   setProvider: (provider: AIProvider) => void;
   setApiKey: (key: string) => void;
@@ -38,6 +39,7 @@ interface SettingsState {
   setMemoryThinkingEnabled: (enabled: boolean) => void;
   setMemoryThinkingLevel: (level: ThinkingLevel) => void;
   setMemoryThinkingType: (type: ThinkingType) => void;
+  setTranscriptApiKey: (key: string) => void;
   loadFromStore: (data: Partial<SettingsState>) => void;
 }
 
@@ -61,6 +63,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   memoryThinkingLevel: "medium",
   memoryThinkingType: "budget",
   providerMemoryThinkingSettings: {},
+  transcriptApiKey: "",
   setLanguage: (language) => set({ language }),
   setProvider: (provider) => {
     const state = get();
@@ -136,5 +139,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setMemoryThinkingEnabled: (memoryThinkingEnabled) => set({ memoryThinkingEnabled }),
   setMemoryThinkingLevel: (memoryThinkingLevel) => set({ memoryThinkingLevel }),
   setMemoryThinkingType: (memoryThinkingType) => set({ memoryThinkingType }),
+  setTranscriptApiKey: (transcriptApiKey) => set({ transcriptApiKey }),
   loadFromStore: (data) => set(data),
 }));

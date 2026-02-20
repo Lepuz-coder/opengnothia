@@ -25,6 +25,7 @@ const STORE_DEFAULTS = {
   passwordSalt: "",
   passwordHint: "",
   biometricEnabled: false,
+  transcriptApiKey: "",
   customSchools: [] as any[],
   promptOverrides: {} as Record<string, string>,
 };

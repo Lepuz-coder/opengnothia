@@ -31,6 +31,7 @@ export default function SettingsPage() {
   const [profileOccupation, setProfileOccupation] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [transcriptKeyFocused, setTranscriptKeyFocused] = useState(false);
 
   // Security state
   const [biometricEnabled, setBiometricEnabledState] = useState(false);
@@ -107,6 +108,7 @@ export default function SettingsPage() {
     };
     await store.set("providerMemoryThinkingSettings", updatedMemoryThinkingSettings);
     await store.set("therapySchool", settings.therapySchool);
+    await store.set("transcriptApiKey", settings.transcriptApiKey);
     await store.save();
 
     await upsertUserProfile({
@@ -271,6 +273,7 @@ export default function SettingsPage() {
     await store.set("passwordSalt", "");
     await store.set("passwordHint", "");
     await store.set("biometricEnabled", false);
+    await store.set("transcriptApiKey", "");
     await store.set("customSchools", []);
     await store.set("promptOverrides", {});
     await store.save();
@@ -293,6 +296,7 @@ export default function SettingsPage() {
       memoryThinkingLevel: "medium" as ThinkingLevel,
       memoryThinkingType: "budget" as ThinkingType,
       providerMemoryThinkingSettings: {},
+      transcriptApiKey: "",
     });
     useSchoolsStore.getState().loadFromStore({ customSchools: [], promptOverrides: {} });
     setShowDeleteModal(false);
@@ -523,6 +527,28 @@ export default function SettingsPage() {
             />
           )}
         </div>
+      </Card>
+
+      {/* Transcript Settings */}
+      <Card>
+        <h2 className="font-semibold mb-2">{t.transcript.title}</h2>
+        <p className="text-xs text-[var(--text-muted)] mb-4">
+          {t.transcript.description}
+        </p>
+        <Input
+          label={t.transcript.openaiApiKey}
+          value={
+            transcriptKeyFocused || !settings.transcriptApiKey
+              ? settings.transcriptApiKey
+              : settings.transcriptApiKey.length > 10
+                ? settings.transcriptApiKey.slice(0, 5) + "\u2022".repeat(Math.min(settings.transcriptApiKey.length - 10, 20)) + settings.transcriptApiKey.slice(-5)
+                : settings.transcriptApiKey
+          }
+          onChange={(e) => settings.setTranscriptApiKey(e.target.value)}
+          onFocus={() => setTranscriptKeyFocused(true)}
+          onBlur={() => setTranscriptKeyFocused(false)}
+          placeholder="sk-..."
+        />
       </Card>
 
       {/* Security */}

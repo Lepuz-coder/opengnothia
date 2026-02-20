@@ -443,6 +443,20 @@ export interface Translations {
     chooseWithAI: string;
     chooseWithAIDescription: string;
   };
+  transcript: {
+    title: string;
+    description: string;
+    openaiApiKey: string;
+    apiKeyRequired: string;
+    apiKeyDescription: string;
+    saveAndRecord: string;
+    recording: string;
+    recordingAudio: string;
+    transcribing: string;
+    microphoneError: string;
+    transcriptionError: string;
+    emptyTranscription: string;
+  };
   placeholder: {
     featureComingSoon: string;
   };

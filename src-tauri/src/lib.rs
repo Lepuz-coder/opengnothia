@@ -74,16 +74,27 @@ fn biometric_available() -> bool {
 
 mod recording {
     use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
     use std::sync::Mutex;
+    use tauri::Emitter;
 
     static AUDIO_BUFFER: Mutex<Vec<f32>> = Mutex::new(Vec::new());
     static RECORDING_META: Mutex<Option<(u32, u16)>> = Mutex::new(None);
     static SHOULD_STOP: AtomicBool = AtomicBool::new(false);
+    static CURRENT_LEVEL: AtomicU32 = AtomicU32::new(0);
     static THREAD_HANDLE: Mutex<Option<std::thread::JoinHandle<Result<(), String>>>> =
         Mutex::new(None);
 
-    pub fn start() -> Result<(), String> {
+    fn update_level(samples: &[f32]) {
+        if samples.is_empty() {
+            return;
+        }
+        let sum_sq: f32 = samples.iter().map(|s| s * s).sum();
+        let rms = (sum_sq / samples.len() as f32).sqrt();
+        CURRENT_LEVEL.store(rms.to_bits(), Ordering::Relaxed);
+    }
+
+    pub fn start(app: tauri::AppHandle) -> Result<(), String> {
         let mut thread_guard = THREAD_HANDLE.lock().map_err(|e| e.to_string())?;
         if thread_guard.is_some() {
             return Err("Already recording".into());
@@ -92,6 +103,7 @@ mod recording {
         AUDIO_BUFFER.lock().map_err(|e| e.to_string())?.clear();
         *RECORDING_META.lock().map_err(|e| e.to_string())? = None;
         SHOULD_STOP.store(false, Ordering::SeqCst);
+        CURRENT_LEVEL.store(0, Ordering::Relaxed);
 
         let (ready_tx, ready_rx) = std::sync::mpsc::channel::<Result<(), String>>();
 
@@ -115,6 +127,7 @@ mod recording {
                 cpal::SampleFormat::F32 => device.build_input_stream(
                     &stream_config,
                     |data: &[f32], _: &cpal::InputCallbackInfo| {
+                        update_level(data);
                         if let Ok(mut buf) = AUDIO_BUFFER.lock() {
                             buf.extend_from_slice(data);
                         }
@@ -125,8 +138,10 @@ mod recording {
                 cpal::SampleFormat::I16 => device.build_input_stream(
                     &stream_config,
                     |data: &[i16], _: &cpal::InputCallbackInfo| {
+                        let converted: Vec<f32> = data.iter().map(|&s| s as f32 / i16::MAX as f32).collect();
+                        update_level(&converted);
                         if let Ok(mut buf) = AUDIO_BUFFER.lock() {
-                            buf.extend(data.iter().map(|&s| s as f32 / i16::MAX as f32));
+                            buf.extend_from_slice(&converted);
                         }
                     },
                     |e| eprintln!("Audio stream error: {e}"),
@@ -135,8 +150,10 @@ mod recording {
                 cpal::SampleFormat::I32 => device.build_input_stream(
                     &stream_config,
                     |data: &[i32], _: &cpal::InputCallbackInfo| {
+                        let converted: Vec<f32> = data.iter().map(|&s| s as f32 / i32::MAX as f32).collect();
+                        update_level(&converted);
                         if let Ok(mut buf) = AUDIO_BUFFER.lock() {
-                            buf.extend(data.iter().map(|&s| s as f32 / i32::MAX as f32));
+                            buf.extend_from_slice(&converted);
                         }
                     },
                     |e| eprintln!("Audio stream error: {e}"),
@@ -162,6 +179,8 @@ mod recording {
             let _ = ready_tx.send(Ok(()));
 
             while !SHOULD_STOP.load(Ordering::SeqCst) {
+                let level = f32::from_bits(CURRENT_LEVEL.load(Ordering::Relaxed));
+                let _ = app.emit("audio-level", level);
                 std::thread::sleep(std::time::Duration::from_millis(50));
             }
 
@@ -181,6 +200,7 @@ mod recording {
 
     pub fn stop() -> Result<String, String> {
         SHOULD_STOP.store(true, Ordering::SeqCst);
+        CURRENT_LEVEL.store(0, Ordering::Relaxed);
 
         if let Ok(mut thread_guard) = THREAD_HANDLE.lock() {
             if let Some(handle) = thread_guard.take() {
@@ -226,8 +246,8 @@ mod recording {
 }
 
 #[tauri::command]
-fn start_recording() -> Result<(), String> {
-    recording::start()
+fn start_recording(app: tauri::AppHandle) -> Result<(), String> {
+    recording::start(app)
 }
 
 #[tauri::command]

@@ -8,6 +8,7 @@ interface ChatInputProps {
   onSend: (message: string) => void;
   disabled?: boolean;
   recordingState?: RecordingState;
+  audioLevel?: number;
   onMicClick?: () => void;
   onMicStop?: () => void;
 }
@@ -17,27 +18,65 @@ export interface ChatInputHandle {
 }
 
 const BAR_COUNT = 24;
+const MIN_HEIGHT = 6;
+const MAX_HEIGHT = 32;
+const LEVEL_SCALE = 8;
 
-function RecordingWave() {
+function RecordingWave({ audioLevel = 0 }: { audioLevel: number }) {
+  const barsRef = useRef<HTMLDivElement>(null);
+  const targetRef = useRef(0);
+  const currentRef = useRef(0);
+  const rafRef = useRef<number>(0);
+
+  useEffect(() => {
+    // sqrt for perceptual scaling — small sounds become much more visible
+    targetRef.current = Math.min(Math.sqrt(audioLevel * LEVEL_SCALE), 1.0);
+  }, [audioLevel]);
+
+  useEffect(() => {
+    if (!barsRef.current) return;
+
+    let lastTime = 0;
+
+    const animate = (time: number) => {
+      const bars = barsRef.current;
+      if (!bars) return;
+
+      const dt = lastTime ? (time - lastTime) / 1000 : 0.016;
+      lastTime = time;
+
+      // Interpolate current toward target
+      const target = targetRef.current;
+      const speed = target > currentRef.current ? 18 : 8;
+      currentRef.current += (target - currentRef.current) * Math.min(speed * dt, 1);
+
+      const level = currentRef.current;
+      const children = bars.children;
+
+      for (let i = 0; i < children.length; i++) {
+        const wave1 = Math.sin(time * 0.005 + i * 0.6) * 0.35;
+        const wave2 = Math.sin(time * 0.008 + i * 1.2) * 0.15;
+        const barLevel = Math.max(0, Math.min(1, level + (wave1 + wave2) * level));
+        const height = MIN_HEIGHT + barLevel * (MAX_HEIGHT - MIN_HEIGHT);
+        (children[i] as HTMLElement).style.height = `${height}px`;
+      }
+
+      rafRef.current = requestAnimationFrame(animate);
+    };
+
+    rafRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, []);
+
   return (
-    <div className="flex items-center justify-center gap-[3px] h-8">
+    <div ref={barsRef} className="flex items-center justify-center gap-[3px] h-10">
       {Array.from({ length: BAR_COUNT }, (_, i) => (
         <div
           key={i}
-          className="w-1 rounded-full bg-red-400"
-          style={{
-            animation: "waveform 1.2s ease-in-out infinite",
-            animationDelay: `${i * 0.05}s`,
-            height: "4px",
-          }}
+          className="w-1.5 rounded-full bg-red-400"
+          style={{ height: `${MIN_HEIGHT}px` }}
         />
       ))}
-      <style>{`
-        @keyframes waveform {
-          0%, 100% { height: 4px; }
-          50% { height: 22px; }
-        }
-      `}</style>
     </div>
   );
 }
@@ -60,7 +99,7 @@ function RecordingTimer() {
 }
 
 export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
-  ({ onSend, disabled, recordingState = "idle", onMicClick, onMicStop }, ref) => {
+  ({ onSend, disabled, recordingState = "idle", audioLevel = 0, onMicClick, onMicStop }, ref) => {
     const { t } = useTranslation();
     const [value, setValue] = useState("");
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -125,7 +164,7 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
 
                 {/* Animated wave + recording text */}
                 <div className="flex flex-col items-center flex-1 gap-1">
-                  <RecordingWave />
+                  <RecordingWave audioLevel={audioLevel} />
                   <span className="text-xs text-red-400/70">{t.transcript.recordingAudio}</span>
                 </div>
 

@@ -1,4 +1,4 @@
-export type Language = "tr" | "en";
+export type Language = "tr" | "en" | "zh" | "es" | "pt" | "de" | "fr" | "ja";
 export type Theme = "light" | "dark" | "system";
 export type Approach = "practical" | "depth" | "balanced";
 export type SessionStatus = "idle" | "pre" | "active" | "post";

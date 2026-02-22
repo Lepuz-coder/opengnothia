@@ -4,7 +4,7 @@ export const providers: AIProviderConfig[] = [
   {
     id: "anthropic",
     name: "Anthropic",
-    description: "Claude modelleri",
+    description: "Claude models",
     baseUrl: "https://api.anthropic.com/v1",
     requiresKey: true,
     models: [
@@ -97,7 +97,7 @@ export const providers: AIProviderConfig[] = [
   {
     id: "openai",
     name: "OpenAI",
-    description: "GPT ve o-serisi modeller",
+    description: "GPT & o-series models",
     baseUrl: "https://api.openai.com/v1",
     requiresKey: true,
     models: [

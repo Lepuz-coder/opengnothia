@@ -11,6 +11,12 @@ interface LanguageStepProps {
 const languages: { id: Language; label: string; flag: string }[] = [
   { id: "tr", label: "Türkçe", flag: "TR" },
   { id: "en", label: "English", flag: "EN" },
+  { id: "zh", label: "中文", flag: "CN" },
+  { id: "es", label: "Español", flag: "ES" },
+  { id: "pt", label: "Português", flag: "PT" },
+  { id: "de", label: "Deutsch", flag: "DE" },
+  { id: "fr", label: "Français", flag: "FR" },
+  { id: "ja", label: "日本語", flag: "JP" },
 ];
 
 export function LanguageStep({ onNext }: LanguageStepProps) {

@@ -313,7 +313,7 @@ export default function JournalPage() {
 
       // Update patient notes in background
       const [existingNotes, notesUpdatedAt] = await Promise.all([getPatientNotes(), getPatientNotesUpdatedAt()]);
-      const notesPrompt = buildPatientNotesUpdatePrompt(existingNotes, notesUpdatedAt);
+      const notesPrompt = buildPatientNotesUpdatePrompt(existingNotes, notesUpdatedAt, language);
       takeBackgroundNotes({
         provider: settings.provider,
         apiKey: settings.apiKey,

@@ -596,7 +596,7 @@ export default function SessionPage() {
 
     // Fire-and-forget: update patient notes in background
     Promise.all([getPatientNotes(), getPatientNotesUpdatedAt()]).then(([existingNotes, notesUpdatedAt]) => {
-      const patientNotesPrompt = buildPatientNotesUpdatePrompt(existingNotes, notesUpdatedAt);
+      const patientNotesPrompt = buildPatientNotesUpdatePrompt(existingNotes, notesUpdatedAt, language);
       const conversationForNotes: ChatMessage[] = [
         ...messages,
         {

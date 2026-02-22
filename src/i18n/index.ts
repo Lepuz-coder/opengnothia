@@ -1,6 +1,12 @@
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { tr } from "./tr";
 import { en } from "./en";
+import { zh } from "./zh";
+import { es } from "./es";
+import { pt } from "./pt";
+import { de } from "./de";
+import { fr } from "./fr";
+import { ja } from "./ja";
 import type { Language } from "@/types";
 
 export interface Translations {
@@ -502,7 +508,7 @@ export interface Translations {
   };
 }
 
-const translations: Record<Language, Translations> = { tr, en };
+const translations: Record<Language, Translations> = { tr, en, zh, es, pt, de, fr, ja };
 
 export function useTranslation() {
   const language = useSettingsStore((s) => s.language);
@@ -518,7 +524,17 @@ export function getTranslation(lang: Language): Translations {
 }
 
 export function getDateLocale(lang: Language): string {
-  return lang === "tr" ? "tr-TR" : "en-US";
+  const localeMap: Record<Language, string> = {
+    tr: "tr-TR",
+    en: "en-US",
+    zh: "zh-CN",
+    es: "es-ES",
+    pt: "pt-BR",
+    de: "de-DE",
+    fr: "fr-FR",
+    ja: "ja-JP",
+  };
+  return localeMap[lang];
 }
 
 export function getDayNames(lang: Language): string[] {

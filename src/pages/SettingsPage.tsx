@@ -357,6 +357,12 @@ export default function SettingsPage() {
           options={[
             { value: "tr", label: "Türkçe" },
             { value: "en", label: "English" },
+            { value: "zh", label: "中文" },
+            { value: "es", label: "Español" },
+            { value: "pt", label: "Português" },
+            { value: "de", label: "Deutsch" },
+            { value: "fr", label: "Français" },
+            { value: "ja", label: "日本語" },
           ]}
           value={settings.language}
           onChange={(e) => settings.setLanguage(e.target.value as Language)}

@@ -1,12 +1,21 @@
 import type { UserProfile, CheckIn, SessionSummary, TherapySchool, Language, AIProvider } from "@/types";
 import type { TherapySchoolDef } from "@/constants/therapySchools";
 import { getSchoolById } from "@/stores/useSchoolsStore";
-import { getCurrentLanguage } from "@/i18n";
+import { getCurrentLanguage, getDateLocale } from "@/i18n";
 
 function getLanguageInstruction(lang?: Language): string {
   const l = lang ?? getCurrentLanguage();
-  if (l === "tr") return "\n\nIMPORTANT: Always respond to the user in Turkish (Türkçe).";
-  return "\n\nIMPORTANT: Always respond to the user in English.";
+  const languageNames: Record<Language, string> = {
+    tr: "Turkish (Türkçe)",
+    en: "English",
+    zh: "Chinese (中文)",
+    es: "Spanish (Español)",
+    pt: "Portuguese (Português)",
+    de: "German (Deutsch)",
+    fr: "French (Français)",
+    ja: "Japanese (日本語)",
+  };
+  return `\n\nIMPORTANT: Always respond to the user in ${languageNames[l]}.`;
 }
 
 // --- Trigger messages & helpers used by pages ---
@@ -70,12 +79,13 @@ You are a psychologist in a real therapy session. Your responses MUST be natural
 
   // Temporal context
   const today = new Date();
-  const todayStr = today.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric", weekday: "long" });
+  const locale = getDateLocale(params.language ?? getCurrentLanguage());
+  const todayStr = today.toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric", weekday: "long" });
   prompt += `\n\nTemporal context:`;
   prompt += `\n- Today's date: ${todayStr}`;
   if (lastSessionDate) {
     const lastDate = new Date(lastSessionDate);
-    const lastDateStr = lastDate.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
+    const lastDateStr = lastDate.toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" });
     const diffDays = Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
     prompt += `\n- Last session date: ${lastDateStr} (${diffDays} days ago)`;
   }
@@ -159,19 +169,20 @@ Keep it short — start with 2-3 sentences and invite the client to talk.`;
   return prompt;
 }
 
-export function buildPatientNotesUpdatePrompt(existingNotes: string, lastUpdatedAt?: string | null): string {
+export function buildPatientNotesUpdatePrompt(existingNotes: string, lastUpdatedAt?: string | null, language?: Language): string {
+  const locale = getDateLocale(language ?? getCurrentLanguage());
   let memorySection = "";
   if (existingNotes) {
     memorySection = `--- Existing Memory ---\n`;
     if (lastUpdatedAt) {
       const updatedDate = new Date(lastUpdatedAt);
-      const updatedStr = updatedDate.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
+      const updatedStr = updatedDate.toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
       memorySection += `(Last updated: ${updatedStr})\n`;
     }
     memorySection += `${existingNotes}\n\n`;
   }
 
-  return `You are an experienced clinical psychologist. You maintain a long-term memory file about your client. This file contains persistent information carried from session to session, journal to journal, that allows you to truly know your client.
+  let prompt = `You are an experienced clinical psychologist. You maintain a long-term memory file about your client. This file contains persistent information carried from session to session, journal to journal, that allows you to truly know your client.
 ${memorySection}--- Your Task ---
 Analyze the given content and create an updated memory file by merging it with the existing memory.
 The output should be a single unified file — do not separate old and new information, merge them into a single coherent structure.
@@ -214,8 +225,10 @@ CRITICAL RULES:
 - Do NOT write explanations, commentary, or paragraphs — only short, reminder notes
 - Preserve persistent information: personality traits, relationships, patterns should not be deleted
 - Remove outdated temporary information (resolved issues, completed homework)
-- Write in English
 - Only write the memory file, do not add any other explanation`;
+
+  prompt += getLanguageInstruction(language);
+  return prompt;
 }
 
 export function buildDreamAnalysisPrompt(patientNotes: string, language?: Language): string {

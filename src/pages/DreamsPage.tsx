@@ -269,7 +269,7 @@ export default function DreamsPage() {
 
       // 2. Update patient notes in background
       const notesUpdatedAt = await getPatientNotesUpdatedAt();
-      const notesPrompt = buildPatientNotesUpdatePrompt(patientNotes, notesUpdatedAt);
+      const notesPrompt = buildPatientNotesUpdatePrompt(patientNotes, notesUpdatedAt, language);
       takeBackgroundNotes({
         provider: settings.provider,
         apiKey: settings.apiKey,

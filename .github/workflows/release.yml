@@ -42,6 +42,14 @@ jobs:
         with:
           version: 9
 
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -53,7 +61,7 @@ jobs:
           workspaces: './src-tauri -> target'
 
       - name: Install frontend dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Build the app
         uses: tauri-apps/tauri-action@v0

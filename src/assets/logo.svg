@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="g" x1="256" y1="20" x2="256" y2="492" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4BC3BE"/>
+      <stop offset="100%" stop-color="#236E6B"/>
+    </linearGradient>
+  </defs>
+  <!-- Circle -->
+  <circle cx="256" cy="256" r="240" stroke="url(#g)" stroke-width="22" fill="none"/>
+  <!-- Ψ — stroke-based, elegant -->
+  <!-- Vertical stem -->
+  <line x1="256" y1="140" x2="256" y2="392" stroke="url(#g)" stroke-width="30" stroke-linecap="round"/>
+  <!-- Left arc -->
+  <path d="M152 148 C152 220, 200 264, 256 264" stroke="url(#g)" stroke-width="30" stroke-linecap="round" fill="none"/>
+  <!-- Right arc -->
+  <path d="M360 148 C360 220, 312 264, 256 264" stroke="url(#g)" stroke-width="30" stroke-linecap="round" fill="none"/>
+</svg>

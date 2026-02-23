@@ -1,5 +1,5 @@
 import { cn } from "@/lib/cn";
-import logoImg from "@/assets/logo.png";
+import logoImg from "@/assets/logo.svg";
 
 interface OnboardingShellProps {
   step: number;

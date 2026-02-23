@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { PanelLeftClose, PanelLeft, FileText, Loader2, X } from "lucide-react";
-import logoImg from "@/assets/logo.png";
+import logoImg from "@/assets/logo.svg";
 import { useAppStore } from "@/stores/useAppStore";
 import { loadSettings } from "@/lib/store";
 import { navItems } from "@/constants/navigation";

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Fingerprint } from "lucide-react";
-import logoImg from "@/assets/logo.png";
+import logoImg from "@/assets/logo.svg";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAppStore } from "@/stores/useAppStore";

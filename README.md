@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="src/assets/logo.png" alt="OpenGnothia Logo" width="120" />
+  <img src="src/assets/logo.svg" alt="OpenGnothia Logo" width="120" />
   <h1>OpenGnothia</h1>
   <p><strong><em>"Gnôthi Seautón" — Know Thyself</em></strong></p>
   <p>An AI-powered, privacy-first self-therapy desktop application that helps you explore your inner world through therapy sessions, journaling, dream analysis, and more.</p>

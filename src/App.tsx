@@ -8,7 +8,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useCloseGuard } from "@/hooks/useCloseGuard";
 import { useDatabase } from "@/hooks/useDatabase";
 import { MainLayout } from "@/components/layout/MainLayout";
-import logoImg from "@/assets/logo.png";
+import logoImg from "@/assets/logo.svg";
 import OnboardingPage from "@/pages/OnboardingPage";
 import { LockScreen } from "@/components/LockScreen";
 import DashboardPage from "@/pages/DashboardPage";

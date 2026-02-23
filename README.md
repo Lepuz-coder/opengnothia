@@ -7,7 +7,7 @@
   <br />
 
   [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-  [![Version](https://img.shields.io/badge/version-1.0.1-green.svg)](https://github.com/Lepuz-coder/opengnothia/releases)
+  [![Version](https://img.shields.io/badge/version-1.0.4-green.svg)](https://github.com/Lepuz-coder/opengnothia/releases)
   [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg)](#getting-started)
   [![Made with Tauri](https://img.shields.io/badge/Made%20with-Tauri%202-FFC131?logo=tauri&logoColor=white)](https://v2.tauri.app)
   [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev)

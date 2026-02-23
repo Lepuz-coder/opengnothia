@@ -1,6 +1,6 @@
 [package]
 name = "opengnothia"
-version = "1.0.3"
+version = "1.0.4"
 description = "AI-powered self-therapy desktop application"
 authors = ["OpenGnothia Contributors"]
 license = "MIT"

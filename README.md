@@ -68,7 +68,7 @@ Mental health support should be accessible, private, and personalized. OpenGnoth
 
 <div align="center">
 
-[**Interactive Demo — Complete onboarding and start your first session**](https://demo.arcade.software/ESv470JvwuB0mFtliDUX?embed&embed_mobile=tab&embed_desktop=inline&show_copy_link=true)
+[**Interactive Demo — Complete onboarding and start your first session**](https://demo.arcade.software/GyEESVP1uqMY9LT8A8NR?embed&embed_mobile=inline&embed_desktop=inline&show_copy_link=true)
 
 </div>
 

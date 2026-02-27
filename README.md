@@ -7,7 +7,7 @@
   <br />
 
   [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-  [![Version](https://img.shields.io/badge/version-1.0.4-green.svg)](https://github.com/Lepuz-coder/opengnothia/releases)
+  [![Version](https://img.shields.io/badge/version-1.0.5-green.svg)](https://github.com/Lepuz-coder/opengnothia/releases)
   [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg)](#getting-started)
   [![Made with Tauri](https://img.shields.io/badge/Made%20with-Tauri%202-FFC131?logo=tauri&logoColor=white)](https://v2.tauri.app)
   [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev)
@@ -222,19 +222,21 @@ pnpm tauri build
 
 If you download OpenGnothia from GitHub Releases on macOS, you may see a **"OpenGnothia is damaged and can't be opened"** warning. This happens because the app is not signed with an Apple Developer certificate.
 
-To fix this, open Terminal and run:
+To fix this, open Terminal and run **both** commands:
 
 ```bash
 xattr -cr /Applications/OpenGnothia.app
+codesign --force --deep --sign - /Applications/OpenGnothia.app
 ```
 
 If you downloaded it to a different location:
 
 ```bash
 xattr -cr ~/Downloads/OpenGnothia.app
+codesign --force --deep --sign - ~/Downloads/OpenGnothia.app
 ```
 
-This removes the macOS quarantine attribute and allows the app to open normally.
+> **Important:** The `codesign` step is required after `xattr -cr`. Without it, macOS cannot properly track permissions (e.g. microphone access) and may show repeated permission dialogs.
 
 ### First Launch
 

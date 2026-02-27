@@ -556,9 +556,30 @@ export async function deleteInsight(id: string): Promise<void> {
   await db.execute("DELETE FROM insights WHERE id = ?", [id]);
 }
 
+// Milestone Analyses
+export async function getMilestoneAnalysis(milestone: number): Promise<{ content: string; created_at: string } | null> {
+  const db = await getDatabase();
+  const rows = await db.select<{ content: string; created_at: string }[]>(
+    "SELECT content, created_at FROM milestone_analyses WHERE milestone = ?",
+    [milestone]
+  );
+  if (rows.length === 0) return null;
+  return rows[0];
+}
+
+export async function saveMilestoneAnalysis(milestone: number, content: string): Promise<void> {
+  const db = await getDatabase();
+  const id = crypto.randomUUID();
+  await db.execute(
+    "INSERT INTO milestone_analyses (id, milestone, content) VALUES (?, ?, ?) ON CONFLICT(milestone) DO UPDATE SET content = ?, created_at = CURRENT_TIMESTAMP",
+    [id, milestone, content, content]
+  );
+}
+
 // Clear all data
 export async function clearAllData(): Promise<void> {
   const db = await getDatabase();
+  await db.execute("DELETE FROM milestone_analyses");
   await db.execute("DELETE FROM insights");
   await db.execute("DELETE FROM insight_groups");
   await db.execute("DELETE FROM weekly_summaries");

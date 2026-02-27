@@ -17,6 +17,7 @@ import SettingsPage from "@/pages/SettingsPage";
 import JournalPage from "@/pages/JournalPage";
 import DreamsPage from "@/pages/DreamsPage";
 import InsightsPage from "@/pages/InsightsPage";
+import AnalysesPage from "@/pages/AnalysesPage";
 import ToolsPage from "@/pages/ToolsPage";
 import ProgramsPage from "@/pages/ProgramsPage";
 import ExpensesPage from "@/pages/ExpensesPage";
@@ -140,6 +141,7 @@ function AppContent() {
           <Route path="/journal" element={<JournalPage />} />
           <Route path="/dreams" element={<DreamsPage />} />
           <Route path="/insights" element={<InsightsPage />} />
+          <Route path="/analyses" element={<AnalysesPage />} />
           <Route path="/tools" element={<ToolsPage />} />
           <Route path="/programs" element={<ProgramsPage />} />
           <Route path="/expenses" element={<ExpensesPage />} />

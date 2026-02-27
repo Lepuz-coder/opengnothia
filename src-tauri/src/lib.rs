@@ -76,50 +76,90 @@ fn biometric_available() -> bool {
 mod mic_permission {
     use objc2::msg_send;
     use objc2::runtime::{AnyClass, Bool};
-    use std::sync::OnceLock;
+    use objc2_foundation::NSString;
+    use std::sync::Mutex;
 
-    // Reference the real AVMediaTypeAudio symbol so the linker MUST pull in
-    // AVFoundation — an empty extern block can be optimised away.
+    // Reference AVMediaTypeAudio so the linker MUST pull in AVFoundation.
     #[link(name = "AVFoundation", kind = "framework")]
     extern "C" {
         static AVMediaTypeAudio: *const std::ffi::c_void;
     }
 
-    static PERMISSION: OnceLock<bool> = OnceLock::new();
+    /// Mutex-guarded cached permission result.
+    /// - `None`  → not yet checked (first call will block for user response)
+    /// - `Some(true/false)` → cached grant / denial
+    /// Using Mutex instead of OnceLock so errors are NOT cached and can be retried.
+    static PERMISSION: Mutex<Option<bool>> = Mutex::new(None);
 
     /// Ensures microphone access has been granted.
-    /// On the very first call the macOS TCC dialog is shown and we block
-    /// until the user responds.  Every subsequent call returns the cached
-    /// result instantly.
+    /// The Mutex serialises all callers: only one thread performs the actual
+    /// TCC request; others wait and then read the cached result.
     pub fn ensure_access() -> Result<(), String> {
-        let granted = PERMISSION.get_or_init(|| request_access_inner().unwrap_or(true));
-        if *granted {
-            Ok(())
-        } else {
-            Err("Microphone permission denied. Please enable in System Settings > Privacy & Security > Microphone.".into())
+        // Touch the extern symbol so the linker cannot dead-strip AVFoundation.
+        let _ = std::hint::black_box(unsafe { AVMediaTypeAudio });
+
+        let mut perm = PERMISSION
+            .lock()
+            .map_err(|e| format!("Permission lock poisoned: {e}"))?;
+
+        match *perm {
+            Some(true) => return Ok(()),
+            Some(false) => {
+                return Err("Microphone permission denied. Please enable in \
+                    System Settings > Privacy & Security > Microphone."
+                    .into())
+            }
+            None => {} // first call — fall through to request
+        }
+
+        match request_access_inner() {
+            Ok(granted) => {
+                *perm = Some(granted);
+                if granted {
+                    Ok(())
+                } else {
+                    Err("Microphone permission denied. Please enable in \
+                        System Settings > Privacy & Security > Microphone."
+                        .into())
+                }
+            }
+            Err(e) => {
+                // Do NOT cache errors — next attempt will retry.
+                eprintln!("[mic_permission] permission check failed: {e}");
+                Err(e)
+            }
         }
     }
 
     fn request_access_inner() -> Result<bool, String> {
         let cls = match AnyClass::get(c"AVCaptureDevice") {
             Some(cls) => cls,
-            None => return Ok(true), // Pre-10.14, no TCC for mic
+            None => {
+                eprintln!("[mic_permission] AVCaptureDevice class not found (pre-10.14?)");
+                return Ok(true);
+            }
         };
 
-        // Use the real framework constant instead of a hard-coded string.
-        let media_type = unsafe { AVMediaTypeAudio };
+        // Build the media-type string the same way AVFoundation does internally.
+        // Using NSString avoids potential issues with the extern C symbol's
+        // pointer type (`*const c_void` vs the expected `NSString *`).
+        let media_type = NSString::from_str("soun");
 
         // AVAuthorizationStatus: 0=notDetermined, 1=restricted, 2=denied, 3=authorized
-        let status: isize = unsafe {
-            msg_send![cls, authorizationStatusForMediaType: media_type]
-        };
+        let status: isize =
+            unsafe { msg_send![cls, authorizationStatusForMediaType: &*media_type] };
+        eprintln!("[mic_permission] authorizationStatus = {status}");
 
         match status {
             3 => return Ok(true),
             1 | 2 => return Ok(false),
-            _ => {} // notDetermined → request
+            0 => {} // notDetermined → request below
+            other => {
+                eprintln!("[mic_permission] unexpected status {other}, requesting anyway");
+            }
         }
 
+        // Show the system TCC dialog and block until the user responds.
         let (tx, rx) = std::sync::mpsc::channel();
         let block = block2::RcBlock::new(move |granted: Bool| {
             let _ = tx.send(granted.as_bool());
@@ -128,12 +168,16 @@ mod mic_permission {
         unsafe {
             let _: () = msg_send![
                 cls,
-                requestAccessForMediaType: media_type,
+                requestAccessForMediaType: &*media_type,
                 completionHandler: &*block
             ];
         }
 
-        rx.recv().map_err(|_| "Permission request failed".to_string())
+        let granted = rx
+            .recv()
+            .map_err(|_| "Permission request channel closed unexpectedly".to_string())?;
+        eprintln!("[mic_permission] user responded: granted={granted}");
+        Ok(granted)
     }
 }
 

@@ -9,9 +9,6 @@ export type RecordingState = "idle" | "recording" | "transcribing";
 // (e.g. SessionPage's recorder AND useVoiceConversation's recorder).
 let globalStarting = false;
 
-// Cache permission result so we only ask macOS once per app session.
-let micPermissionGranted = false;
-
 export function useAudioRecorder() {
   const [state, setState] = useState<RecordingState>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -57,19 +54,8 @@ export function useAudioRecorder() {
     globalStarting = true;
     try {
       setError(null);
-
-      // Request microphone permission before first recording attempt.
-      // On macOS this shows the OS dialog and waits for the user's response.
-      // Once granted, the result is cached for the rest of the app session.
-      if (!micPermissionGranted) {
-        const granted = await invoke<boolean>("request_microphone_access");
-        if (!granted) {
-          setError("Microphone permission denied. Please enable in System Settings.");
-          return;
-        }
-        micPermissionGranted = true;
-      }
-
+      // start_recording now handles macOS mic permission internally
+      // (via OnceLock + AVCaptureDevice) before cpal touches CoreAudio.
       await invoke("start_recording");
       setState("recording");
     } catch (err) {

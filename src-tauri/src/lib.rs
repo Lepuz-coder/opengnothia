@@ -76,27 +76,42 @@ fn biometric_available() -> bool {
 mod mic_permission {
     use objc2::msg_send;
     use objc2::runtime::{AnyClass, Bool};
-    use objc2_foundation::NSString;
-    use std::ffi::CStr;
+    use std::sync::OnceLock;
 
+    // Reference the real AVMediaTypeAudio symbol so the linker MUST pull in
+    // AVFoundation — an empty extern block can be optimised away.
     #[link(name = "AVFoundation", kind = "framework")]
-    extern "C" {}
+    extern "C" {
+        static AVMediaTypeAudio: *const std::ffi::c_void;
+    }
 
-    /// Requests microphone access via AVCaptureDevice and blocks until the user
-    /// responds to the macOS permission dialog (if shown).
-    /// Returns Ok(true) when authorised, Ok(false) when denied/restricted.
-    pub fn request_access() -> Result<bool, String> {
-        let cls = match AnyClass::get(CStr::from_bytes_with_nul(b"AVCaptureDevice\0").unwrap()) {
+    static PERMISSION: OnceLock<bool> = OnceLock::new();
+
+    /// Ensures microphone access has been granted.
+    /// On the very first call the macOS TCC dialog is shown and we block
+    /// until the user responds.  Every subsequent call returns the cached
+    /// result instantly.
+    pub fn ensure_access() -> Result<(), String> {
+        let granted = PERMISSION.get_or_init(|| request_access_inner().unwrap_or(true));
+        if *granted {
+            Ok(())
+        } else {
+            Err("Microphone permission denied. Please enable in System Settings > Privacy & Security > Microphone.".into())
+        }
+    }
+
+    fn request_access_inner() -> Result<bool, String> {
+        let cls = match AnyClass::get(c"AVCaptureDevice") {
             Some(cls) => cls,
             None => return Ok(true), // Pre-10.14, no TCC for mic
         };
 
-        // AVMediaTypeAudio == "soun"
-        let media_type = NSString::from_str("soun");
+        // Use the real framework constant instead of a hard-coded string.
+        let media_type = unsafe { AVMediaTypeAudio };
 
         // AVAuthorizationStatus: 0=notDetermined, 1=restricted, 2=denied, 3=authorized
         let status: isize = unsafe {
-            msg_send![cls, authorizationStatusForMediaType: &*media_type]
+            msg_send![cls, authorizationStatusForMediaType: media_type]
         };
 
         match status {
@@ -113,7 +128,7 @@ mod mic_permission {
         unsafe {
             let _: () = msg_send![
                 cls,
-                requestAccessForMediaType: &*media_type,
+                requestAccessForMediaType: media_type,
                 completionHandler: &*block
             ];
         }
@@ -147,6 +162,10 @@ mod recording {
     }
 
     pub fn start(app: tauri::AppHandle) -> Result<(), String> {
+        // On macOS, ensure mic permission is granted BEFORE cpal touches CoreAudio.
+        #[cfg(target_os = "macos")]
+        super::mic_permission::ensure_access()?;
+
         let mut thread_guard = THREAD_HANDLE.lock().map_err(|e| e.to_string())?;
         if thread_guard.is_some() {
             return Err("Already recording".into());
@@ -301,7 +320,7 @@ mod recording {
 fn request_microphone_access() -> Result<bool, String> {
     #[cfg(target_os = "macos")]
     {
-        mic_permission::request_access()
+        mic_permission::ensure_access().map(|_| true)
     }
     #[cfg(not(target_os = "macos"))]
     {

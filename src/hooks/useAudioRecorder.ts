@@ -9,6 +9,7 @@ export function useAudioRecorder() {
   const [error, setError] = useState<string | null>(null);
   const [audioLevel, setAudioLevel] = useState(0);
   const smoothedRef = useRef(0);
+  const startingRef = useRef(false);
 
   // Listen for audio-level events while recording
   useEffect(() => {
@@ -45,6 +46,8 @@ export function useAudioRecorder() {
   }, [state]);
 
   const startRecording = useCallback(async () => {
+    if (state === "recording" || startingRef.current) return;
+    startingRef.current = true;
     try {
       setError(null);
       await invoke("start_recording");
@@ -52,8 +55,10 @@ export function useAudioRecorder() {
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setState("idle");
+    } finally {
+      startingRef.current = false;
     }
-  }, []);
+  }, [state]);
 
   const stopRecording = useCallback(async (): Promise<Blob> => {
     const base64Wav = await invoke<string>("stop_recording");

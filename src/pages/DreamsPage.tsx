@@ -483,9 +483,7 @@ export default function DreamsPage() {
         >
           <div className="overflow-y-auto flex-1 -mx-6 px-6">
             {selectedDream.analysis ? (
-              <div
-                className="prose prose-invert prose-sm max-w-none text-[var(--text-primary)] [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm [&_h1]:font-bold [&_h2]:font-semibold [&_h3]:font-medium [&_strong]:text-[var(--text-primary)] [&_p]:text-[var(--text-secondary)] [&_li]:text-[var(--text-secondary)] [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
-              >
+              <div className="dream-analysis-content py-2">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {selectedDream.analysis}
                 </ReactMarkdown>

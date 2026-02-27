@@ -4,12 +4,19 @@ import { listen } from "@tauri-apps/api/event";
 
 export type RecordingState = "idle" | "recording" | "transcribing";
 
+// Module-level lock shared across ALL useAudioRecorder instances.
+// Prevents concurrent startRecording calls from different hook instances
+// (e.g. SessionPage's recorder AND useVoiceConversation's recorder).
+let globalStarting = false;
+
+// Cache permission result so we only ask macOS once per app session.
+let micPermissionGranted = false;
+
 export function useAudioRecorder() {
   const [state, setState] = useState<RecordingState>("idle");
   const [error, setError] = useState<string | null>(null);
   const [audioLevel, setAudioLevel] = useState(0);
   const smoothedRef = useRef(0);
-  const startingRef = useRef(false);
 
   // Listen for audio-level events while recording
   useEffect(() => {
@@ -46,17 +53,30 @@ export function useAudioRecorder() {
   }, [state]);
 
   const startRecording = useCallback(async () => {
-    if (state === "recording" || startingRef.current) return;
-    startingRef.current = true;
+    if (state === "recording" || globalStarting) return;
+    globalStarting = true;
     try {
       setError(null);
+
+      // Request microphone permission before first recording attempt.
+      // On macOS this shows the OS dialog and waits for the user's response.
+      // Once granted, the result is cached for the rest of the app session.
+      if (!micPermissionGranted) {
+        const granted = await invoke<boolean>("request_microphone_access");
+        if (!granted) {
+          setError("Microphone permission denied. Please enable in System Settings.");
+          return;
+        }
+        micPermissionGranted = true;
+      }
+
       await invoke("start_recording");
       setState("recording");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setState("idle");
     } finally {
-      startingRef.current = false;
+      globalStarting = false;
     }
   }, [state]);
 

@@ -70,6 +70,58 @@ fn biometric_available() -> bool {
     }
 }
 
+// ── Microphone permission (macOS) ────────────────────────────────────────────
+
+#[cfg(target_os = "macos")]
+mod mic_permission {
+    use objc2::msg_send;
+    use objc2::runtime::{AnyClass, Bool};
+    use objc2_foundation::NSString;
+    use std::ffi::CStr;
+
+    #[link(name = "AVFoundation", kind = "framework")]
+    extern "C" {}
+
+    /// Requests microphone access via AVCaptureDevice and blocks until the user
+    /// responds to the macOS permission dialog (if shown).
+    /// Returns Ok(true) when authorised, Ok(false) when denied/restricted.
+    pub fn request_access() -> Result<bool, String> {
+        let cls = match AnyClass::get(CStr::from_bytes_with_nul(b"AVCaptureDevice\0").unwrap()) {
+            Some(cls) => cls,
+            None => return Ok(true), // Pre-10.14, no TCC for mic
+        };
+
+        // AVMediaTypeAudio == "soun"
+        let media_type = NSString::from_str("soun");
+
+        // AVAuthorizationStatus: 0=notDetermined, 1=restricted, 2=denied, 3=authorized
+        let status: isize = unsafe {
+            msg_send![cls, authorizationStatusForMediaType: &*media_type]
+        };
+
+        match status {
+            3 => return Ok(true),
+            1 | 2 => return Ok(false),
+            _ => {} // notDetermined → request
+        }
+
+        let (tx, rx) = std::sync::mpsc::channel();
+        let block = block2::RcBlock::new(move |granted: Bool| {
+            let _ = tx.send(granted.as_bool());
+        });
+
+        unsafe {
+            let _: () = msg_send![
+                cls,
+                requestAccessForMediaType: &*media_type,
+                completionHandler: &*block
+            ];
+        }
+
+        rx.recv().map_err(|_| "Permission request failed".to_string())
+    }
+}
+
 // ── Audio recording ──────────────────────────────────────────────────────────
 
 mod recording {
@@ -246,6 +298,18 @@ mod recording {
 }
 
 #[tauri::command]
+fn request_microphone_access() -> Result<bool, String> {
+    #[cfg(target_os = "macos")]
+    {
+        mic_permission::request_access()
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        Ok(true)
+    }
+}
+
+#[tauri::command]
 fn start_recording(app: tauri::AppHandle) -> Result<(), String> {
     recording::start(app)
 }
@@ -343,6 +407,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             biometric_authenticate,
             biometric_available,
+            request_microphone_access,
             start_recording,
             stop_recording
         ])

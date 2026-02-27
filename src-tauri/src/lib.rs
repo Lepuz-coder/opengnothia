@@ -71,115 +71,13 @@ fn biometric_available() -> bool {
 }
 
 // ── Microphone permission (macOS) ────────────────────────────────────────────
-
-#[cfg(target_os = "macos")]
-mod mic_permission {
-    use objc2::msg_send;
-    use objc2::runtime::{AnyClass, Bool};
-    use objc2_foundation::NSString;
-    use std::sync::Mutex;
-
-    // Reference AVMediaTypeAudio so the linker MUST pull in AVFoundation.
-    #[link(name = "AVFoundation", kind = "framework")]
-    extern "C" {
-        static AVMediaTypeAudio: *const std::ffi::c_void;
-    }
-
-    /// Mutex-guarded cached permission result.
-    /// - `None`  → not yet checked (first call will block for user response)
-    /// - `Some(true/false)` → cached grant / denial
-    /// Using Mutex instead of OnceLock so errors are NOT cached and can be retried.
-    static PERMISSION: Mutex<Option<bool>> = Mutex::new(None);
-
-    /// Ensures microphone access has been granted.
-    /// The Mutex serialises all callers: only one thread performs the actual
-    /// TCC request; others wait and then read the cached result.
-    pub fn ensure_access() -> Result<(), String> {
-        // Touch the extern symbol so the linker cannot dead-strip AVFoundation.
-        let _ = std::hint::black_box(unsafe { AVMediaTypeAudio });
-
-        let mut perm = PERMISSION
-            .lock()
-            .map_err(|e| format!("Permission lock poisoned: {e}"))?;
-
-        match *perm {
-            Some(true) => return Ok(()),
-            Some(false) => {
-                return Err("Microphone permission denied. Please enable in \
-                    System Settings > Privacy & Security > Microphone."
-                    .into())
-            }
-            None => {} // first call — fall through to request
-        }
-
-        match request_access_inner() {
-            Ok(granted) => {
-                *perm = Some(granted);
-                if granted {
-                    Ok(())
-                } else {
-                    Err("Microphone permission denied. Please enable in \
-                        System Settings > Privacy & Security > Microphone."
-                        .into())
-                }
-            }
-            Err(e) => {
-                // Do NOT cache errors — next attempt will retry.
-                eprintln!("[mic_permission] permission check failed: {e}");
-                Err(e)
-            }
-        }
-    }
-
-    fn request_access_inner() -> Result<bool, String> {
-        let cls = match AnyClass::get(c"AVCaptureDevice") {
-            Some(cls) => cls,
-            None => {
-                eprintln!("[mic_permission] AVCaptureDevice class not found (pre-10.14?)");
-                return Ok(true);
-            }
-        };
-
-        // Build the media-type string the same way AVFoundation does internally.
-        // Using NSString avoids potential issues with the extern C symbol's
-        // pointer type (`*const c_void` vs the expected `NSString *`).
-        let media_type = NSString::from_str("soun");
-
-        // AVAuthorizationStatus: 0=notDetermined, 1=restricted, 2=denied, 3=authorized
-        let status: isize =
-            unsafe { msg_send![cls, authorizationStatusForMediaType: &*media_type] };
-        eprintln!("[mic_permission] authorizationStatus = {status}");
-
-        match status {
-            3 => return Ok(true),
-            1 | 2 => return Ok(false),
-            0 => {} // notDetermined → request below
-            other => {
-                eprintln!("[mic_permission] unexpected status {other}, requesting anyway");
-            }
-        }
-
-        // Show the system TCC dialog and block until the user responds.
-        let (tx, rx) = std::sync::mpsc::channel();
-        let block = block2::RcBlock::new(move |granted: Bool| {
-            let _ = tx.send(granted.as_bool());
-        });
-
-        unsafe {
-            let _: () = msg_send![
-                cls,
-                requestAccessForMediaType: &*media_type,
-                completionHandler: &*block
-            ];
-        }
-
-        let granted = rx
-            .recv()
-            .map_err(|_| "Permission request channel closed unexpectedly".to_string())?;
-        eprintln!("[mic_permission] user responded: granted={granted}");
-        Ok(granted)
-    }
-}
+//
+// Previous approach: AVCaptureDevice Obj-C FFI to request permission.
+// That proved unreliable across 4 attempts (silent failures, type-encoding
+// issues, etc.).  New approach: call cpal::default_host + default_input_device
+// on the *calling* (main) thread BEFORE spawning the recording thread.
+// This triggers exactly ONE TCC dialog and blocks until the user responds.
+// Once permission is cached by macOS, subsequent calls go through instantly.
 
 // ── Audio recording ──────────────────────────────────────────────────────────
 
@@ -206,37 +104,46 @@ mod recording {
     }
 
     pub fn start(app: tauri::AppHandle) -> Result<(), String> {
-        // On macOS, ensure mic permission is granted BEFORE cpal touches CoreAudio.
-        #[cfg(target_os = "macos")]
-        super::mic_permission::ensure_access()?;
-
         let mut thread_guard = THREAD_HANDLE.lock().map_err(|e| e.to_string())?;
         if thread_guard.is_some() {
             return Err("Already recording".into());
         }
 
+        // ── Probe the microphone on the CALLING thread ─────────────────
+        // On macOS the very first CoreAudio call triggers a single TCC
+        // permission dialog and blocks until the user responds.
+        // By doing the device + config query HERE (on the main / Tauri
+        // command thread) we guarantee:
+        //   • exactly ONE dialog appears (not 5 from separate calls),
+        //   • the thread we spawn later never sees "not-determined" state.
+        let host = cpal::default_host();
+        let device = host
+            .default_input_device()
+            .ok_or("No input device available")?;
+        let config = device
+            .default_input_config()
+            .map_err(|e| format!("Input config error: {e}"))?;
+
+        let sample_rate = config.sample_rate().0;
+        let channels = config.channels();
+        let sample_format = config.sample_format();
+        let stream_config: cpal::StreamConfig = config.into();
+
         AUDIO_BUFFER.lock().map_err(|e| e.to_string())?.clear();
-        *RECORDING_META.lock().map_err(|e| e.to_string())? = None;
+        *RECORDING_META.lock().map_err(|e| e.to_string())? = Some((sample_rate, channels));
         SHOULD_STOP.store(false, Ordering::SeqCst);
         CURRENT_LEVEL.store(0, Ordering::Relaxed);
 
         let (ready_tx, ready_rx) = std::sync::mpsc::channel::<Result<(), String>>();
 
+        // Build and run the stream on a dedicated thread (cpal streams
+        // are !Send on macOS, so they must live on the thread that
+        // created them).
         let handle = std::thread::spawn(move || -> Result<(), String> {
             let host = cpal::default_host();
             let device = host
                 .default_input_device()
                 .ok_or("No input device available")?;
-            let config = device
-                .default_input_config()
-                .map_err(|e| format!("Input config error: {e}"))?;
-
-            let sample_rate = config.sample_rate().0;
-            let channels = config.channels();
-            let sample_format = config.sample_format();
-            let stream_config: cpal::StreamConfig = config.into();
-
-            *RECORDING_META.lock().unwrap() = Some((sample_rate, channels));
 
             let stream = match sample_format {
                 cpal::SampleFormat::F32 => device.build_input_stream(
@@ -362,13 +269,13 @@ mod recording {
 
 #[tauri::command]
 fn request_microphone_access() -> Result<bool, String> {
-    #[cfg(target_os = "macos")]
-    {
-        mic_permission::ensure_access().map(|_| true)
-    }
-    #[cfg(not(target_os = "macos"))]
-    {
-        Ok(true)
+    // Trigger the TCC dialog (if needed) by probing the default input device.
+    // On macOS this blocks until the user grants or denies mic access.
+    use cpal::traits::HostTrait;
+    let host = cpal::default_host();
+    match host.default_input_device() {
+        Some(_) => Ok(true),
+        None => Err("No input device available".into()),
     }
 }
 

@@ -522,3 +522,143 @@ ${schoolsList}
   - NEVER output the marker during the questioning phase.
 ${getLanguageInstruction(language)}`;
 }
+
+export function buildMilestoneAnalysisPrompt(params: {
+  milestone: number;
+  patientNotes: string;
+  sessionSummaries: { date: string; narrative: string | null; summary: SessionSummary | null }[];
+  profile: UserProfile | null;
+  totalSessions: number;
+  language?: Language;
+}): string {
+  const { milestone, patientNotes, sessionSummaries, profile, totalSessions } = params;
+
+  const focusMap: Record<number, { title: string; focus: string }> = {
+    7: {
+      title: "First Steps",
+      focus: `Focus on:
+- Initial impressions and the client's starting emotional state
+- Core motivations that brought them to therapy
+- Fundamental themes and topics that have emerged
+- Early patterns in communication style and self-expression
+- Strengths and resources the client has already shown`,
+    },
+    15: {
+      title: "Discovery Journey",
+      focus: `Focus on:
+- Recurring themes and patterns across sessions
+- How the client's self-expression has evolved
+- Key relationships and dynamics that keep surfacing
+- Emotional patterns: what triggers strong reactions
+- Initial insights and moments of self-awareness`,
+    },
+    30: {
+      title: "Inner Compass",
+      focus: `Focus on:
+- The client's emotional landscape: dominant emotions, triggers, regulation strategies
+- Coping mechanisms: which are healthy, which might need attention
+- The internal narrative: how the client talks about themselves
+- Relationship patterns and attachment dynamics
+- Growth areas and stuck points identified so far`,
+    },
+    60: {
+      title: "Turning Point",
+      focus: `Focus on:
+- Concrete changes observed since the beginning of the journey
+- Areas where the client has grown vs. areas of resistance
+- Shifts in perspective, beliefs, or behavioral patterns
+- The evolution of the therapeutic relationship itself
+- Key breakthroughs and turning points in the process`,
+    },
+    120: {
+      title: "Deep Roots",
+      focus: `Focus on:
+- Deep-seated patterns rooted in early experiences or core beliefs
+- Complex relationship dynamics and how they've evolved
+- The client's journey through difficult emotions and topics
+- Integration of insights into daily life
+- Unconscious patterns that have become conscious`,
+    },
+    180: {
+      title: "The Mirror",
+      focus: `Focus on:
+- A comprehensive self-awareness portrait of the client
+- Who they are at their core: values, fears, desires, strengths
+- How they relate to themselves and others
+- The gap between their self-perception and observed patterns
+- Their unique psychological fingerprint`,
+    },
+    240: {
+      title: "Inner Wisdom",
+      focus: `Focus on:
+- Accumulated wisdom and personal insights gained
+- Personal strengths that have been discovered or reinforced
+- Resilience patterns and how they've developed
+- The client's evolved understanding of their own psychology
+- Tools and strategies they've internalized`,
+    },
+    365: {
+      title: "Year's Journey",
+      focus: `Focus on:
+- The complete arc of transformation over a full year
+- A narrative of who they were, who they've become, and who they're becoming
+- Major milestones, breakthroughs, and defining moments
+- The evolution of their relationship with themselves
+- A forward-looking perspective: foundations laid for continued growth`,
+    },
+  };
+
+  const milestoneInfo = focusMap[milestone] ?? focusMap[7];
+
+  let prompt = `You are an experienced clinical psychologist writing a personal growth analysis for your client. This is their "${milestoneInfo.title}" milestone — they have completed ${totalSessions} therapy sessions.
+
+This analysis is a gift to the client: a reflective, deeply personal document that helps them see their own journey with clarity and compassion. Write as if you're sitting with them, sharing your observations warmly and directly.
+
+${milestoneInfo.focus}
+
+Style rules:
+- Write in Markdown format with clear headings and structure
+- Address the client directly using "you" language
+- Be warm, insightful, and genuinely helpful — not clinical or distant
+- Use specific examples from the session data when possible
+- Balance honesty (including gentle challenges) with encouragement
+- Length: 800-1500 words depending on available material
+- End with a meaningful reflection or forward-looking thought`;
+
+  prompt += getLanguageInstruction(params.language);
+
+  if (profile) {
+    prompt += `\n\nClient information:`;
+    if (profile.name) prompt += `\n- Name: ${profile.name}`;
+    if (profile.age) prompt += `\n- Age: ${profile.age}`;
+    if (profile.gender) prompt += `\n- Gender: ${profile.gender}`;
+    if (profile.occupation) prompt += `\n- Occupation: ${profile.occupation}`;
+    if (profile.goals.length > 0) prompt += `\n- Goals: ${profile.goals.join(", ")}`;
+  }
+
+  if (patientNotes && patientNotes.trim().length > 0) {
+    prompt += `\n\n--- Cumulative Patient Notes ---\n${patientNotes}`;
+  }
+
+  if (sessionSummaries.length > 0) {
+    const maxSummaries = milestone <= 30 ? sessionSummaries.length : 40;
+    const summariesToInclude = sessionSummaries.slice(0, maxSummaries);
+    prompt += `\n\n--- Session Summaries (${summariesToInclude.length} of ${sessionSummaries.length} sessions) ---`;
+    for (const s of summariesToInclude) {
+      prompt += `\n\n[${s.date}]`;
+      if (s.summary) {
+        if (s.summary.themes.length > 0) prompt += `\nThemes: ${s.summary.themes.join(", ")}`;
+        if (s.summary.insights.length > 0) prompt += `\nInsights: ${s.summary.insights.join(", ")}`;
+        if (s.summary.homework.length > 0) prompt += `\nHomework: ${s.summary.homework.join(", ")}`;
+      }
+      if (s.narrative) {
+        prompt += `\nNarrative: ${s.narrative}`;
+      }
+    }
+  }
+
+  prompt += `\n\n--- Your Task ---
+Write the "${milestoneInfo.title}" analysis for this client based on their ${totalSessions} completed sessions. Make it personal, insightful, and meaningful.`;
+
+  return prompt;
+}

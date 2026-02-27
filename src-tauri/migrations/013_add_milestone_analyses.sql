@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS milestone_analyses (
+  id TEXT PRIMARY KEY,
+  milestone INTEGER NOT NULL UNIQUE,
+  content TEXT NOT NULL,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);

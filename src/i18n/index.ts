@@ -54,6 +54,7 @@ export interface Translations {
     breathing: string;
     expenses: string;
     schools: string;
+    analyses: string;
     settings: string;
   };
   gender: {
@@ -324,6 +325,7 @@ export interface Translations {
       journal_analysis: string;
       weekly_summary: string;
       insight_extraction: string;
+      milestone_analysis: string;
       stt: string;
       tts: string;
     };
@@ -502,6 +504,41 @@ export interface Translations {
     apiKeyErrorTitle: string;
     apiKeyError: string;
     goToVoiceSettings: string;
+  };
+  analyses: {
+    title: string;
+    description: string;
+    milestones: string;
+    nextGoal: string;
+    sessionsToGo: string;
+    showAnalysis: string;
+    generateAnalysis: string;
+    analyzing: string;
+    locked: string;
+    completed: string;
+    sessionsCompleted: string;
+    aiAnalysis: string;
+    totalSessions: string;
+    totalDreams: string;
+    totalJournal: string;
+    noSessionsYet: string;
+    noSessionsDescription: string;
+    milestone7: string;
+    milestone15: string;
+    milestone30: string;
+    milestone60: string;
+    milestone120: string;
+    milestone180: string;
+    milestone240: string;
+    milestone365: string;
+    milestone7Desc: string;
+    milestone15Desc: string;
+    milestone30Desc: string;
+    milestone60Desc: string;
+    milestone120Desc: string;
+    milestone180Desc: string;
+    milestone240Desc: string;
+    milestone365Desc: string;
   };
   placeholder: {
     featureComingSoon: string;

@@ -364,6 +364,12 @@ pub fn run() {
             sql: include_str!("../migrations/012_add_insights.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 13,
+            description: "add milestone_analyses table",
+            sql: include_str!("../migrations/013_add_milestone_analyses.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

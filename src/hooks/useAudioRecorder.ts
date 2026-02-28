@@ -14,6 +14,12 @@ export function useAudioRecorder() {
   const [error, setError] = useState<string | null>(null);
   const [audioLevel, setAudioLevel] = useState(0);
   const smoothedRef = useRef(0);
+  const stateRef = useRef<RecordingState>("idle");
+
+  const setStateAndRef = useCallback((s: RecordingState) => {
+    stateRef.current = s;
+    setState(s);
+  }, []);
 
   // Listen for audio-level events while recording
   useEffect(() => {
@@ -50,31 +56,32 @@ export function useAudioRecorder() {
   }, [state]);
 
   const startRecording = useCallback(async () => {
-    if (state === "recording" || globalStarting) return;
+    if (stateRef.current === "recording" || globalStarting) return;
     globalStarting = true;
     try {
       setError(null);
       // start_recording now handles macOS mic permission internally
       // (via OnceLock + AVCaptureDevice) before cpal touches CoreAudio.
       await invoke("start_recording");
-      setState("recording");
+      setStateAndRef("recording");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
-      setState("idle");
+      setStateAndRef("idle");
     } finally {
       globalStarting = false;
     }
-  }, [state]);
+  }, [setStateAndRef]);
 
   const stopRecording = useCallback(async (): Promise<Blob> => {
     const base64Wav = await invoke<string>("stop_recording");
+    setStateAndRef("idle");
     const binaryStr = atob(base64Wav);
     const bytes = new Uint8Array(binaryStr.length);
     for (let i = 0; i < binaryStr.length; i++) {
       bytes[i] = binaryStr.charCodeAt(i);
     }
     return new Blob([bytes], { type: "audio/wav" });
-  }, []);
+  }, [setStateAndRef]);
 
   const cancelRecording = useCallback(async () => {
     try {
@@ -82,12 +89,12 @@ export function useAudioRecorder() {
     } catch {
       // Ignore errors on cancel
     }
-    setState("idle");
-  }, []);
+    setStateAndRef("idle");
+  }, [setStateAndRef]);
 
   return {
     state,
-    setState,
+    setState: setStateAndRef,
     error,
     setError,
     audioLevel,

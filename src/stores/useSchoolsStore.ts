@@ -41,7 +41,7 @@ export const useSchoolsStore = create<SchoolsState>((set) => ({
   loadFromStore: (data) => set(data),
 }));
 
-const BUILTIN_IDS = new Set(["psychodynamic", "cbt", "logotherapy", "act", "schema", "stoic"]);
+const BUILTIN_IDS = new Set(["psychodynamic", "cbt", "logotherapy", "act", "schema", "stoic", "spiritual"]);
 
 export function isBuiltInSchool(id: string): boolean {
   return BUILTIN_IDS.has(id);

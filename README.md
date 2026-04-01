@@ -287,19 +287,7 @@ Contributions are welcome! Whether it's a bug fix, new feature, translation, or 
 - **Bug fixes** — Check [open issues](https://github.com/Lepuz-coder/opengnothia/issues) for known bugs
 - **Documentation** — Improve guides, add examples, and clarify setup steps
 
----
 
-## Roadmap
-
-- [ ] More therapy school approaches (Gestalt, EMDR, DBT)
-- [ ] Session export (PDF, Markdown)
-- [ ] Advanced analytics and visualizations
-- [ ] Plugin system for community extensions
-- [ ] More languages
-- [ ] Voice input support
-- [ ] Optional encrypted cloud backup
-
----
 
 ## License
 

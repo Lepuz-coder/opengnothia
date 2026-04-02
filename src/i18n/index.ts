@@ -574,6 +574,11 @@ export interface Translations {
     quitSmokingLongDesc: string;
     quitSmokingHighlights: string[];
     quitSmokingSteps: string[];
+    makingPeaceWithAnxiety: string;
+    makingPeaceWithAnxietyDesc: string;
+    makingPeaceWithAnxietyLongDesc: string;
+    makingPeaceWithAnxietyHighlights: string[];
+    makingPeaceWithAnxietySteps: string[];
     resetProgress: string;
     resetProgressConfirm: string;
     resetProgressWarning: string;

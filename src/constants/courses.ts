@@ -146,7 +146,57 @@ export const QUIT_SMOKING: CourseDefinition = {
   ],
 };
 
-export const COURSES: CourseDefinition[] = [SPIRITUAL_JOURNEY, QUIT_SMOKING];
+export const MAKING_PEACE_WITH_ANXIETY: CourseDefinition = {
+  id: "making_peace_with_anxiety",
+  nameKey: "makingPeaceWithAnxiety",
+  descriptionKey: "makingPeaceWithAnxietyDesc",
+  detailDescriptionKey: "makingPeaceWithAnxietyLongDesc",
+  highlightsKey: "makingPeaceWithAnxietyHighlights",
+  stepsKey: "makingPeaceWithAnxietySteps",
+  rolePrompt: "a calm, empathetic anxiety management coach who combines cognitive-behavioral science with practical relaxation techniques. You normalize the student's experience, avoid clinical jargon unless explaining it, and always provide actionable exercises. You validate emotions before offering tools",
+  icon: "🧘",
+  steps: [
+    // Block 1: Understanding Anxiety (1-4)
+    { topicTitle: "What Is Anxiety? — Understanding the Difference Between Fear and Anxiety" },
+    { topicTitle: "The Evolutionary Purpose of Anxiety — Why Your Brain Is Wired to Worry" },
+    { topicTitle: "Normal vs. Problematic Anxiety — When a Natural Response Becomes a Burden" },
+    { topicTitle: "Your Anxiety Profile — Mapping Your Personal Triggers and Patterns" },
+
+    // Block 2: The Body Under Anxiety (5-8)
+    { topicTitle: "The Fight-or-Flight Response — What Happens Inside Your Body When Anxiety Strikes" },
+    { topicTitle: "Physical Symptoms of Anxiety — Heart Racing, Tension, Dizziness, and More" },
+    { topicTitle: "The Anxiety-Body Loop — How Physical Sensations Feed Anxious Thoughts" },
+    { topicTitle: "Body Awareness Practice — Learning to Listen Without Reacting" },
+
+    // Block 3: Anxious Thought Patterns (9-12)
+    { topicTitle: "The Thought-Emotion Connection — How a Single Thought Can Change How You Feel" },
+    { topicTitle: "Catastrophizing — When Your Mind Jumps to the Worst-Case Scenario" },
+    { topicTitle: "Common Cognitive Distortions — All-or-Nothing Thinking, Mind Reading, and Other Traps" },
+    { topicTitle: "The Worry Spiral — Understanding How Anxiety Feeds on Itself" },
+
+    // Block 4: Cognitive Restructuring (13-16)
+    { topicTitle: "Catching Your Thoughts — The First Step to Changing Them" },
+    { topicTitle: "Challenging Anxious Thoughts — Asking the Right Questions" },
+    { topicTitle: "Evidence-Based Thinking — Building a Realistic Perspective" },
+    { topicTitle: "Reframing — Turning Threats into Challenges" },
+
+    // Block 5: Breathing and Relaxation (17-20)
+    { topicTitle: "Diaphragmatic Breathing — The Foundation of Physical Calm" },
+    { topicTitle: "The 4-7-8 Technique — A Portable Tool for Acute Anxiety" },
+    { topicTitle: "Progressive Muscle Relaxation — Releasing Tension You Didn't Know You Held" },
+    { topicTitle: "Grounding Techniques — Anchoring Yourself in the Present Moment" },
+
+    // Block 6: Behavioral Strategies (21-23)
+    { topicTitle: "The Avoidance Trap — Why Running Away Makes Anxiety Stronger" },
+    { topicTitle: "Gradual Exposure — Building Tolerance Step by Step" },
+    { topicTitle: "Behavioral Experiments — Testing Your Fears Against Reality" },
+
+    // Block 7: Integration (24)
+    { topicTitle: "Your Anxiety Toolkit — Building a Sustainable Practice for Everyday Life" },
+  ],
+};
+
+export const COURSES: CourseDefinition[] = [SPIRITUAL_JOURNEY, QUIT_SMOKING, MAKING_PEACE_WITH_ANXIETY];
 
 export function getCourseById(courseId: string): CourseDefinition | undefined {
   return COURSES.find((c) => c.id === courseId);

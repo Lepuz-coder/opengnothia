@@ -141,7 +141,128 @@ function formatTemplate(template: string, headline: string, subtitle?: string | 
     .split("{subtitle}").join(subtitle ?? "");
 }
 
-export function getSpiritualJourneyStepDescription(
+const QUIT_SMOKING_TEMPLATES: Record<Language, StepDescriptionTemplates> = {
+  tr: {
+    withSubtitle: [
+      "Bu ders, {headline} konusunu {subtitle} üzerinden ele alarak sigara içmenin ardındaki yanılsamalardan birini daha görünür kılar.",
+      "Buradaki odak {headline}. {subtitle} sayesinde beyni tuzağa düşüren koşullanmayı çözmeye ve sigarayı olduğu gibi görmeye başlarsın.",
+      "Bu bölüm, {headline} temasını {subtitle} çerçevesinde inceler; belirsiz bir hissi, üzerine harekete geçebileceğin net bir anlayışa dönüştürür.",
+      "{headline} burada {subtitle} aracılığıyla ele alınır. Amaç korkuyu kaldırmak ve sigaranın sana gerçekte ne yaptığını açıkça görmektir.",
+    ],
+    withoutSubtitle: [
+      "Bu ders, {headline} konusunu ele alarak sigara içmenin ardındaki temel yanılsamalardan birini görünür kılar.",
+      "Buradaki odak {headline}. Amaç seni korkutmak değil, gerçeği net biçimde görmeni sağlayarak içme isteğinin kendiliğinden düşmesini sağlamaktır.",
+      "Bu bölüm, {headline} temasını daha somut hale getirerek belirsiz bir hissi, harekete geçebileceğin net bir anlayışa dönüştürür.",
+      "{headline} burada doğrudan ele alınır; böylece korkuyu bırakabilir ve sigaranın sana gerçekte ne yaptığını görebilirsin.",
+    ],
+  },
+  en: {
+    withSubtitle: [
+      "This lesson examines {headline} through {subtitle}, helping you see through one of the key illusions that keeps smokers trapped.",
+      "Here the focus is {headline}. By understanding {subtitle}, you begin to dismantle the brainwashing and see smoking for what it really is.",
+      "This section takes a closer look at {headline} by exploring {subtitle}, turning a vague feeling into a clear understanding you can act on.",
+      "{headline} is addressed here through {subtitle}. The goal is to remove the fear and replace it with the truth about what smoking actually does.",
+    ],
+    withoutSubtitle: [
+      "This lesson examines {headline}, helping you see through one of the key illusions that keeps smokers trapped.",
+      "Here the focus is {headline}. The aim is not to scare you but to help you see the reality clearly so the desire to smoke simply falls away.",
+      "This section takes a closer look at {headline}, turning a vague feeling into a clear understanding you can act on.",
+      "{headline} is addressed here so you can remove the fear and see the truth about what smoking actually does to you.",
+    ],
+  },
+  zh: {
+    withSubtitle: [
+      "本节课通过{subtitle}来审视{headline}，帮助你看穿让吸烟者深陷其中的关键幻觉之一。",
+      "这里的重点是{headline}。通过理解{subtitle}，你开始拆解洗脑机制，看清吸烟的真面目。",
+      "这一部分通过探索{subtitle}来深入{headline}，将模糊的感觉转化为你可以采取行动的清晰认知。",
+      "这里通过{subtitle}来讨论{headline}。目标是消除恐惧，用吸烟真正带来的后果来取代它。",
+    ],
+    withoutSubtitle: [
+      "本节课审视{headline}，帮助你看穿让吸烟者深陷其中的关键幻觉之一。",
+      "这里的重点是{headline}。目的不是吓唬你，而是帮你清楚地看到现实，让吸烟的欲望自然消退。",
+      "这一部分深入{headline}，将模糊的感觉转化为你可以采取行动的清晰认知。",
+      "这里直接讨论{headline}，帮你消除恐惧，看清吸烟到底对你做了什么。",
+    ],
+  },
+  es: {
+    withSubtitle: [
+      "Esta lección examina {headline} a través de {subtitle}, ayudándote a ver una de las ilusiones clave que mantienen atrapados a los fumadores.",
+      "Aquí el foco está en {headline}. Al comprender {subtitle}, empiezas a desmontar el lavado de cerebro y a ver el tabaco tal como es.",
+      "Esta sección profundiza en {headline} explorando {subtitle}, convirtiendo una sensación vaga en una comprensión clara sobre la que puedes actuar.",
+      "Aquí se aborda {headline} a través de {subtitle}. El objetivo es eliminar el miedo y reemplazarlo con la verdad sobre lo que fumar realmente hace.",
+    ],
+    withoutSubtitle: [
+      "Esta lección examina {headline}, ayudándote a ver una de las ilusiones clave que mantienen atrapados a los fumadores.",
+      "Aquí el foco está en {headline}. El objetivo no es asustarte, sino ayudarte a ver la realidad con claridad para que el deseo de fumar simplemente desaparezca.",
+      "Esta sección profundiza en {headline}, convirtiendo una sensación vaga en una comprensión clara sobre la que puedes actuar.",
+      "Aquí se aborda {headline} para que puedas eliminar el miedo y ver la verdad sobre lo que fumar realmente te hace.",
+    ],
+  },
+  pt: {
+    withSubtitle: [
+      "Esta aula examina {headline} através de {subtitle}, ajudando você a enxergar uma das ilusões-chave que mantêm os fumantes presos.",
+      "Aqui o foco é {headline}. Ao compreender {subtitle}, você começa a desmontar a lavagem cerebral e a ver o cigarro como ele realmente é.",
+      "Esta seção aprofunda {headline} explorando {subtitle}, transformando um sentimento vago em uma compreensão clara sobre a qual você pode agir.",
+      "Aqui, {headline} é abordado através de {subtitle}. O objetivo é remover o medo e substituí-lo pela verdade sobre o que fumar realmente faz.",
+    ],
+    withoutSubtitle: [
+      "Esta aula examina {headline}, ajudando você a enxergar uma das ilusões-chave que mantêm os fumantes presos.",
+      "Aqui o foco é {headline}. O objetivo não é assustar, mas ajudar você a ver a realidade com clareza para que o desejo de fumar simplesmente desapareça.",
+      "Esta seção aprofunda {headline}, transformando um sentimento vago em uma compreensão clara sobre a qual você pode agir.",
+      "Aqui, {headline} é abordado para que você possa remover o medo e ver a verdade sobre o que fumar realmente faz com você.",
+    ],
+  },
+  de: {
+    withSubtitle: [
+      "Diese Lektion untersucht {headline} durch {subtitle} und hilft dir, eine der zentralen Illusionen zu durchschauen, die Raucher gefangen hält.",
+      "Hier liegt der Fokus auf {headline}. Indem du {subtitle} verstehst, beginnst du die Gehirnwäsche abzubauen und das Rauchen so zu sehen, wie es wirklich ist.",
+      "Dieser Abschnitt vertieft {headline} durch {subtitle} und verwandelt ein vages Gefühl in ein klares Verständnis, nach dem du handeln kannst.",
+      "{headline} wird hier durch {subtitle} behandelt. Das Ziel ist, die Angst zu beseitigen und sie durch die Wahrheit darüber zu ersetzen, was Rauchen tatsächlich bewirkt.",
+    ],
+    withoutSubtitle: [
+      "Diese Lektion untersucht {headline} und hilft dir, eine der zentralen Illusionen zu durchschauen, die Raucher gefangen hält.",
+      "Hier liegt der Fokus auf {headline}. Es geht nicht darum, dir Angst zu machen, sondern dir zu helfen, die Realität klar zu sehen, damit das Verlangen zu rauchen einfach nachlässt.",
+      "Dieser Abschnitt vertieft {headline} und verwandelt ein vages Gefühl in ein klares Verständnis, nach dem du handeln kannst.",
+      "{headline} wird hier behandelt, damit du die Angst ablegen und die Wahrheit darüber sehen kannst, was Rauchen dir wirklich antut.",
+    ],
+  },
+  fr: {
+    withSubtitle: [
+      "Cette leçon examine {headline} à travers {subtitle}, t'aidant à voir au-delà d'une des illusions clés qui piègent les fumeurs.",
+      "Ici, l'accent est mis sur {headline}. En comprenant {subtitle}, tu commences à déconstruire le conditionnement et à voir le tabac tel qu'il est vraiment.",
+      "Cette section approfondit {headline} en explorant {subtitle}, transformant un sentiment vague en une compréhension claire sur laquelle tu peux agir.",
+      "Ici, {headline} est abordé à travers {subtitle}. L'objectif est de supprimer la peur et de la remplacer par la vérité sur ce que fumer fait réellement.",
+    ],
+    withoutSubtitle: [
+      "Cette leçon examine {headline}, t'aidant à voir au-delà d'une des illusions clés qui piègent les fumeurs.",
+      "Ici, l'accent est mis sur {headline}. Le but n'est pas de te faire peur, mais de t'aider à voir la réalité clairement pour que l'envie de fumer s'efface d'elle-même.",
+      "Cette section approfondit {headline}, transformant un sentiment vague en une compréhension claire sur laquelle tu peux agir.",
+      "Ici, {headline} est abordé pour que tu puisses supprimer la peur et voir la vérité sur ce que fumer te fait vraiment.",
+    ],
+  },
+  ja: {
+    withSubtitle: [
+      "このレッスンでは{subtitle}を通して{headline}を検証し、喫煙者を縛る重要な錯覚の一つを見抜く手助けをします。",
+      "ここでの焦点は{headline}です。{subtitle}を理解することで、洗脳を解体し、喫煙の本当の姿を見始めます。",
+      "このセクションでは{subtitle}を掘り下げて{headline}をより深く理解し、漠然とした感覚を行動できる明確な認識に変えます。",
+      "ここでは{subtitle}を通じて{headline}を扱います。目標は恐怖を取り除き、喫煙が実際に何をしているかという真実に置き換えることです。",
+    ],
+    withoutSubtitle: [
+      "このレッスンでは{headline}を検証し、喫煙者を縛る重要な錯覚の一つを見抜く手助けをします。",
+      "ここでの焦点は{headline}です。怖がらせることが目的ではなく、現実をはっきりと見ることで、喫煙への欲求が自然に消えるようにすることです。",
+      "このセクションでは{headline}をより深く理解し、漠然とした感覚を行動できる明確な認識に変えます。",
+      "ここでは{headline}を直接扱い、恐怖を取り除いて喫煙が本当にあなたに何をしているかを見られるようにします。",
+    ],
+  },
+};
+
+const COURSE_TEMPLATES: Record<string, Record<Language, StepDescriptionTemplates>> = {
+  spiritual_journey: STEP_DESCRIPTION_TEMPLATES,
+  quit_smoking: QUIT_SMOKING_TEMPLATES,
+};
+
+export function getCourseStepDescription(
+  courseId: string,
   language: Language,
   stepIndex: number,
   localizedTitle: string,
@@ -149,7 +270,7 @@ export function getSpiritualJourneyStepDescription(
   const { headline, subtitle } = splitStepTitle(localizedTitle);
   if (!headline) return "";
 
-  const templates = STEP_DESCRIPTION_TEMPLATES[language];
+  const templates = COURSE_TEMPLATES[courseId]?.[language] ?? STEP_DESCRIPTION_TEMPLATES[language];
   if (subtitle) {
     const template = templates.withSubtitle[stepIndex % templates.withSubtitle.length];
     return formatTemplate(template, headline, subtitle);
@@ -157,4 +278,12 @@ export function getSpiritualJourneyStepDescription(
 
   const template = templates.withoutSubtitle[stepIndex % templates.withoutSubtitle.length];
   return formatTemplate(template, headline);
+}
+
+export function getSpiritualJourneyStepDescription(
+  language: Language,
+  stepIndex: number,
+  localizedTitle: string,
+): string {
+  return getCourseStepDescription("spiritual_journey", language, stepIndex, localizedTitle);
 }

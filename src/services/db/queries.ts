@@ -701,6 +701,12 @@ export async function getCourseCompletedStepCount(courseId: string): Promise<num
   return rows[0]?.cnt ?? 0;
 }
 
+export async function resetCourseProgress(courseId: string): Promise<void> {
+  const db = await getDatabase();
+  await db.execute("DELETE FROM course_progress WHERE course_id = ?", [courseId]);
+  await db.execute("DELETE FROM course_notes WHERE course_id = ?", [courseId]);
+}
+
 // Clear all data
 export async function clearAllData(): Promise<void> {
   const db = await getDatabase();

@@ -14,6 +14,7 @@ import {
   updateCourseStepMessages,
   updateCourseStepProgress,
   getCourseNotes,
+  resetCourseProgress,
   getCourseNotesUpdatedAt,
   saveTokenUsage,
 } from "@/services/db/queries";
@@ -31,13 +32,14 @@ import {
 } from "@/services/ai/coursePromptBuilder";
 import { updateCourseNotes } from "@/services/ai/courseNotes";
 import { getProvider } from "@/constants/providers";
-import { getSpiritualJourneyStepDescription } from "@/constants/courseStepDescriptions";
+import { getCourseStepDescription } from "@/constants/courseStepDescriptions";
 import { ChatContainer } from "@/components/chat/ChatContainer";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { Button } from "@/components/ui/Button";
 import { ErrorModal } from "@/components/ui/ErrorModal";
+import { Modal } from "@/components/ui/Modal";
 import type { ChatMessage, CourseStepProgress, Language, TokenUsage } from "@/types";
-import { ArrowLeft, Lock, Check, Play, Loader2, ChevronRight, CheckCircle2, MoreVertical, Search, X, BookOpen, Sparkles, Target } from "lucide-react";
+import { ArrowLeft, Lock, Check, Play, Loader2, ChevronRight, CheckCircle2, MoreVertical, Search, X, BookOpen, Sparkles, Target, RotateCcw } from "lucide-react";
 import { createBufferedTextStream } from "@/lib/createBufferedTextStream";
 
 type View = "list" | "journey" | "lesson";
@@ -48,12 +50,15 @@ type CourseStats = {
 
 function getLocalizedStepTitle(
   t: ReturnType<typeof useTranslation>["t"],
-  courseId: string,
+  course: CourseDefinition,
   index: number,
   fallback: string,
 ): string {
-  if (courseId === "spiritual_journey") {
-    return t.courses.spiritualJourneySteps?.[index] ?? fallback;
+  if (course.stepsKey) {
+    const steps = t.courses[course.stepsKey as keyof typeof t.courses];
+    if (Array.isArray(steps)) {
+      return steps[index] ?? fallback;
+    }
   }
   return fallback;
 }
@@ -64,10 +69,7 @@ function getLocalizedStepDescription(
   index: number,
   localizedTitle: string,
 ): string {
-  if (courseId === "spiritual_journey") {
-    return getSpiritualJourneyStepDescription(language, index, localizedTitle);
-  }
-  return "";
+  return getCourseStepDescription(courseId, language, index, localizedTitle);
 }
 
 function getLocalizedCourseName(
@@ -405,6 +407,21 @@ function JourneyMapView({
 }) {
   const [steps, setSteps] = useState<CourseStepProgress[]>([]);
   const [loading, setLoading] = useState(true);
+  const [resetModalOpen, setResetModalOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
+
+  const handleResetProgress = useCallback(async () => {
+    setResetting(true);
+    try {
+      await resetCourseProgress(course.id);
+      await initializeCourseProgress(course.id, course.steps.length);
+      const progress = await getCourseProgress(course.id);
+      setSteps(progress);
+    } finally {
+      setResetting(false);
+      setResetModalOpen(false);
+    }
+  }, [course.id, course.steps.length]);
 
   const loadProgress = useCallback(async () => {
     await initializeCourseProgress(course.id, course.steps.length);
@@ -431,7 +448,7 @@ function JourneyMapView({
       : ("completed" as const);
   const currentFocusTitle =
     currentFocusStepIndex !== -1
-      ? getLocalizedStepTitle(t, course.id, currentFocusStepIndex, course.steps[currentFocusStepIndex]?.topicTitle ?? "")
+      ? getLocalizedStepTitle(t, course, currentFocusStepIndex, course.steps[currentFocusStepIndex]?.topicTitle ?? "")
       : "";
   const currentFocusParts = splitStepTitle(currentFocusTitle);
   const currentFocusDescription =
@@ -468,10 +485,19 @@ function JourneyMapView({
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary-500/12 text-3xl shadow-sm shadow-primary-500/10">
                   {course.icon}
                 </div>
-                <div className="min-w-0">
-                  <h1 className="text-2xl font-bold text-[var(--text-primary)]">
-                    {localizedCourseName}
-                  </h1>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <h1 className="text-2xl font-bold text-[var(--text-primary)]">
+                      {localizedCourseName}
+                    </h1>
+                    <button
+                      onClick={() => setResetModalOpen(true)}
+                      className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-[var(--text-muted)] border border-[var(--border-color)] bg-[var(--bg-primary)]/80 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30 transition-colors"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      {t.courses.resetProgress}
+                    </button>
+                  </div>
                   <p className="text-sm text-[var(--text-secondary)] mt-1">
                     {localizedCourseDescription}
                   </p>
@@ -610,7 +636,7 @@ function JourneyMapView({
           const progress = steps[index];
           const status = progress?.status ?? "locked";
           const isClickable = status === "available" || status === "in_progress" || status === "completed";
-          const localizedStepTitle = getLocalizedStepTitle(t, course.id, index, step.topicTitle);
+          const localizedStepTitle = getLocalizedStepTitle(t, course, index, step.topicTitle);
           const localizedStepDescription = getLocalizedStepDescription(language, course.id, index, localizedStepTitle);
           const { headline, subtitle } = splitStepTitle(localizedStepTitle);
           const stepProgress = getStepCompletionPercentage(progress);
@@ -737,6 +763,24 @@ function JourneyMapView({
           );
         })}
       </div>
+
+      <Modal isOpen={resetModalOpen} onClose={() => setResetModalOpen(false)} title={t.courses.resetProgress}>
+        <p className="text-sm text-[var(--text-secondary)] mb-2">{t.courses.resetProgressConfirm}</p>
+        <p className="text-xs text-[var(--text-muted)] mb-5">{t.courses.resetProgressWarning}</p>
+        <div className="flex justify-end gap-3">
+          <Button variant="ghost" size="sm" onClick={() => setResetModalOpen(false)}>
+            {t.courses.resetProgressCancel}
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={handleResetProgress}
+            disabled={resetting}
+          >
+            {resetting ? <Loader2 className="w-4 h-4 animate-spin" /> : t.courses.resetProgress}
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -914,6 +958,7 @@ function LessonView({
         courseNotes,
         language: language as any,
         provider: settings.provider,
+        rolePrompt: course.rolePrompt,
       });
 
       const abortController = new AbortController();
@@ -1048,6 +1093,7 @@ function LessonView({
         courseNotes,
         language: language as any,
         provider: settings.provider,
+        rolePrompt: course.rolePrompt,
       });
 
       const compactionPrompt = buildCourseLessonCompactionPrompt(language as any);
@@ -1106,6 +1152,7 @@ function LessonView({
         courseNotes,
         language: language as any,
         provider: settings.provider,
+        rolePrompt: course.rolePrompt,
       });
 
       const state = useCourseStore.getState();
@@ -1262,7 +1309,7 @@ function LessonView({
                 {t.courses.step} {stepIndex + 1} {t.courses.of} {course.steps.length}
               </span>
             </div>
-            <h2 className="text-sm font-semibold truncate max-w-[400px]">{getLocalizedStepTitle(t, course.id, stepIndex, step.topicTitle)}</h2>
+            <h2 className="text-sm font-semibold truncate max-w-[400px]">{getLocalizedStepTitle(t, course, stepIndex, step.topicTitle)}</h2>
           </div>
         </div>
         <div className="flex items-center gap-3">

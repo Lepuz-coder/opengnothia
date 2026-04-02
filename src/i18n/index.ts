@@ -569,6 +569,15 @@ export interface Translations {
     courseCompleted: string;
     courseCompletedDesc: string;
     spiritualJourneySteps: string[];
+    quitSmoking: string;
+    quitSmokingDesc: string;
+    quitSmokingLongDesc: string;
+    quitSmokingHighlights: string[];
+    quitSmokingSteps: string[];
+    resetProgress: string;
+    resetProgressConfirm: string;
+    resetProgressWarning: string;
+    resetProgressCancel: string;
   };
   placeholder: {
     featureComingSoon: string;

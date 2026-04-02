@@ -51,6 +51,19 @@ function getLocalizedStepTitle(
   return fallback;
 }
 
+function stripMarkers(content: string): string {
+  return content
+    .replace(/<<<PROGRESS:\d+>>>/g, "")
+    .replace(/<<<STEP_COMPLETE>>>/g, "")
+    .replace(/\n?<<<[^\n]*$/g, "")
+    .trimEnd();
+}
+
+function extractProgress(content: string): number | null {
+  const match = content.match(/<<<PROGRESS:(\d+)>>>/);
+  return match ? Math.min(parseInt(match[1], 10), 100) : null;
+}
+
 async function trackUsage(
   provider: string,
   model: string,
@@ -346,6 +359,7 @@ function LessonView({
       store.startLesson(course.id, stepIndex, existingMessages);
       if (isCompleted) {
         store.setLessonCompleted(true);
+        store.setLessonProgress(100);
       }
 
       // Mark step as in_progress if it was available
@@ -405,25 +419,27 @@ function LessonView({
         abortSignal: abortController.signal,
         onThinking: (chunk) => useCourseStore.getState().appendStreamThinking(chunk),
         onContent: (chunk) => {
-          const cleaned = chunk.replace(/<<<STEP_COMPLETE>>>/g, "");
+          const cleaned = stripMarkers(chunk);
           if (cleaned) useCourseStore.getState().appendStreamContent(cleaned);
         },
         onDone: () => {
           const state = useCourseStore.getState();
-          // Check for completion marker
           const lastMsg = state.messages.find((m) => m.id === state.streamingMessageId);
           if (lastMsg) {
             const fullContent = lastMsg.content;
+            const progress = extractProgress(fullContent);
+            if (progress !== null) useCourseStore.getState().setLessonProgress(progress);
             const hasMarker = fullContent.includes("<<<STEP_COMPLETE>>>");
+            // Clean all markers from message
+            useCourseStore.setState((s) => ({
+              messages: s.messages.map((m) =>
+                m.id === state.streamingMessageId
+                  ? { ...m, content: stripMarkers(m.content) }
+                  : m
+              ),
+            }));
             if (hasMarker) {
-              // Clean marker from message
-              useCourseStore.setState((s) => ({
-                messages: s.messages.map((m) =>
-                  m.id === state.streamingMessageId
-                    ? { ...m, content: m.content.replace(/\n?<<<STEP_COMPLETE>>>/g, "").trimEnd() }
-                    : m
-                ),
-              }));
+              useCourseStore.getState().setLessonProgress(100);
               handleStepComplete();
             }
           }
@@ -576,11 +592,7 @@ function LessonView({
         onThinking: (chunk) => useCourseStore.getState().appendStreamThinking(chunk),
         onContent: (chunk) => {
           accumulatedContent += chunk;
-          // Strip marker from display in real-time
-          const displayContent = accumulatedContent
-            .replace(/<<<STEP_COMPLETE>>>/g, "")
-            .replace(/\n?<<<[^\n]*$/, "")
-            .trimEnd();
+          const displayContent = stripMarkers(accumulatedContent);
           const { streamingMessageId } = useCourseStore.getState();
           if (streamingMessageId) {
             useCourseStore.setState((s) => ({
@@ -594,9 +606,9 @@ function LessonView({
         },
         onDone: () => {
           const hasMarker = accumulatedContent.includes("<<<STEP_COMPLETE>>>");
-          const cleanContent = accumulatedContent
-            .replace(/<<<STEP_COMPLETE>>>/g, "")
-            .trimEnd();
+          const progress = extractProgress(accumulatedContent);
+          if (progress !== null) useCourseStore.getState().setLessonProgress(progress);
+          const cleanContent = stripMarkers(accumulatedContent);
 
           const { streamingMessageId } = useCourseStore.getState();
           if (streamingMessageId) {
@@ -616,6 +628,7 @@ function LessonView({
           }
 
           if (hasMarker) {
+            useCourseStore.getState().setLessonProgress(100);
             handleStepComplete();
           }
 
@@ -681,30 +694,47 @@ function LessonView({
             <h2 className="text-sm font-semibold truncate max-w-[400px]">{getLocalizedStepTitle(t, course.id, stepIndex, step.topicTitle)}</h2>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {!store.lessonCompleted && (
-            <div className="relative">
-              <button
-                onClick={() => setMenuOpen(!menuOpen)}
-                className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
-              >
-                <MoreVertical className="w-4 h-4 text-[var(--text-muted)]" />
-              </button>
-              {menuOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-                  <div className="absolute right-0 top-full mt-1 z-50 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl shadow-xl py-1 min-w-[180px]">
-                    <button
-                      onClick={handleMarkComplete}
-                      className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--bg-tertiary)] transition-colors flex items-center gap-2"
-                    >
-                      <Check className="w-4 h-4" />
-                      {t.courses.markComplete}
-                    </button>
-                  </div>
-                </>
-              )}
+        <div className="flex items-center gap-3">
+          {/* Lesson progress */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-[var(--text-muted)]">{t.courses.progress}</span>
+            <div className="w-24 h-1.5 rounded-full bg-[var(--bg-secondary)] overflow-hidden">
+              <div
+                className="h-full rounded-full bg-primary-500 transition-all duration-700"
+                style={{ width: `${store.lessonProgress}%` }}
+              />
             </div>
+            <span className="text-xs text-[var(--text-muted)] tabular-nums w-8 text-right">
+              {store.lessonProgress}%
+            </span>
+          </div>
+          {/* Menu */}
+          {!store.lessonCompleted && (
+            <>
+              <div className="w-px h-4 bg-[var(--border-color)]" />
+              <div className="relative">
+                <button
+                  onClick={() => setMenuOpen(!menuOpen)}
+                  className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
+                >
+                  <MoreVertical className="w-4 h-4 text-[var(--text-muted)]" />
+                </button>
+                {menuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+                    <div className="absolute right-0 top-full mt-1 z-50 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl shadow-xl py-1 min-w-[180px]">
+                      <button
+                        onClick={handleMarkComplete}
+                        className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--bg-tertiary)] transition-colors flex items-center gap-2"
+                      >
+                        <Check className="w-4 h-4" />
+                        {t.courses.markComplete}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>

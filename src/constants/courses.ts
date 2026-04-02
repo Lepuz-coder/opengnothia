@@ -6,6 +6,8 @@ export interface CourseDefinition {
   id: string;
   nameKey: string;
   descriptionKey: string;
+  detailDescriptionKey?: string;
+  highlightsKey?: string;
   icon: string;
   steps: CourseStep[];
 }
@@ -14,6 +16,8 @@ export const SPIRITUAL_JOURNEY: CourseDefinition = {
   id: "spiritual_journey",
   nameKey: "spiritualJourney",
   descriptionKey: "spiritualJourneyDesc",
+  detailDescriptionKey: "spiritualJourneyLongDesc",
+  highlightsKey: "spiritualJourneyHighlights",
   icon: "🕊️",
   steps: [
     // Block 1: Foundations of Awareness (1-8)

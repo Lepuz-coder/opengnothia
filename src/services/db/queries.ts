@@ -586,17 +586,21 @@ function parseCourseStepProgress(r: CourseStepProgress): CourseStepProgress {
 
 export async function initializeCourseProgress(courseId: string, totalSteps: number): Promise<void> {
   const db = await getDatabase();
-  const existing = await db.select<{ cnt: number }[]>(
-    "SELECT COUNT(*) as cnt FROM course_progress WHERE course_id = ?",
+  const existing = await db.select<{ step_index: number; status: CourseStepProgress["status"] }[]>(
+    "SELECT step_index, status FROM course_progress WHERE course_id = ? ORDER BY step_index ASC",
     [courseId]
   );
-  if (existing[0]?.cnt > 0) return;
+
+  const existingSteps = new Map(existing.map((row) => [row.step_index, row.status]));
 
   for (let i = 0; i < totalSteps; i++) {
+    if (existingSteps.has(i)) continue;
+
     const id = crypto.randomUUID();
-    const status = i === 0 ? "available" : "locked";
+    const previousStatus = existingSteps.get(i - 1);
+    const status = i === 0 || previousStatus === "completed" ? "available" : "locked";
     await db.execute(
-      "INSERT INTO course_progress (id, course_id, step_index, status) VALUES (?, ?, ?, ?)",
+      "INSERT OR IGNORE INTO course_progress (id, course_id, step_index, status) VALUES (?, ?, ?, ?)",
       [id, courseId, i, status]
     );
   }
@@ -632,7 +636,7 @@ export async function startCourseStep(courseId: string, stepIndex: number): Prom
 export async function completeCourseStep(courseId: string, stepIndex: number): Promise<void> {
   const db = await getDatabase();
   await db.execute(
-    "UPDATE course_progress SET status = 'completed', completed_at = ?, updated_at = CURRENT_TIMESTAMP WHERE course_id = ? AND step_index = ?",
+    "UPDATE course_progress SET status = 'completed', progress = 100, completed_at = ?, updated_at = CURRENT_TIMESTAMP WHERE course_id = ? AND step_index = ?",
     [new Date().toISOString(), courseId, stepIndex]
   );
   // Unlock next step
@@ -652,9 +656,10 @@ export async function updateCourseStepMessages(courseId: string, stepIndex: numb
 
 export async function updateCourseStepProgress(courseId: string, stepIndex: number, progress: number): Promise<void> {
   const db = await getDatabase();
+  const normalizedProgress = Math.max(0, Math.min(Math.round(progress), 100));
   await db.execute(
     "UPDATE course_progress SET progress = ?, updated_at = CURRENT_TIMESTAMP WHERE course_id = ? AND step_index = ?",
-    [progress, courseId, stepIndex]
+    [normalizedProgress, courseId, stepIndex]
   );
 }
 

@@ -546,6 +546,11 @@ export interface Translations {
     title: string;
     spiritualJourney: string;
     spiritualJourneyDesc: string;
+    spiritualJourneyLongDesc: string;
+    spiritualJourneyHighlights: string[];
+    whatYouWillLearn: string;
+    searchPlaceholder: string;
+    noSearchResults: string;
     step: string;
     of: string;
     locked: string;
@@ -554,6 +559,7 @@ export interface Translations {
     completed: string;
     startLesson: string;
     continueLesson: string;
+    continueCourse: string;
     lessonCompleted: string;
     nextStep: string;
     backToCourse: string;

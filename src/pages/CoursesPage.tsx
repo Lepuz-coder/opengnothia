@@ -36,7 +36,7 @@ import { ChatInput } from "@/components/chat/ChatInput";
 import { Button } from "@/components/ui/Button";
 import { ErrorModal } from "@/components/ui/ErrorModal";
 import type { ChatMessage, CourseStepProgress, TokenUsage } from "@/types";
-import { ArrowLeft, Lock, Check, Play, Loader2, ChevronRight, CheckCircle2, MoreVertical } from "lucide-react";
+import { ArrowLeft, Lock, Check, Play, Loader2, ChevronRight, CheckCircle2, MoreVertical, Search, X, BookOpen, Sparkles, Target } from "lucide-react";
 import { createBufferedTextStream } from "@/lib/createBufferedTextStream";
 
 type View = "list" | "journey" | "lesson";
@@ -63,6 +63,89 @@ function getLocalizedCourseName(
 ): string {
   const localized = t.courses[course.nameKey as keyof typeof t.courses];
   return typeof localized === "string" ? localized : course.nameKey;
+}
+
+function getLocalizedCourseDescription(
+  t: ReturnType<typeof useTranslation>["t"],
+  course: CourseDefinition,
+): string {
+  const localized = t.courses[course.descriptionKey as keyof typeof t.courses];
+  return typeof localized === "string" ? localized : course.descriptionKey;
+}
+
+function getLocalizedCourseDetailDescription(
+  t: ReturnType<typeof useTranslation>["t"],
+  course: CourseDefinition,
+): string {
+  if (!course.detailDescriptionKey) {
+    return getLocalizedCourseDescription(t, course);
+  }
+
+  const localized = t.courses[course.detailDescriptionKey as keyof typeof t.courses];
+  return typeof localized === "string" ? localized : getLocalizedCourseDescription(t, course);
+}
+
+function getLocalizedCourseHighlights(
+  t: ReturnType<typeof useTranslation>["t"],
+  course: CourseDefinition,
+): string[] {
+  if (!course.highlightsKey) return [];
+
+  const localized = t.courses[course.highlightsKey as keyof typeof t.courses];
+  return Array.isArray(localized) ? localized : [];
+}
+
+function splitStepTitle(title: string): { headline: string; subtitle: string | null } {
+  const match = title.match(/^(.*?)\s+[—-]\s+(.*)$/);
+  if (!match) {
+    return {
+      headline: title,
+      subtitle: null,
+    };
+  }
+
+  return {
+    headline: match[1].trim(),
+    subtitle: match[2].trim(),
+  };
+}
+
+function getCourseStepStatusLabel(
+  t: ReturnType<typeof useTranslation>["t"],
+  status: CourseStepProgress["status"],
+): string {
+  switch (status) {
+    case "completed":
+      return t.courses.completed;
+    case "in_progress":
+      return t.courses.inProgress;
+    case "available":
+      return t.courses.available;
+    default:
+      return t.courses.locked;
+  }
+}
+
+function getCourseStepActionLabel(
+  t: ReturnType<typeof useTranslation>["t"],
+  status: CourseStepProgress["status"],
+): string {
+  switch (status) {
+    case "completed":
+      return t.courses.completed;
+    case "in_progress":
+      return t.courses.continueLesson;
+    case "available":
+      return t.courses.startLesson;
+    default:
+      return t.courses.locked;
+  }
+}
+
+function getCurrentFocusStepIndex(steps: CourseStepProgress[]): number {
+  const inProgressIndex = steps.findIndex((step) => step.status === "in_progress");
+  if (inProgressIndex !== -1) return inProgressIndex;
+  return steps.findIndex((step) => step.status === "available");
 }
 
 function clampProgress(progress: number): number {
@@ -137,6 +220,7 @@ function CourseListView({
   t: ReturnType<typeof useTranslation>["t"];
 }) {
   const [courseStats, setCourseStats] = useState<Record<string, CourseStats>>({});
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -166,36 +250,103 @@ function CourseListView({
     };
   }, []);
 
+  const localizedCourses = COURSES.map((course) => ({
+    course,
+    name: getLocalizedCourseName(t, course),
+    description: getLocalizedCourseDescription(t, course),
+    detailDescription: getLocalizedCourseDetailDescription(t, course),
+    highlights: getLocalizedCourseHighlights(t, course),
+  }));
+
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredCourses = normalizedQuery
+    ? localizedCourses.filter(({ name, description, detailDescription, highlights }) =>
+        [name, description, detailDescription, ...highlights].some((value) =>
+          value.toLowerCase().includes(normalizedQuery),
+        ),
+      )
+    : localizedCourses;
+
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="mb-6">
+      <div className="mb-6 space-y-4">
         <h1 className="text-2xl font-bold">{t.courses.title}</h1>
-      </div>
-      <div className="grid gap-4">
-        {COURSES.map((course) => {
-          const stats = courseStats[course.id];
-          const completed = stats?.completedCount ?? 0;
-          const total = course.steps.length;
-          const pct = stats?.overallProgress ?? 0;
-
-          return (
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t.courses.searchPlaceholder}
+            className="w-full pl-10 pr-10 py-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
+          />
+          {searchQuery && (
             <button
-              key={course.id}
-              onClick={() => onSelectCourse(course)}
-              className="text-left p-6 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] hover:border-primary-500/50 hover:bg-[var(--bg-secondary)]/80 transition-all duration-200 group"
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+              aria-label="Clear search"
             >
-              <div className="flex items-start gap-4">
-                <div className="text-4xl">{course.icon}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className="text-lg font-semibold">
-                      {t.courses[course.nameKey as keyof typeof t.courses] ?? course.nameKey}
-                    </h3>
-                    <ChevronRight className="w-5 h-5 text-[var(--text-muted)] group-hover:text-primary-500 transition-colors" />
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
+      {filteredCourses.length > 0 ? (
+        <div className="grid gap-4">
+          {filteredCourses.map(({ course, name, description, detailDescription, highlights }) => {
+            const stats = courseStats[course.id];
+            const completed = stats?.completedCount ?? 0;
+            const total = course.steps.length;
+            const pct = stats?.overallProgress ?? 0;
+
+            return (
+              <button
+                key={course.id}
+                onClick={() => onSelectCourse(course)}
+                className="text-left p-6 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] hover:border-primary-500/50 hover:bg-[var(--bg-secondary)]/80 transition-all duration-200 group"
+              >
+                <div className="flex flex-col gap-5">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-500/10 text-3xl shadow-sm shadow-primary-500/10">
+                      {course.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-4 mb-3">
+                        <div className="min-w-0">
+                          <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-1">
+                            {name}
+                          </h3>
+                          <p className="text-sm text-[var(--text-secondary)] mb-3">
+                            {description}
+                          </p>
+                        </div>
+                        <ChevronRight className="w-5 h-5 mt-1 flex-shrink-0 text-[var(--text-muted)] group-hover:text-primary-500 group-hover:translate-x-0.5 transition-all" />
+                      </div>
+                      <p className="text-sm leading-6 text-[var(--text-muted)]">
+                        {detailDescription}
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-sm text-[var(--text-muted)] mb-3">
-                    {t.courses[course.descriptionKey as keyof typeof t.courses] ?? course.descriptionKey}
-                  </p>
+
+                  {highlights.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)] mb-3">
+                        {t.courses.whatYouWillLearn}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {highlights.map((highlight) => (
+                          <span
+                            key={`${course.id}-${highlight}`}
+                            className="px-3 py-1.5 rounded-full border border-primary-500/20 bg-primary-500/10 text-xs font-medium text-primary-500"
+                          >
+                            {highlight}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex items-center gap-3">
                     <div className="flex-1 h-2 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
                       <div
@@ -208,11 +359,18 @@ function CourseListView({
                     </span>
                   </div>
                 </div>
-              </div>
-            </button>
-          );
-        })}
-      </div>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-[var(--border-color)] bg-[var(--bg-secondary)] px-6 py-12 text-center">
+          <Search className="w-8 h-8 mx-auto text-[var(--text-muted)] mb-3" />
+          <p className="text-sm text-[var(--text-muted)]">
+            "{searchQuery}" {t.courses.noSearchResults}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -244,8 +402,24 @@ function JourneyMapView({
     loadProgress();
   }, [loadProgress]);
 
+  const localizedCourseName = getLocalizedCourseName(t, course);
+  const localizedCourseDescription = getLocalizedCourseDescription(t, course);
+  const localizedCourseDetailDescription = getLocalizedCourseDetailDescription(t, course);
+  const courseHighlights = getLocalizedCourseHighlights(t, course);
   const completedCount = steps.filter((s) => s.status === "completed").length;
   const overallProgress = calculateCourseProgress(steps, course.steps.length);
+  const availableCount = steps.filter((step) => step.status === "available").length;
+  const currentFocusStepIndex = getCurrentFocusStepIndex(steps);
+  const currentFocusStatus =
+    currentFocusStepIndex !== -1
+      ? (steps[currentFocusStepIndex]?.status ?? "available")
+      : ("completed" as const);
+  const currentFocusTitle =
+    currentFocusStepIndex !== -1
+      ? getLocalizedStepTitle(t, course.id, currentFocusStepIndex, course.steps[currentFocusStepIndex]?.topicTitle ?? "")
+      : "";
+  const currentFocusParts = splitStepTitle(currentFocusTitle);
+  const canContinueCourse = currentFocusStepIndex !== -1;
 
   if (loading) {
     return (
@@ -256,120 +430,278 @@ function JourneyMapView({
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <button
-          onClick={onBack}
-          className="p-2 rounded-xl hover:bg-[var(--bg-tertiary)] transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div className="flex-1">
-          <h1 className="text-xl font-bold flex items-center gap-2">
-            <span>{course.icon}</span>
-            {t.courses[course.nameKey as keyof typeof t.courses] ?? course.nameKey}
-          </h1>
-          <p className="text-sm text-[var(--text-muted)]">
-            {completedCount} {t.courses.of} {course.steps.length} {t.courses.stepsCompleted} ({overallProgress}%)
-          </p>
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div className="relative overflow-hidden rounded-[28px] border border-[var(--border-color)] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--bg-secondary)_92%,transparent),color-mix(in_srgb,var(--bg-primary)_78%,transparent))] p-6 md:p-7">
+        <div className="absolute -top-16 right-0 h-40 w-40 rounded-full bg-primary-500/10 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-24 w-24 rounded-full bg-primary-500/10 blur-2xl" />
+
+        <div className="relative">
+          <div className="flex items-start gap-3">
+            <button
+              onClick={onBack}
+              className="mt-1 p-2.5 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-primary)]/80 hover:bg-[var(--bg-tertiary)] transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary-500/12 text-3xl shadow-sm shadow-primary-500/10">
+                  {course.icon}
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-2xl font-bold text-[var(--text-primary)]">
+                    {localizedCourseName}
+                  </h1>
+                  <p className="text-sm text-[var(--text-secondary)] mt-1">
+                    {localizedCourseDescription}
+                  </p>
+                </div>
+              </div>
+
+              <p className="mt-4 max-w-3xl text-sm leading-6 text-[var(--text-secondary)]">
+                {localizedCourseDetailDescription}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.9fr)] mt-6">
+            <div className="rounded-3xl border border-[var(--border-color)] bg-[var(--bg-primary)]/70 p-5 backdrop-blur">
+              <div className="flex items-center gap-2 text-[var(--text-muted)] mb-3">
+                <Sparkles className="w-4 h-4 text-primary-500" />
+                <p className="text-xs font-semibold uppercase tracking-[0.18em]">
+                  {t.courses.whatYouWillLearn}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2.5">
+                {courseHighlights.map((highlight) => (
+                  <span
+                    key={`${course.id}-${highlight}`}
+                    className="px-3 py-1.5 rounded-full border border-primary-500/20 bg-primary-500/10 text-xs font-medium text-primary-500"
+                  >
+                    {highlight}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+              <div className="rounded-3xl border border-[var(--border-color)] bg-[var(--bg-primary)]/80 p-4">
+                <div className="flex items-center gap-2 text-[var(--text-muted)] mb-2">
+                  <BookOpen className="w-4 h-4 text-primary-500" />
+                  <span className="text-xs font-medium uppercase tracking-[0.14em]">
+                    {t.courses.progress}
+                  </span>
+                </div>
+                <p className="text-2xl font-semibold text-[var(--text-primary)]">{overallProgress}%</p>
+                <p className="text-xs text-[var(--text-muted)] mt-1">
+                  {completedCount} {t.courses.of} {course.steps.length} {t.courses.stepsCompleted}
+                </p>
+              </div>
+
+              <div className="rounded-3xl border border-[var(--border-color)] bg-[var(--bg-primary)]/80 p-4">
+                <div className="flex items-center gap-2 text-[var(--text-muted)] mb-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  <span className="text-xs font-medium uppercase tracking-[0.14em]">
+                    {t.courses.completed}
+                  </span>
+                </div>
+                <p className="text-2xl font-semibold text-[var(--text-primary)]">{completedCount}</p>
+                <p className="text-xs text-[var(--text-muted)] mt-1">
+                  {availableCount} {t.courses.available.toLowerCase()}
+                </p>
+              </div>
+
+              <div className="rounded-3xl border border-[var(--border-color)] bg-[var(--bg-primary)]/80 p-4">
+                <div className="flex items-center gap-2 text-[var(--text-muted)] mb-2">
+                  <Target className="w-4 h-4 text-yellow-500" />
+                  <span className="text-xs font-medium uppercase tracking-[0.14em]">
+                    {getCourseStepStatusLabel(t, currentFocusStatus)}
+                  </span>
+                </div>
+                {currentFocusStepIndex !== -1 ? (
+                  <>
+                    <p className="text-sm font-semibold text-[var(--text-primary)]">
+                      {t.courses.step} {currentFocusStepIndex + 1}
+                    </p>
+                    <p className="text-xs leading-5 text-[var(--text-secondary)] mt-1">
+                      {currentFocusParts.headline}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-semibold text-[var(--text-primary)]">
+                      {t.courses.courseCompleted}
+                    </p>
+                    <p className="text-xs leading-5 text-[var(--text-secondary)] mt-1">
+                      {t.courses.courseCompletedDesc}
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <span className="text-xs font-medium uppercase tracking-[0.16em] text-[var(--text-muted)]">
+                {t.courses.progress}
+              </span>
+              <span className="text-xs text-[var(--text-muted)]">
+                {completedCount} {t.courses.of} {course.steps.length}
+              </span>
+            </div>
+            <div className="h-2.5 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
+              <div
+                className="h-full rounded-full bg-primary-500 transition-all duration-500"
+                style={{ width: `${overallProgress}%` }}
+              />
+            </div>
+
+            {canContinueCourse && (
+              <Button
+                onClick={() => onStartLesson(currentFocusStepIndex)}
+                size="lg"
+                className="mt-4 w-full sm:w-auto shadow-lg shadow-primary-500/20"
+              >
+                <Play className="w-4 h-4" />
+                {t.courses.continueCourse}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="mb-8">
-        <div className="h-2 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
-          <div
-            className="h-full rounded-full bg-primary-500 transition-all duration-500"
-            style={{ width: `${overallProgress}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Course completed message */}
       {completedCount === course.steps.length && (
-        <div className="mb-6 p-4 rounded-2xl bg-green-500/10 border border-green-500/20 text-center">
+        <div className="p-5 rounded-3xl bg-green-500/10 border border-green-500/20 text-center">
           <CheckCircle2 className="w-8 h-8 text-green-500 mx-auto mb-2" />
           <h3 className="font-semibold text-green-400">{t.courses.courseCompleted}</h3>
           <p className="text-sm text-[var(--text-muted)]">{t.courses.courseCompletedDesc}</p>
         </div>
       )}
 
-      {/* Steps list */}
-      <div className="space-y-1">
+      <div className="space-y-3">
         {course.steps.map((step, index) => {
           const progress = steps[index];
           const status = progress?.status ?? "locked";
           const isClickable = status === "available" || status === "in_progress" || status === "completed";
+          const localizedStepTitle = getLocalizedStepTitle(t, course.id, index, step.topicTitle);
+          const { headline, subtitle } = splitStepTitle(localizedStepTitle);
+          const stepProgress = getStepCompletionPercentage(progress);
+          const isCurrentFocus = currentFocusStepIndex === index;
+          const statusLabel = getCourseStepStatusLabel(t, status);
+          const actionLabel = getCourseStepActionLabel(t, status);
+          const statusTone =
+            status === "completed"
+              ? {
+                  accent: "bg-green-500",
+                  badge: "bg-green-500/12 text-green-400 border-green-500/20",
+                  icon: "bg-green-500/15 text-green-400",
+                  card: "border-green-500/15 bg-green-500/[0.04]",
+                }
+              : status === "in_progress"
+              ? {
+                  accent: "bg-yellow-500",
+                  badge: "bg-yellow-500/12 text-yellow-400 border-yellow-500/20",
+                  icon: "bg-yellow-500/15 text-yellow-400",
+                  card: "border-yellow-500/15 bg-yellow-500/[0.04]",
+                }
+              : status === "available"
+              ? {
+                  accent: "bg-primary-500",
+                  badge: "bg-primary-500/12 text-primary-500 border-primary-500/20",
+                  icon: "bg-primary-500/15 text-primary-500",
+                  card: "border-primary-500/15 bg-primary-500/[0.03]",
+                }
+              : {
+                  accent: "bg-[var(--border-color)]",
+                  badge: "bg-[var(--bg-tertiary)] text-[var(--text-muted)] border-[var(--border-color)]",
+                  icon: "bg-[var(--bg-tertiary)] text-[var(--text-muted)]",
+                  card: "border-[var(--border-color)] bg-[var(--bg-secondary)]/70",
+                };
 
           return (
             <button
               key={index}
               onClick={() => isClickable && onStartLesson(index)}
               disabled={!isClickable}
-              className={`w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+              className={`group relative overflow-hidden w-full text-left rounded-3xl border px-5 py-4 transition-all duration-200 ${
                 isClickable
-                  ? "hover:bg-[var(--bg-secondary)] cursor-pointer"
-                  : "opacity-50 cursor-not-allowed"
+                  ? `${statusTone.card} hover:border-primary-500/30 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/5 cursor-pointer`
+                  : `${statusTone.card} opacity-75 cursor-not-allowed`
               }`}
             >
-              {/* Status icon */}
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                  status === "completed"
-                    ? "bg-green-500/20 text-green-400"
-                    : status === "in_progress"
-                    ? "bg-yellow-500/20 text-yellow-400"
-                    : status === "available"
-                    ? "bg-primary-500/20 text-primary-400"
-                    : "bg-[var(--bg-tertiary)] text-[var(--text-muted)]"
-                }`}
-              >
-                {status === "completed" ? (
-                  <Check className="w-4 h-4" />
-                ) : status === "in_progress" ? (
-                  <Play className="w-3.5 h-3.5" />
-                ) : status === "available" ? (
-                  <span className="text-xs font-bold">{index + 1}</span>
-                ) : (
-                  <Lock className="w-3.5 h-3.5" />
-                )}
-              </div>
+              <div className={`absolute left-0 top-0 h-full w-1 ${statusTone.accent}`} />
 
-              {/* Step info */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-[var(--text-muted)]">
-                    {t.courses.step} {index + 1}
-                  </span>
-                  {status === "in_progress" && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 font-medium">
-                      {t.courses.inProgress}
-                    </span>
+              <div className="flex items-start gap-4">
+                <div
+                  className={`mt-0.5 w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${statusTone.icon}`}
+                >
+                  {status === "completed" ? (
+                    <Check className="w-4 h-4" />
+                  ) : status === "in_progress" ? (
+                    <Play className="w-3.5 h-3.5" />
+                  ) : status === "available" ? (
+                    <span className="text-sm font-bold">{index + 1}</span>
+                  ) : (
+                    <Lock className="w-3.5 h-3.5" />
                   )}
                 </div>
-                <p className={`text-sm truncate ${status === "locked" ? "text-[var(--text-muted)]" : ""}`}>
-                  {getLocalizedStepTitle(t, course.id, index, step.topicTitle)}
-                </p>
-                {status === "in_progress" && (progress?.progress ?? 0) > 0 && (
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="flex-1 h-1 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-yellow-500 transition-all duration-500"
-                        style={{ width: `${progress!.progress}%` }}
-                      />
-                    </div>
-                    <span className="text-[10px] text-[var(--text-muted)] tabular-nums">
-                      {progress!.progress}%
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                      {t.courses.step} {index + 1}
                     </span>
+                    <span className={`text-[10px] px-2 py-1 rounded-full border font-medium ${statusTone.badge}`}>
+                      {statusLabel}
+                    </span>
+                    {isCurrentFocus && status !== "completed" && (
+                      <span className="text-[10px] px-2 py-1 rounded-full border border-primary-500/20 bg-primary-500/10 text-primary-500 font-medium">
+                        {actionLabel}
+                      </span>
+                    )}
+                  </div>
+
+                  <h3 className={`text-base font-semibold ${status === "locked" ? "text-[var(--text-secondary)]" : "text-[var(--text-primary)]"}`}>
+                    {headline}
+                  </h3>
+
+                  {subtitle && (
+                    <p className={`text-sm leading-6 mt-1 ${status === "locked" ? "text-[var(--text-muted)]" : "text-[var(--text-secondary)]"}`}>
+                      {subtitle}
+                    </p>
+                  )}
+
+                  <div className="mt-4">
+                    {(status === "in_progress" || status === "completed") ? (
+                      <>
+                        <div className="flex items-center justify-between gap-3 mb-2">
+                          <span className="text-xs text-[var(--text-muted)]">{actionLabel}</span>
+                          <span className="text-xs text-[var(--text-muted)] tabular-nums">{stepProgress}%</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              status === "completed" ? "bg-green-500" : "bg-yellow-500"
+                            }`}
+                            style={{ width: `${stepProgress}%` }}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-xs text-[var(--text-muted)]">{actionLabel}</p>
+                    )}
+                  </div>
+                </div>
+
+                {isClickable && (
+                  <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--bg-primary)]/80 text-[var(--text-muted)] transition-colors group-hover:text-primary-500">
+                    <ChevronRight className="w-4 h-4" />
                   </div>
                 )}
               </div>
-
-              {/* Arrow for clickable items */}
-              {isClickable && (
-                <ChevronRight className="w-4 h-4 text-[var(--text-muted)] shrink-0" />
-              )}
             </button>
           );
         })}

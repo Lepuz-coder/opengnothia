@@ -8,6 +8,8 @@ export interface CourseDefinition {
   descriptionKey: string;
   detailDescriptionKey?: string;
   highlightsKey?: string;
+  stepsKey?: string;
+  rolePrompt?: string;
   icon: string;
   steps: CourseStep[];
 }
@@ -18,6 +20,8 @@ export const SPIRITUAL_JOURNEY: CourseDefinition = {
   descriptionKey: "spiritualJourneyDesc",
   detailDescriptionKey: "spiritualJourneyLongDesc",
   highlightsKey: "spiritualJourneyHighlights",
+  stepsKey: "spiritualJourneySteps",
+  rolePrompt: "a wise, warm spiritual teacher and guide",
   icon: "🕊️",
   steps: [
     // Block 1: Foundations of Awareness (1-8)
@@ -98,7 +102,51 @@ export const SPIRITUAL_JOURNEY: CourseDefinition = {
   ],
 };
 
-export const COURSES: CourseDefinition[] = [SPIRITUAL_JOURNEY];
+export const QUIT_SMOKING: CourseDefinition = {
+  id: "quit_smoking",
+  nameKey: "quitSmoking",
+  descriptionKey: "quitSmokingDesc",
+  detailDescriptionKey: "quitSmokingLongDesc",
+  highlightsKey: "quitSmokingHighlights",
+  stepsKey: "quitSmokingSteps",
+  rolePrompt: "a supportive, knowledgeable quit-smoking coach following the OpenGnothia method. IMPORTANT: Never mention or reference Allen Carr, Easyway, or any external author or brand. Present all teachings as part of the OpenGnothia program",
+  icon: "🚭",
+  steps: [
+    // Block 1: Understanding the Trap (1-5)
+    { topicTitle: "Why Do You Smoke? — Examining the Real Reasons Behind Every Cigarette" },
+    { topicTitle: "The Nicotine Trap — How a Tiny Chemical Creates the Illusion of Pleasure" },
+    { topicTitle: "Society and Smoking — How Advertising and Culture Built the Smoker's Identity" },
+    { topicTitle: "What Smoking Actually Does — Separating Fact from the Smoker's Mythology" },
+    { topicTitle: "The Addictive Personality Myth — Why Willpower Is Not the Problem" },
+
+    // Block 2: Dismantling the Brainwashing (6-10)
+    { topicTitle: "The Big Monster and the Little Monster — Understanding Physical vs. Psychological Addiction" },
+    { topicTitle: "The Illusion of Pleasure — Why Smoking Never Truly Satisfies" },
+    { topicTitle: "The Illusion of the Crutch — Why Smoking Increases Stress Instead of Relieving It" },
+    { topicTitle: "The Fear of Giving Up — Recognizing That There Is Nothing to Give Up" },
+    { topicTitle: "The Willpower Method — Why Fighting Desire Makes Quitting Harder" },
+
+    // Block 3: Removing the Fears (11-15)
+    { topicTitle: "Fear of Withdrawal — What Withdrawal Actually Feels Like" },
+    { topicTitle: "Fear of Weight Gain — Separating the Myths from Reality" },
+    { topicTitle: "Fear of Losing Concentration — How Nicotine Actually Impairs Focus" },
+    { topicTitle: "Fear of Social Situations — Rediscovering Social Confidence Without Smoke" },
+    { topicTitle: "The 'Just One Cigarette' Trap — Why One Is Never Just One" },
+
+    // Block 4: Preparing for Freedom (16-19)
+    { topicTitle: "The Moment of Revelation — Seeing Smoking as It Really Is" },
+    { topicTitle: "The Final Instructions — Preparing Your Mind for the Last Cigarette" },
+    { topicTitle: "The Ritual of the Last Cigarette — A Conscious Farewell, Not a Sacrifice" },
+    { topicTitle: "The Immediate Benefits — What Happens to Your Body from the First Hour" },
+
+    // Block 5: Living Free (20-22)
+    { topicTitle: "The First Days of Freedom — Navigating the Adjustment Period with Joy" },
+    { topicTitle: "Social Triggers and Old Habits — Building a Smoke-Free Life" },
+    { topicTitle: "You Are a Non-Smoker — Embracing Your New Identity Permanently" },
+  ],
+};
+
+export const COURSES: CourseDefinition[] = [SPIRITUAL_JOURNEY, QUIT_SMOKING];
 
 export function getCourseById(courseId: string): CourseDefinition | undefined {
   return COURSES.find((c) => c.id === courseId);

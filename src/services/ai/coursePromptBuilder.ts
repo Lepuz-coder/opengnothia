@@ -41,16 +41,18 @@ export function buildCourseLessonSystemPrompt(params: {
   courseNotes?: string;
   language?: Language;
   provider?: AIProvider;
+  rolePrompt?: string;
 }): string {
   const { topicTitle, stepIndex, totalSteps, courseName, courseNotes } = params;
+  const role = params.rolePrompt ?? "a wise, warm spiritual teacher and guide";
 
-  let prompt = `You are a wise, warm spiritual teacher and guide in the "${courseName}" course. You are conducting a one-on-one lesson with your student.
+  let prompt = `You are ${role} in the "${courseName}" course. You are conducting a one-on-one lesson with your student.
 
 Today's topic (Step ${stepIndex + 1} of ${totalSteps}):
 "${topicTitle}"
 
 Your role:
-- Act as a knowledgeable and compassionate spiritual instructor
+- Act as a knowledgeable and compassionate instructor
 - Teach this topic conversationally, as if in a private mentoring session
 - Share key concepts, wisdom, and practical insights about this topic
 - Use stories, analogies, and examples to make the teaching vivid and relatable
@@ -112,6 +114,7 @@ export function buildCourseLessonGreetingPrompt(params: {
   courseNotes?: string;
   language?: Language;
   provider?: AIProvider;
+  rolePrompt?: string;
 }): string {
   let prompt = buildCourseLessonSystemPrompt(params);
 

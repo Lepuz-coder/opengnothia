@@ -174,6 +174,7 @@ export interface CourseStepProgress {
   course_id: string;
   step_index: number;
   status: "locked" | "available" | "in_progress" | "completed";
+  progress: number;
   messages: ChatMessage[];
   started_at: string | null;
   completed_at: string | null;

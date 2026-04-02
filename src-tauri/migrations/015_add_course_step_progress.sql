@@ -1,0 +1,1 @@
+ALTER TABLE course_progress ADD COLUMN progress INTEGER DEFAULT 0;

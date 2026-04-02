@@ -650,6 +650,14 @@ export async function updateCourseStepMessages(courseId: string, stepIndex: numb
   );
 }
 
+export async function updateCourseStepProgress(courseId: string, stepIndex: number, progress: number): Promise<void> {
+  const db = await getDatabase();
+  await db.execute(
+    "UPDATE course_progress SET progress = ?, updated_at = CURRENT_TIMESTAMP WHERE course_id = ? AND step_index = ?",
+    [progress, courseId, stepIndex]
+  );
+}
+
 export async function getCourseCompletedStepCount(courseId: string): Promise<number> {
   const db = await getDatabase();
   const rows = await db.select<{ cnt: number }[]>(

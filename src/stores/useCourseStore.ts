@@ -14,6 +14,7 @@ interface CourseState {
   compactedAtIndex: number;
   currentInputTokens: number;
   lessonCompleted: boolean;
+  lessonProgress: number;
 
   startLesson: (courseId: string, stepIndex: number, existingMessages?: ChatMessage[]) => void;
   addMessage: (message: ChatMessage) => void;
@@ -26,6 +27,7 @@ interface CourseState {
   setAbortController: (controller: AbortController | null) => void;
   removeMessage: (id: string) => void;
   setLessonCompleted: (completed: boolean) => void;
+  setLessonProgress: (progress: number) => void;
   setCurrentInputTokens: (tokens: number) => void;
   startCompaction: () => void;
   finishCompaction: () => void;
@@ -46,6 +48,7 @@ export const useCourseStore = create<CourseState>((set, get) => ({
   compactedAtIndex: 0,
   currentInputTokens: 0,
   lessonCompleted: false,
+  lessonProgress: 0,
 
   startLesson: (courseId, stepIndex, existingMessages) =>
     set({
@@ -61,6 +64,7 @@ export const useCourseStore = create<CourseState>((set, get) => ({
       compactedAtIndex: 0,
       currentInputTokens: 0,
       lessonCompleted: false,
+      lessonProgress: 0,
     }),
 
   addMessage: (message) =>
@@ -148,6 +152,7 @@ export const useCourseStore = create<CourseState>((set, get) => ({
     set((s) => ({ messages: s.messages.filter((m) => m.id !== id) })),
 
   setLessonCompleted: (lessonCompleted) => set({ lessonCompleted }),
+  setLessonProgress: (lessonProgress) => set({ lessonProgress }),
 
   setCurrentInputTokens: (tokens) => set({ currentInputTokens: tokens }),
 
@@ -170,5 +175,6 @@ export const useCourseStore = create<CourseState>((set, get) => ({
       compactedAtIndex: 0,
       currentInputTokens: 0,
       lessonCompleted: false,
+      lessonProgress: 0,
     }),
 }));

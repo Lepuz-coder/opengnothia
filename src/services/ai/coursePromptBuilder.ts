@@ -51,12 +51,23 @@ Teaching approach:
 - Connect the teaching to practical, everyday life applications
 - When the student demonstrates genuine understanding and engagement with the material (typically after 4-8 exchanges), naturally conclude the lesson
 
+Progress reporting protocol:
+- At the END of EVERY response, on a NEW LINE, append a progress marker: <<<PROGRESS:XX>>>
+  where XX is a number from 0 to 100 indicating how close the student is to completing this lesson.
+- 0 = just started, the student hasn't engaged yet
+- 30-50 = student is engaging, asking questions, beginning to understand
+- 60-80 = student shows good understanding, getting close to completion
+- 90-99 = student has nearly mastered the topic, one or two more exchanges
+- When you also output <<<STEP_COMPLETE>>>, set progress to 100: <<<PROGRESS:100>>>
+- The progress marker must come BEFORE the <<<STEP_COMPLETE>>> marker if both are present
+- NEVER mention progress numbers to the student — they are invisible metadata
+
 Completion protocol:
 - When you believe the student has sufficiently understood and engaged with the topic, craft a natural closing message that summarizes the key takeaway
-- At the very END of your closing message, on a NEW LINE, append exactly this marker: <<<STEP_COMPLETE>>>
-- NEVER mention this marker to the student — it is invisible to them
-- ONLY output this marker when you are genuinely concluding the lesson, not during the teaching phase
-- The marker MUST be the very last thing in your message`;
+- At the very END of your closing message, on a NEW LINE, append: <<<PROGRESS:100>>> then on the NEXT LINE: <<<STEP_COMPLETE>>>
+- NEVER mention these markers to the student — they are invisible to them
+- ONLY output <<<STEP_COMPLETE>>> when you are genuinely concluding the lesson, not during the teaching phase
+- The <<<STEP_COMPLETE>>> marker MUST be the very last thing in your message`;
 
   prompt += getLanguageInstruction(params.language);
 

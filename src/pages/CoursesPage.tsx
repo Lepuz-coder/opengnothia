@@ -31,11 +31,12 @@ import {
 } from "@/services/ai/coursePromptBuilder";
 import { updateCourseNotes } from "@/services/ai/courseNotes";
 import { getProvider } from "@/constants/providers";
+import { getSpiritualJourneyStepDescription } from "@/constants/courseStepDescriptions";
 import { ChatContainer } from "@/components/chat/ChatContainer";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { Button } from "@/components/ui/Button";
 import { ErrorModal } from "@/components/ui/ErrorModal";
-import type { ChatMessage, CourseStepProgress, TokenUsage } from "@/types";
+import type { ChatMessage, CourseStepProgress, Language, TokenUsage } from "@/types";
 import { ArrowLeft, Lock, Check, Play, Loader2, ChevronRight, CheckCircle2, MoreVertical, Search, X, BookOpen, Sparkles, Target } from "lucide-react";
 import { createBufferedTextStream } from "@/lib/createBufferedTextStream";
 
@@ -55,6 +56,18 @@ function getLocalizedStepTitle(
     return t.courses.spiritualJourneySteps?.[index] ?? fallback;
   }
   return fallback;
+}
+
+function getLocalizedStepDescription(
+  language: Language,
+  courseId: string,
+  index: number,
+  localizedTitle: string,
+): string {
+  if (courseId === "spiritual_journey") {
+    return getSpiritualJourneyStepDescription(language, index, localizedTitle);
+  }
+  return "";
 }
 
 function getLocalizedCourseName(
@@ -382,11 +395,13 @@ function JourneyMapView({
   onBack,
   onStartLesson,
   t,
+  language,
 }: {
   course: CourseDefinition;
   onBack: () => void;
   onStartLesson: (stepIndex: number) => void;
   t: ReturnType<typeof useTranslation>["t"];
+  language: Language;
 }) {
   const [steps, setSteps] = useState<CourseStepProgress[]>([]);
   const [loading, setLoading] = useState(true);
@@ -419,6 +434,10 @@ function JourneyMapView({
       ? getLocalizedStepTitle(t, course.id, currentFocusStepIndex, course.steps[currentFocusStepIndex]?.topicTitle ?? "")
       : "";
   const currentFocusParts = splitStepTitle(currentFocusTitle);
+  const currentFocusDescription =
+    currentFocusStepIndex !== -1
+      ? getLocalizedStepDescription(language, course.id, currentFocusStepIndex, currentFocusTitle)
+      : "";
   const canContinueCourse = currentFocusStepIndex !== -1;
 
   if (loading) {
@@ -528,6 +547,11 @@ function JourneyMapView({
                     <p className="text-xs leading-5 text-[var(--text-secondary)] mt-1">
                       {currentFocusParts.headline}
                     </p>
+                    {currentFocusDescription && (
+                      <p className="text-xs leading-5 text-[var(--text-muted)] mt-2">
+                        {currentFocusDescription}
+                      </p>
+                    )}
                   </>
                 ) : (
                   <>
@@ -587,6 +611,7 @@ function JourneyMapView({
           const status = progress?.status ?? "locked";
           const isClickable = status === "available" || status === "in_progress" || status === "completed";
           const localizedStepTitle = getLocalizedStepTitle(t, course.id, index, step.topicTitle);
+          const localizedStepDescription = getLocalizedStepDescription(language, course.id, index, localizedStepTitle);
           const { headline, subtitle } = splitStepTitle(localizedStepTitle);
           const stepProgress = getStepCompletionPercentage(progress);
           const isCurrentFocus = currentFocusStepIndex === index;
@@ -671,6 +696,12 @@ function JourneyMapView({
                   {subtitle && (
                     <p className={`text-sm leading-6 mt-1 ${status === "locked" ? "text-[var(--text-muted)]" : "text-[var(--text-secondary)]"}`}>
                       {subtitle}
+                    </p>
+                  )}
+
+                  {localizedStepDescription && (
+                    <p className={`text-sm leading-6 mt-2 ${status === "locked" ? "text-[var(--text-muted)]" : "text-[var(--text-muted)]"}`}>
+                      {localizedStepDescription}
                     </p>
                   )}
 
@@ -1382,6 +1413,7 @@ export default function CoursesPage() {
         onBack={() => setView("list")}
         onStartLesson={handleStartLesson}
         t={t}
+        language={language}
       />
     );
   }

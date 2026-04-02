@@ -136,6 +136,35 @@ export async function upsertPatientNotes(notes: string): Promise<void> {
   );
 }
 
+// Course Notes (per-course cumulative memory)
+export async function getCourseNotes(courseId: string): Promise<string> {
+  const db = await getDatabase();
+  const rows = await db.select<{ notes: string }[]>(
+    "SELECT notes FROM course_notes WHERE course_id = ?",
+    [courseId]
+  );
+  if (rows.length === 0) return "";
+  return rows[0].notes;
+}
+
+export async function getCourseNotesUpdatedAt(courseId: string): Promise<string | null> {
+  const db = await getDatabase();
+  const rows = await db.select<{ updated_at: string }[]>(
+    "SELECT updated_at FROM course_notes WHERE course_id = ?",
+    [courseId]
+  );
+  if (rows.length === 0) return null;
+  return rows[0].updated_at;
+}
+
+export async function upsertCourseNotes(courseId: string, notes: string): Promise<void> {
+  const db = await getDatabase();
+  await db.execute(
+    "INSERT INTO course_notes (course_id, notes, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(course_id) DO UPDATE SET notes = ?, updated_at = CURRENT_TIMESTAMP",
+    [courseId, notes, notes]
+  );
+}
+
 export async function getTodaySession(): Promise<Session | null> {
   const db = await getDatabase();
   const today = new Date().toISOString().split("T")[0];
@@ -675,6 +704,7 @@ export async function getCourseCompletedStepCount(courseId: string): Promise<num
 // Clear all data
 export async function clearAllData(): Promise<void> {
   const db = await getDatabase();
+  await db.execute("DELETE FROM course_notes");
   await db.execute("DELETE FROM course_progress");
   await db.execute("DELETE FROM milestone_analyses");
   await db.execute("DELETE FROM insights");

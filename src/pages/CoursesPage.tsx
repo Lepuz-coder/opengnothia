@@ -4,7 +4,7 @@ import { useCourseStore } from "@/stores/useCourseStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useAppStore } from "@/stores/useAppStore";
 import { useTranslation } from "@/i18n";
-import { COURSES, getCourseById, type CourseDefinition } from "@/constants/courses";
+import { COURSES, type CourseDefinition } from "@/constants/courses";
 import {
   initializeCourseProgress,
   getCourseProgress,
@@ -13,7 +13,6 @@ import {
   completeCourseStep,
   updateCourseStepMessages,
   updateCourseStepProgress,
-  getCourseCompletedStepCount,
   getPatientNotes,
   getPatientNotesUpdatedAt,
   saveTokenUsage,
@@ -36,9 +35,13 @@ import { ChatInput } from "@/components/chat/ChatInput";
 import { Button } from "@/components/ui/Button";
 import { ErrorModal } from "@/components/ui/ErrorModal";
 import type { ChatMessage, CourseStepProgress, TokenUsage } from "@/types";
-import { ArrowLeft, Lock, Check, Play, BookOpen, Loader2, ChevronRight, CheckCircle2, MoreVertical } from "lucide-react";
+import { ArrowLeft, Lock, Check, Play, Loader2, ChevronRight, CheckCircle2, MoreVertical } from "lucide-react";
 
 type View = "list" | "journey" | "lesson";
+type CourseStats = {
+  completedCount: number;
+  overallProgress: number;
+};
 
 function getLocalizedStepTitle(
   t: ReturnType<typeof useTranslation>["t"],
@@ -52,6 +55,30 @@ function getLocalizedStepTitle(
   return fallback;
 }
 
+function getLocalizedCourseName(
+  t: ReturnType<typeof useTranslation>["t"],
+  course: CourseDefinition,
+): string {
+  const localized = t.courses[course.nameKey as keyof typeof t.courses];
+  return typeof localized === "string" ? localized : course.nameKey;
+}
+
+function clampProgress(progress: number): number {
+  return Math.max(0, Math.min(Math.round(progress), 100));
+}
+
+function getStepCompletionPercentage(progress?: CourseStepProgress | null): number {
+  if (!progress) return 0;
+  if (progress.status === "completed") return 100;
+  return clampProgress(progress.progress ?? 0);
+}
+
+function calculateCourseProgress(steps: CourseStepProgress[], totalSteps: number): number {
+  if (totalSteps === 0) return 0;
+  const totalCompletion = steps.reduce((sum, step) => sum + getStepCompletionPercentage(step), 0);
+  return clampProgress(totalCompletion / totalSteps);
+}
+
 function stripMarkers(content: string): string {
   return content
     .replace(/<<<PROGRESS:\d+>>>/g, "")
@@ -62,7 +89,7 @@ function stripMarkers(content: string): string {
 
 function extractProgress(content: string): number | null {
   const match = content.match(/<<<PROGRESS:(\d+)>>>/);
-  return match ? Math.min(parseInt(match[1], 10), 100) : null;
+  return match ? clampProgress(parseInt(match[1], 10)) : null;
 }
 
 async function trackUsage(
@@ -107,13 +134,34 @@ function CourseListView({
   onSelectCourse: (course: CourseDefinition) => void;
   t: ReturnType<typeof useTranslation>["t"];
 }) {
-  const [completedCounts, setCompletedCounts] = useState<Record<string, number>>({});
+  const [courseStats, setCourseStats] = useState<Record<string, CourseStats>>({});
 
   useEffect(() => {
-    COURSES.forEach(async (course) => {
-      const count = await getCourseCompletedStepCount(course.id);
-      setCompletedCounts((prev) => ({ ...prev, [course.id]: count }));
-    });
+    let cancelled = false;
+
+    void (async () => {
+      const entries = await Promise.all(
+        COURSES.map(async (course) => {
+          await initializeCourseProgress(course.id, course.steps.length);
+          const progress = await getCourseProgress(course.id);
+          return [
+            course.id,
+            {
+              completedCount: progress.filter((step) => step.status === "completed").length,
+              overallProgress: calculateCourseProgress(progress, course.steps.length),
+            },
+          ] as const;
+        }),
+      );
+
+      if (!cancelled) {
+        setCourseStats(Object.fromEntries(entries));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
@@ -123,9 +171,10 @@ function CourseListView({
       </div>
       <div className="grid gap-4">
         {COURSES.map((course) => {
-          const completed = completedCounts[course.id] ?? 0;
+          const stats = courseStats[course.id];
+          const completed = stats?.completedCount ?? 0;
           const total = course.steps.length;
-          const pct = total > 0 ? (completed / total) * 100 : 0;
+          const pct = stats?.overallProgress ?? 0;
 
           return (
             <button
@@ -153,7 +202,7 @@ function CourseListView({
                       />
                     </div>
                     <span className="text-xs text-[var(--text-muted)] whitespace-nowrap">
-                      {completed} {t.courses.of} {total}
+                      {completed} {t.courses.of} {total} ({pct}%)
                     </span>
                   </div>
                 </div>
@@ -194,6 +243,7 @@ function JourneyMapView({
   }, [loadProgress]);
 
   const completedCount = steps.filter((s) => s.status === "completed").length;
+  const overallProgress = calculateCourseProgress(steps, course.steps.length);
 
   if (loading) {
     return (
@@ -219,7 +269,7 @@ function JourneyMapView({
             {t.courses[course.nameKey as keyof typeof t.courses] ?? course.nameKey}
           </h1>
           <p className="text-sm text-[var(--text-muted)]">
-            {completedCount} {t.courses.of} {course.steps.length} {t.courses.stepsCompleted}
+            {completedCount} {t.courses.of} {course.steps.length} {t.courses.stepsCompleted} ({overallProgress}%)
           </p>
         </div>
       </div>
@@ -229,7 +279,7 @@ function JourneyMapView({
         <div className="h-2 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
           <div
             className="h-full rounded-full bg-primary-500 transition-all duration-500"
-            style={{ width: `${(completedCount / course.steps.length) * 100}%` }}
+            style={{ width: `${overallProgress}%` }}
           />
         </div>
       </div>
@@ -350,8 +400,19 @@ function LessonView({
   const [errorModalInfo, setErrorModalInfo] = useState<ErrorDisplayInfo | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const greetingSentRef = useRef(false);
+  const lessonInstanceRef = useRef("");
   const step = course.steps[stepIndex];
   const hasNextStep = stepIndex + 1 < course.steps.length;
+  const localizedCourseName = getLocalizedCourseName(t, course);
+
+  const isLessonInstanceActive = useCallback((instanceId: string) => {
+    return lessonInstanceRef.current === instanceId;
+  }, []);
+
+  const persistMessages = useCallback((messages: ChatMessage[]) => {
+    if (messages.length === 0) return;
+    void updateCourseStepMessages(course.id, stepIndex, messages);
+  }, [course.id, stepIndex]);
 
   // Hide sidebar on mount, restore on unmount
   useEffect(() => {
@@ -363,141 +424,67 @@ function LessonView({
 
   // Initialize lesson
   useEffect(() => {
+    const instanceId = crypto.randomUUID();
+    lessonInstanceRef.current = instanceId;
     greetingSentRef.current = false;
 
     async function init() {
       const progress = await getCourseStepProgress(course.id, stepIndex);
+      if (!isLessonInstanceActive(instanceId)) return;
       const existingMessages = progress?.messages ?? [];
       const isCompleted = progress?.status === "completed";
 
-      store.startLesson(course.id, stepIndex, existingMessages);
+      useCourseStore.getState().startLesson(course.id, stepIndex, existingMessages);
       if (isCompleted) {
-        store.setLessonCompleted(true);
-        store.setLessonProgress(100);
+        useCourseStore.getState().setLessonCompleted(true);
+        useCourseStore.getState().setLessonProgress(100);
       } else if (progress?.progress) {
-        store.setLessonProgress(progress.progress);
+        useCourseStore.getState().setLessonProgress(progress.progress);
       }
 
       // Mark step as in_progress if it was available
       if (progress?.status === "available") {
         await startCourseStep(course.id, stepIndex);
+        if (!isLessonInstanceActive(instanceId)) return;
       }
 
       // Send greeting if no messages
       if (existingMessages.length === 0 && !isCompleted) {
-        sendGreeting();
+        void sendGreeting();
       }
     }
 
-    init();
+    void init();
 
     return () => {
-      // Save messages on unmount
-      const state = useCourseStore.getState();
-      if (state.messages.length > 0) {
-        updateCourseStepMessages(course.id, stepIndex, state.messages);
+      if (lessonInstanceRef.current !== instanceId) return;
+
+      lessonInstanceRef.current = "";
+
+      const currentState = useCourseStore.getState();
+      if (currentState.abortController || currentState.isStreaming) {
+        currentState.cancelStreaming();
       }
-      store.reset();
+      persistMessages(useCourseStore.getState().messages);
+      useCourseStore.getState().reset();
     };
-  }, [course.id, stepIndex]);
+  }, [course.id, stepIndex, isLessonInstanceActive, persistMessages]);
 
-  const sendGreeting = useCallback(async () => {
-    if (greetingSentRef.current) return;
-    greetingSentRef.current = true;
+  const handleStepComplete = useCallback(async (messagesSnapshot?: ChatMessage[]) => {
+    const state = useCourseStore.getState();
+    if (state.lessonCompleted) return;
 
-    try {
-      const patientNotes = await getPatientNotes();
-
-      const greetingPrompt = buildCourseLessonGreetingPrompt({
-        topicTitle: step.topicTitle,
-        stepIndex,
-        totalSteps: course.steps.length,
-        courseName: course.nameKey,
-        patientNotes,
-        language: language as any,
-        provider: settings.provider,
-      });
-
-      const abortController = new AbortController();
-      useCourseStore.getState().setAbortController(abortController);
-      useCourseStore.getState().startStreaming();
-
-      await streamMessage({
-        provider: settings.provider,
-        apiKey: settings.apiKey,
-        model: settings.model,
-        messages: [{ id: "greeting-trigger", role: "user", content: COURSE_LESSON_TRIGGER, timestamp: new Date().toISOString() }],
-        systemPrompt: greetingPrompt,
-        customBaseUrl: settings.customBaseUrl || undefined,
-        thinkingEnabled: settings.thinkingEnabled,
-        thinkingLevel: settings.thinkingLevel,
-        thinkingType: settings.thinkingType,
-        abortSignal: abortController.signal,
-        onThinking: (chunk) => useCourseStore.getState().appendStreamThinking(chunk),
-        onContent: (chunk) => {
-          const cleaned = stripMarkers(chunk);
-          if (cleaned) useCourseStore.getState().appendStreamContent(cleaned);
-        },
-        onDone: () => {
-          const state = useCourseStore.getState();
-          const lastMsg = state.messages.find((m) => m.id === state.streamingMessageId);
-          if (lastMsg) {
-            const fullContent = lastMsg.content;
-            const progress = extractProgress(fullContent);
-            if (progress !== null) {
-              useCourseStore.getState().setLessonProgress(progress);
-              updateCourseStepProgress(course.id, stepIndex, progress);
-            }
-            const hasMarker = fullContent.includes("<<<STEP_COMPLETE>>>");
-            // Clean all markers from message
-            useCourseStore.setState((s) => ({
-              messages: s.messages.map((m) =>
-                m.id === state.streamingMessageId
-                  ? { ...m, content: stripMarkers(m.content) }
-                  : m
-              ),
-            }));
-            if (hasMarker) {
-              useCourseStore.getState().setLessonProgress(100);
-              updateCourseStepProgress(course.id, stepIndex, 100);
-              handleStepComplete();
-            }
-          }
-          useCourseStore.getState().finishStreaming();
-          updateCourseStepMessages(course.id, stepIndex, useCourseStore.getState().messages);
-        },
-        onUsage: (usage) => {
-          trackUsage(settings.provider, settings.model, usage);
-          useCourseStore.getState().setCurrentInputTokens(usage.inputTokens);
-        },
-        onError: (error) => {
-          const s = useCourseStore.getState();
-          if (s.streamingMessageId) s.removeMessage(s.streamingMessageId);
-          s.finishStreaming();
-          greetingSentRef.current = false;
-          const statusCode = error instanceof AIError ? error.statusCode : undefined;
-          setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider));
-        },
-      });
-    } catch (err) {
-      useCourseStore.getState().finishStreaming();
-      greetingSentRef.current = false;
-      const statusCode = err instanceof AIError ? err.statusCode : undefined;
-      setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider));
-    }
-  }, [course, stepIndex, step, settings, language, t]);
-
-  const handleStepComplete = useCallback(async () => {
-    useCourseStore.getState().setLessonCompleted(true);
+    const completedMessages = (messagesSnapshot ?? state.messages).filter((message) => !message.isStreaming);
+    state.setLessonProgress(100);
+    state.setLessonCompleted(true);
     await completeCourseStep(course.id, stepIndex);
 
     // Fire background notes update
     Promise.all([getPatientNotes(), getPatientNotesUpdatedAt()]).then(([existingNotes, notesUpdatedAt]) => {
       const patientNotesPrompt = buildPatientNotesUpdatePrompt(existingNotes, notesUpdatedAt, language as any);
       const notesMessage = buildCourseLessonNotesMessage(step.topicTitle, stepIndex);
-      const msgs = useCourseStore.getState().messages;
       const conversationForNotes: ChatMessage[] = [
-        ...msgs.filter((m) => !m.isStreaming),
+        ...completedMessages,
         { id: "notes-context", role: "user", content: notesMessage, timestamp: new Date().toISOString() },
         { id: "notes-request", role: "user", content: patientNotesPrompt, timestamp: new Date().toISOString() },
       ];
@@ -513,21 +500,139 @@ function LessonView({
         thinkingType: settings.memoryThinkingType,
         callType: "course_lesson",
       });
-    });
+    }).catch(() => undefined);
   }, [course.id, stepIndex, step.topicTitle, settings, language]);
+
+  const sendGreeting = useCallback(async () => {
+    if (greetingSentRef.current) return;
+    greetingSentRef.current = true;
+    const instanceId = lessonInstanceRef.current;
+
+    try {
+      const patientNotes = await getPatientNotes();
+      if (!isLessonInstanceActive(instanceId)) return;
+
+      const greetingPrompt = buildCourseLessonGreetingPrompt({
+        topicTitle: step.topicTitle,
+        stepIndex,
+        totalSteps: course.steps.length,
+        courseName: localizedCourseName,
+        patientNotes,
+        language: language as any,
+        provider: settings.provider,
+      });
+
+      const abortController = new AbortController();
+      useCourseStore.getState().setAbortController(abortController);
+      useCourseStore.getState().startStreaming();
+      let accumulatedContent = "";
+
+      await streamMessage({
+        provider: settings.provider,
+        apiKey: settings.apiKey,
+        model: settings.model,
+        messages: [{ id: "greeting-trigger", role: "user", content: COURSE_LESSON_TRIGGER, timestamp: new Date().toISOString() }],
+        systemPrompt: greetingPrompt,
+        customBaseUrl: settings.customBaseUrl || undefined,
+        thinkingEnabled: settings.thinkingEnabled,
+        thinkingLevel: settings.thinkingLevel,
+        thinkingType: settings.thinkingType,
+        abortSignal: abortController.signal,
+        onThinking: (chunk) => {
+          if (!isLessonInstanceActive(instanceId)) return;
+          useCourseStore.getState().appendStreamThinking(chunk);
+        },
+        onContent: (chunk) => {
+          if (!isLessonInstanceActive(instanceId)) return;
+          accumulatedContent += chunk;
+          const displayContent = stripMarkers(accumulatedContent);
+          const { streamingMessageId } = useCourseStore.getState();
+          if (streamingMessageId) {
+            useCourseStore.setState((s) => ({
+              messages: s.messages.map((m) =>
+                m.id === streamingMessageId
+                  ? { ...m, content: displayContent, isThinkingActive: false }
+                  : m
+              ),
+            }));
+          }
+        },
+        onDone: () => {
+          if (!isLessonInstanceActive(instanceId)) return;
+
+          const hasMarker = accumulatedContent.includes("<<<STEP_COMPLETE>>>");
+          const progress = extractProgress(accumulatedContent);
+          if (progress !== null) {
+            useCourseStore.getState().setLessonProgress(progress);
+            void updateCourseStepProgress(course.id, stepIndex, progress);
+          }
+          const cleanContent = stripMarkers(accumulatedContent);
+
+          const { streamingMessageId } = useCourseStore.getState();
+          if (streamingMessageId) {
+            useCourseStore.setState((s) => ({
+              messages: s.messages.map((m) =>
+                m.id === streamingMessageId
+                  ? { ...m, content: cleanContent, isStreaming: false, isThinkingActive: false }
+                  : m
+              ),
+              isStreaming: false,
+              streamingMessageId: null,
+              abortController: null,
+              isLoading: false,
+            }));
+          } else {
+            useCourseStore.setState({ isStreaming: false, streamingMessageId: null, abortController: null, isLoading: false });
+          }
+
+          const currentMessages = useCourseStore.getState().messages;
+          if (hasMarker) {
+            useCourseStore.getState().setLessonProgress(100);
+            void updateCourseStepProgress(course.id, stepIndex, 100);
+            void handleStepComplete(currentMessages);
+          }
+
+          persistMessages(currentMessages);
+        },
+        onUsage: (usage) => {
+          trackUsage(settings.provider, settings.model, usage);
+          if (isLessonInstanceActive(instanceId)) {
+            useCourseStore.getState().setCurrentInputTokens(usage.inputTokens);
+          }
+        },
+        onError: (error) => {
+          if (!isLessonInstanceActive(instanceId)) return;
+          const s = useCourseStore.getState();
+          if (s.streamingMessageId) s.removeMessage(s.streamingMessageId);
+          s.finishStreaming();
+          greetingSentRef.current = false;
+          const statusCode = error instanceof AIError ? error.statusCode : undefined;
+          setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider));
+        },
+      });
+    } catch (err) {
+      if (!isLessonInstanceActive(instanceId)) return;
+      useCourseStore.getState().finishStreaming();
+      greetingSentRef.current = false;
+      const statusCode = err instanceof AIError ? err.statusCode : undefined;
+      setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider));
+    }
+  }, [course.steps.length, handleStepComplete, isLessonInstanceActive, language, localizedCourseName, persistMessages, settings, step, stepIndex, t]);
 
   const performCompaction = useCallback(async () => {
     const state = useCourseStore.getState();
     if (state.isCompacting || state.isStreaming) return;
+    const instanceId = lessonInstanceRef.current;
 
     state.startCompaction();
     try {
       const patientNotes = await getPatientNotes();
+      if (!isLessonInstanceActive(instanceId)) return;
       const systemPrompt = buildCourseLessonSystemPrompt({
         topicTitle: step.topicTitle,
         stepIndex,
         totalSteps: course.steps.length,
-        courseName: course.nameKey,
+        courseName: localizedCourseName,
         patientNotes,
         language: language as any,
         provider: settings.provider,
@@ -553,16 +658,21 @@ function LessonView({
       });
 
       trackUsage(settings.provider, settings.model, result.usage);
-      useCourseStore.getState().applyCompaction(result.content);
-      useCourseStore.getState().finishCompaction();
+      if (isLessonInstanceActive(instanceId)) {
+        useCourseStore.getState().applyCompaction(result.content);
+        useCourseStore.getState().finishCompaction();
+      }
     } catch {
-      useCourseStore.getState().finishCompaction();
+      if (isLessonInstanceActive(instanceId)) {
+        useCourseStore.getState().finishCompaction();
+      }
     }
-  }, [course, stepIndex, step, settings, language]);
+  }, [course.steps.length, isLessonInstanceActive, language, localizedCourseName, settings, step, stepIndex]);
 
   const handleSendMessage = useCallback(async (content: string) => {
     const { isStreaming, lessonCompleted } = useCourseStore.getState();
     if (isStreaming || lessonCompleted) return;
+    const instanceId = lessonInstanceRef.current;
 
     const userMsg: ChatMessage = {
       id: crypto.randomUUID(),
@@ -574,12 +684,13 @@ function LessonView({
 
     try {
       const patientNotes = await getPatientNotes();
+      if (!isLessonInstanceActive(instanceId)) return;
 
       const systemPrompt = buildCourseLessonSystemPrompt({
         topicTitle: step.topicTitle,
         stepIndex,
         totalSteps: course.steps.length,
-        courseName: course.nameKey,
+        courseName: localizedCourseName,
         patientNotes,
         language: language as any,
         provider: settings.provider,
@@ -609,8 +720,12 @@ function LessonView({
         thinkingLevel: settings.thinkingLevel,
         thinkingType: settings.thinkingType,
         abortSignal: abortController.signal,
-        onThinking: (chunk) => useCourseStore.getState().appendStreamThinking(chunk),
+        onThinking: (chunk) => {
+          if (!isLessonInstanceActive(instanceId)) return;
+          useCourseStore.getState().appendStreamThinking(chunk);
+        },
         onContent: (chunk) => {
+          if (!isLessonInstanceActive(instanceId)) return;
           accumulatedContent += chunk;
           const displayContent = stripMarkers(accumulatedContent);
           const { streamingMessageId } = useCourseStore.getState();
@@ -625,11 +740,12 @@ function LessonView({
           }
         },
         onDone: () => {
+          if (!isLessonInstanceActive(instanceId)) return;
           const hasMarker = accumulatedContent.includes("<<<STEP_COMPLETE>>>");
           const progress = extractProgress(accumulatedContent);
           if (progress !== null) {
             useCourseStore.getState().setLessonProgress(progress);
-            updateCourseStepProgress(course.id, stepIndex, progress);
+            void updateCourseStepProgress(course.id, stepIndex, progress);
           }
           const cleanContent = stripMarkers(accumulatedContent);
 
@@ -650,19 +766,23 @@ function LessonView({
             useCourseStore.setState({ isStreaming: false, streamingMessageId: null, abortController: null, isLoading: false });
           }
 
+          const currentMessages = useCourseStore.getState().messages;
           if (hasMarker) {
             useCourseStore.getState().setLessonProgress(100);
-            updateCourseStepProgress(course.id, stepIndex, 100);
-            handleStepComplete();
+            void updateCourseStepProgress(course.id, stepIndex, 100);
+            void handleStepComplete(currentMessages);
           }
 
-          updateCourseStepMessages(course.id, stepIndex, useCourseStore.getState().messages);
+          persistMessages(currentMessages);
         },
         onUsage: (usage) => {
           trackUsage(settings.provider, settings.model, usage);
-          useCourseStore.getState().setCurrentInputTokens(usage.inputTokens);
+          if (isLessonInstanceActive(instanceId)) {
+            useCourseStore.getState().setCurrentInputTokens(usage.inputTokens);
+          }
         },
         onError: (error) => {
+          if (!isLessonInstanceActive(instanceId)) return;
           const s = useCourseStore.getState();
           if (s.streamingMessageId) s.removeMessage(s.streamingMessageId);
           s.finishStreaming();
@@ -680,17 +800,19 @@ function LessonView({
         await performCompaction();
       }
     } catch (err) {
+      if (!isLessonInstanceActive(instanceId)) return;
       useCourseStore.getState().finishStreaming();
       const statusCode = err instanceof AIError ? err.statusCode : undefined;
       setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider));
     }
-  }, [course, stepIndex, step, settings, language, t, handleStepComplete, performCompaction]);
+  }, [course.steps.length, handleStepComplete, isLessonInstanceActive, language, localizedCourseName, performCompaction, persistMessages, settings, step, stepIndex, t]);
 
   const handleMarkComplete = useCallback(async () => {
     setMenuOpen(false);
-    await handleStepComplete();
-    updateCourseStepMessages(course.id, stepIndex, useCourseStore.getState().messages);
-  }, [course.id, stepIndex, handleStepComplete]);
+    const currentMessages = useCourseStore.getState().messages.filter((message) => !message.isStreaming);
+    await handleStepComplete(currentMessages);
+    persistMessages(currentMessages);
+  }, [handleStepComplete, persistMessages]);
 
   return (
     <div className="flex flex-col h-screen">
@@ -698,13 +820,7 @@ function LessonView({
       <div className="flex items-center justify-between px-6 py-3 border-b border-[var(--border-color)]/50 bg-[var(--bg-primary)]">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => {
-              const state = useCourseStore.getState();
-              if (state.messages.length > 0) {
-                updateCourseStepMessages(course.id, stepIndex, state.messages);
-              }
-              onBack();
-            }}
+            onClick={onBack}
             className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -738,8 +854,9 @@ function LessonView({
               <div className="w-px h-4 bg-[var(--border-color)]" />
               <div className="relative">
                 <button
+                  disabled={store.isStreaming || store.isCompacting}
                   onClick={() => setMenuOpen(!menuOpen)}
-                  className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
+                  className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <MoreVertical className="w-4 h-4 text-[var(--text-muted)]" />
                 </button>
@@ -839,9 +956,7 @@ export default function CoursesPage() {
 
   const handleNextStep = useCallback(() => {
     setSelectedStep((prev) => prev + 1);
-    // Force re-mount of LessonView
-    setView("list");
-    setTimeout(() => setView("lesson"), 0);
+    setView("lesson");
   }, []);
 
   if (view === "lesson" && selectedCourse) {

@@ -22,6 +22,7 @@ import ToolsPage from "@/pages/ToolsPage";
 import ProgramsPage from "@/pages/ProgramsPage";
 import ExpensesPage from "@/pages/ExpensesPage";
 import SchoolsPage from "@/pages/SchoolsPage";
+import CoursesPage from "@/pages/CoursesPage";
 
 function AppContent() {
   const { isOnboarded, setOnboarded, setTheme, setHasSeenNoteTutorial, isLocked, setLocked, lockEnabled, setLockEnabled } = useAppStore();
@@ -142,6 +143,7 @@ function AppContent() {
           <Route path="/dreams" element={<DreamsPage />} />
           <Route path="/insights" element={<InsightsPage />} />
           <Route path="/analyses" element={<AnalysesPage />} />
+          <Route path="/courses" element={<CoursesPage />} />
           <Route path="/tools" element={<ToolsPage />} />
           <Route path="/programs" element={<ProgramsPage />} />
           <Route path="/expenses" element={<ExpensesPage />} />

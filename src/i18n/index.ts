@@ -55,6 +55,7 @@ export interface Translations {
     expenses: string;
     schools: string;
     analyses: string;
+    courses: string;
     settings: string;
   };
   gender: {
@@ -328,6 +329,7 @@ export interface Translations {
       milestone_analysis: string;
       stt: string;
       tts: string;
+      course_lesson: string;
     };
   };
   programs: {
@@ -539,6 +541,28 @@ export interface Translations {
     milestone180Desc: string;
     milestone240Desc: string;
     milestone365Desc: string;
+  };
+  courses: {
+    title: string;
+    spiritualJourney: string;
+    spiritualJourneyDesc: string;
+    step: string;
+    of: string;
+    locked: string;
+    available: string;
+    inProgress: string;
+    completed: string;
+    startLesson: string;
+    continueLesson: string;
+    lessonCompleted: string;
+    nextStep: string;
+    backToCourse: string;
+    progress: string;
+    stepsCompleted: string;
+    markComplete: string;
+    courseCompleted: string;
+    courseCompletedDesc: string;
+    spiritualJourneySteps: string[];
   };
   placeholder: {
     featureComingSoon: string;

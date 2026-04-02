@@ -1,5 +1,5 @@
 import { getDatabase } from "./database";
-import type { CheckIn, Dream, Session, UserProfile, ChatMessage, SessionSummary, TokenUsageRecord, JournalEntry, MoodEntry, WeeklySummary, InsightGroup, Insight } from "@/types";
+import type { CheckIn, Dream, Session, UserProfile, ChatMessage, SessionSummary, TokenUsageRecord, JournalEntry, MoodEntry, WeeklySummary, InsightGroup, Insight, CourseStepProgress } from "@/types";
 
 // User Profile
 export async function getUserProfile(): Promise<UserProfile | null> {
@@ -576,9 +576,93 @@ export async function saveMilestoneAnalysis(milestone: number, content: string):
   );
 }
 
+// Course Progress
+function parseCourseStepProgress(r: CourseStepProgress): CourseStepProgress {
+  return {
+    ...r,
+    messages: typeof r.messages === "string" ? JSON.parse(r.messages) : r.messages,
+  };
+}
+
+export async function initializeCourseProgress(courseId: string, totalSteps: number): Promise<void> {
+  const db = await getDatabase();
+  const existing = await db.select<{ cnt: number }[]>(
+    "SELECT COUNT(*) as cnt FROM course_progress WHERE course_id = ?",
+    [courseId]
+  );
+  if (existing[0]?.cnt > 0) return;
+
+  for (let i = 0; i < totalSteps; i++) {
+    const id = crypto.randomUUID();
+    const status = i === 0 ? "available" : "locked";
+    await db.execute(
+      "INSERT INTO course_progress (id, course_id, step_index, status) VALUES (?, ?, ?, ?)",
+      [id, courseId, i, status]
+    );
+  }
+}
+
+export async function getCourseProgress(courseId: string): Promise<CourseStepProgress[]> {
+  const db = await getDatabase();
+  const rows = await db.select<CourseStepProgress[]>(
+    "SELECT * FROM course_progress WHERE course_id = ? ORDER BY step_index ASC",
+    [courseId]
+  );
+  return rows.map(parseCourseStepProgress);
+}
+
+export async function getCourseStepProgress(courseId: string, stepIndex: number): Promise<CourseStepProgress | null> {
+  const db = await getDatabase();
+  const rows = await db.select<CourseStepProgress[]>(
+    "SELECT * FROM course_progress WHERE course_id = ? AND step_index = ?",
+    [courseId, stepIndex]
+  );
+  if (rows.length === 0) return null;
+  return parseCourseStepProgress(rows[0]);
+}
+
+export async function startCourseStep(courseId: string, stepIndex: number): Promise<void> {
+  const db = await getDatabase();
+  await db.execute(
+    "UPDATE course_progress SET status = 'in_progress', started_at = ?, updated_at = CURRENT_TIMESTAMP WHERE course_id = ? AND step_index = ?",
+    [new Date().toISOString(), courseId, stepIndex]
+  );
+}
+
+export async function completeCourseStep(courseId: string, stepIndex: number): Promise<void> {
+  const db = await getDatabase();
+  await db.execute(
+    "UPDATE course_progress SET status = 'completed', completed_at = ?, updated_at = CURRENT_TIMESTAMP WHERE course_id = ? AND step_index = ?",
+    [new Date().toISOString(), courseId, stepIndex]
+  );
+  // Unlock next step
+  await db.execute(
+    "UPDATE course_progress SET status = 'available', updated_at = CURRENT_TIMESTAMP WHERE course_id = ? AND step_index = ? AND status = 'locked'",
+    [courseId, stepIndex + 1]
+  );
+}
+
+export async function updateCourseStepMessages(courseId: string, stepIndex: number, messages: ChatMessage[]): Promise<void> {
+  const db = await getDatabase();
+  await db.execute(
+    "UPDATE course_progress SET messages = ?, updated_at = CURRENT_TIMESTAMP WHERE course_id = ? AND step_index = ?",
+    [JSON.stringify(messages), courseId, stepIndex]
+  );
+}
+
+export async function getCourseCompletedStepCount(courseId: string): Promise<number> {
+  const db = await getDatabase();
+  const rows = await db.select<{ cnt: number }[]>(
+    "SELECT COUNT(*) as cnt FROM course_progress WHERE course_id = ? AND status = 'completed'",
+    [courseId]
+  );
+  return rows[0]?.cnt ?? 0;
+}
+
 // Clear all data
 export async function clearAllData(): Promise<void> {
   const db = await getDatabase();
+  await db.execute("DELETE FROM course_progress");
   await db.execute("DELETE FROM milestone_analyses");
   await db.execute("DELETE FROM insights");
   await db.execute("DELETE FROM insight_groups");

@@ -37,6 +37,7 @@ import { Button } from "@/components/ui/Button";
 import { ErrorModal } from "@/components/ui/ErrorModal";
 import type { ChatMessage, CourseStepProgress, TokenUsage } from "@/types";
 import { ArrowLeft, Lock, Check, Play, Loader2, ChevronRight, CheckCircle2, MoreVertical } from "lucide-react";
+import { createBufferedTextStream } from "@/lib/createBufferedTextStream";
 
 type View = "list" | "journey" | "lesson";
 type CourseStats = {
@@ -556,6 +557,25 @@ function LessonView({
       useCourseStore.getState().setAbortController(abortController);
       useCourseStore.getState().startStreaming();
       let accumulatedContent = "";
+      const thinkingStream = createBufferedTextStream((chunk) => {
+        if (!isLessonInstanceActive(instanceId)) return;
+        useCourseStore.getState().appendStreamThinking(chunk);
+      });
+      const contentStream = createBufferedTextStream((chunk) => {
+        if (!isLessonInstanceActive(instanceId)) return;
+        accumulatedContent += chunk;
+        const displayContent = stripMarkers(accumulatedContent);
+        const { streamingMessageId } = useCourseStore.getState();
+        if (!streamingMessageId) return;
+
+        useCourseStore.setState((s) => ({
+          messages: s.messages.map((m) =>
+            m.id === streamingMessageId
+              ? { ...m, content: displayContent, isThinkingActive: false }
+              : m
+          ),
+        }));
+      });
 
       await streamMessage({
         provider: settings.provider,
@@ -570,25 +590,16 @@ function LessonView({
         abortSignal: abortController.signal,
         onThinking: (chunk) => {
           if (!isLessonInstanceActive(instanceId)) return;
-          useCourseStore.getState().appendStreamThinking(chunk);
+          thinkingStream.push(chunk);
         },
         onContent: (chunk) => {
           if (!isLessonInstanceActive(instanceId)) return;
-          accumulatedContent += chunk;
-          const displayContent = stripMarkers(accumulatedContent);
-          const { streamingMessageId } = useCourseStore.getState();
-          if (streamingMessageId) {
-            useCourseStore.setState((s) => ({
-              messages: s.messages.map((m) =>
-                m.id === streamingMessageId
-                  ? { ...m, content: displayContent, isThinkingActive: false }
-                  : m
-              ),
-            }));
-          }
+          contentStream.push(chunk);
         },
         onDone: () => {
           if (!isLessonInstanceActive(instanceId)) return;
+          thinkingStream.flush();
+          contentStream.flush();
 
           const hasMarker = accumulatedContent.includes("<<<STEP_COMPLETE>>>");
           const progress = extractProgress(accumulatedContent);
@@ -632,6 +643,8 @@ function LessonView({
         },
         onError: (error) => {
           if (!isLessonInstanceActive(instanceId)) return;
+          thinkingStream.cancel();
+          contentStream.cancel();
           const s = useCourseStore.getState();
           if (s.streamingMessageId) s.removeMessage(s.streamingMessageId);
           s.finishStreaming();
@@ -640,6 +653,12 @@ function LessonView({
           setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider));
         },
       });
+
+      if (abortController.signal.aborted) {
+        thinkingStream.cancel();
+        contentStream.cancel();
+        return;
+      }
     } catch (err) {
       if (!isLessonInstanceActive(instanceId)) return;
       useCourseStore.getState().finishStreaming();
@@ -738,6 +757,25 @@ function LessonView({
       useCourseStore.getState().startStreaming();
 
       let accumulatedContent = "";
+      const thinkingStream = createBufferedTextStream((chunk) => {
+        if (!isLessonInstanceActive(instanceId)) return;
+        useCourseStore.getState().appendStreamThinking(chunk);
+      });
+      const contentStream = createBufferedTextStream((chunk) => {
+        if (!isLessonInstanceActive(instanceId)) return;
+        accumulatedContent += chunk;
+        const displayContent = stripMarkers(accumulatedContent);
+        const { streamingMessageId } = useCourseStore.getState();
+        if (!streamingMessageId) return;
+
+        useCourseStore.setState((s) => ({
+          messages: s.messages.map((m) =>
+            m.id === streamingMessageId
+              ? { ...m, content: displayContent, isThinkingActive: false }
+              : m
+          ),
+        }));
+      });
 
       await streamMessage({
         provider: settings.provider,
@@ -752,25 +790,16 @@ function LessonView({
         abortSignal: abortController.signal,
         onThinking: (chunk) => {
           if (!isLessonInstanceActive(instanceId)) return;
-          useCourseStore.getState().appendStreamThinking(chunk);
+          thinkingStream.push(chunk);
         },
         onContent: (chunk) => {
           if (!isLessonInstanceActive(instanceId)) return;
-          accumulatedContent += chunk;
-          const displayContent = stripMarkers(accumulatedContent);
-          const { streamingMessageId } = useCourseStore.getState();
-          if (streamingMessageId) {
-            useCourseStore.setState((s) => ({
-              messages: s.messages.map((m) =>
-                m.id === streamingMessageId
-                  ? { ...m, content: displayContent, isThinkingActive: false }
-                  : m
-              ),
-            }));
-          }
+          contentStream.push(chunk);
         },
         onDone: () => {
           if (!isLessonInstanceActive(instanceId)) return;
+          thinkingStream.flush();
+          contentStream.flush();
           const hasMarker = accumulatedContent.includes("<<<STEP_COMPLETE>>>");
           const progress = extractProgress(accumulatedContent);
           if (progress !== null) {
@@ -813,6 +842,8 @@ function LessonView({
         },
         onError: (error) => {
           if (!isLessonInstanceActive(instanceId)) return;
+          thinkingStream.cancel();
+          contentStream.cancel();
           const s = useCourseStore.getState();
           if (s.streamingMessageId) s.removeMessage(s.streamingMessageId);
           s.finishStreaming();
@@ -820,6 +851,12 @@ function LessonView({
           setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider));
         },
       });
+
+      if (abortController.signal.aborted) {
+        thinkingStream.cancel();
+        contentStream.cancel();
+        return;
+      }
 
       // Check compaction
       const providerConfig = getProvider(settings.provider);

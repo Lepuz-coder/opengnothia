@@ -248,6 +248,11 @@
   .phase-text-enter {
     animation: phase-text-enter 0.4s ease-out forwards;
   }
+
+  .streaming-text-content {
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
 }
 
 @keyframes breathing-glow {

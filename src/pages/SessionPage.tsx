@@ -37,6 +37,7 @@ import { Square, Loader2, FileText, Sparkles, Mic, MessageSquare, Pause, Play } 
 import { useVoiceConversation, type VoiceLoopStatus } from "@/hooks/useVoiceConversation";
 import { VoiceConversationView } from "@/components/session/VoiceConversationView";
 import type { AIProvider, ChatMessage, ThinkingLevel, TokenUsage, ExtractedInsight, SessionMode } from "@/types";
+import { createBufferedTextStream } from "@/lib/createBufferedTextStream";
 
 async function trackUsage(
   provider: AIProvider,
@@ -176,6 +177,12 @@ export default function SessionPage() {
       const abortController = new AbortController();
       session.setAbortController(abortController);
       session.startStreaming();
+      const thinkingStream = createBufferedTextStream((chunk) => {
+        useSessionStore.getState().appendStreamThinking(chunk);
+      });
+      const contentStream = createBufferedTextStream((chunk) => {
+        useSessionStore.getState().appendStreamContent(chunk);
+      });
 
       await streamMessage({
         provider: settings.provider,
@@ -189,15 +196,17 @@ export default function SessionPage() {
         thinkingType: settings.thinkingType,
         abortSignal: abortController.signal,
         onThinking: (chunk) => {
-          useSessionStore.getState().appendStreamThinking(chunk);
+          thinkingStream.push(chunk);
         },
         onContent: (chunk) => {
-          useSessionStore.getState().appendStreamContent(chunk);
+          contentStream.push(chunk);
           if (useSessionStore.getState().sessionMode === "voice") {
             voiceFeedRef.current(chunk);
           }
         },
         onDone: () => {
+          thinkingStream.flush();
+          contentStream.flush();
           useSessionStore.getState().finishStreaming();
           const sessionId = useSessionStore.getState().sessionId;
           if (sessionId) {
@@ -213,6 +222,8 @@ export default function SessionPage() {
           useSessionStore.getState().setCurrentInputTokens(usage.inputTokens);
         },
         onError: (error) => {
+          thinkingStream.cancel();
+          contentStream.cancel();
           const store = useSessionStore.getState();
           if (store.streamingMessageId) {
             store.removeMessage(store.streamingMessageId);
@@ -222,6 +233,12 @@ export default function SessionPage() {
           setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider));
         },
       });
+
+      if (abortController.signal.aborted) {
+        thinkingStream.cancel();
+        contentStream.cancel();
+        return;
+      }
     } catch (err) {
       session.finishStreaming();
       const statusCode = err instanceof AIError ? err.statusCode : undefined;
@@ -345,6 +362,12 @@ export default function SessionPage() {
       const abortController = new AbortController();
       session.setAbortController(abortController);
       session.startStreaming();
+      const thinkingStream = createBufferedTextStream((chunk) => {
+        useSessionStore.getState().appendStreamThinking(chunk);
+      });
+      const contentStream = createBufferedTextStream((chunk) => {
+        useSessionStore.getState().appendStreamContent(chunk);
+      });
 
       await streamMessage({
         provider: settings.provider,
@@ -358,15 +381,17 @@ export default function SessionPage() {
         thinkingType: settings.thinkingType,
         abortSignal: abortController.signal,
         onThinking: (chunk) => {
-          useSessionStore.getState().appendStreamThinking(chunk);
+          thinkingStream.push(chunk);
         },
         onContent: (chunk) => {
-          useSessionStore.getState().appendStreamContent(chunk);
+          contentStream.push(chunk);
           if (useSessionStore.getState().sessionMode === "voice") {
             voiceFeedRef.current(chunk);
           }
         },
         onDone: () => {
+          thinkingStream.flush();
+          contentStream.flush();
           useSessionStore.getState().finishStreaming();
           const sessionId = useSessionStore.getState().sessionId;
           if (sessionId) {
@@ -382,6 +407,8 @@ export default function SessionPage() {
           useSessionStore.getState().setCurrentInputTokens(usage.inputTokens);
         },
         onError: (error) => {
+          thinkingStream.cancel();
+          contentStream.cancel();
           const store = useSessionStore.getState();
           if (store.streamingMessageId) {
             store.removeMessage(store.streamingMessageId);
@@ -391,6 +418,12 @@ export default function SessionPage() {
           setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider));
         },
       });
+
+      if (abortController.signal.aborted) {
+        thinkingStream.cancel();
+        contentStream.cancel();
+        return;
+      }
 
       // Check if compaction is needed
       const providerConfig = getProvider(settings.provider);
@@ -634,6 +667,9 @@ export default function SessionPage() {
           timestamp: new Date().toISOString(),
         },
       ];
+      const summaryStream = createBufferedTextStream((chunk) => {
+        useSessionStore.getState().appendSummaryNarrative(chunk);
+      });
 
       await streamMessage({
         provider: settings.provider,
@@ -646,17 +682,19 @@ export default function SessionPage() {
         abortSignal: new AbortController().signal,
         onThinking: () => {},
         onContent: (chunk) => {
-          useSessionStore.getState().appendSummaryNarrative(chunk);
+          summaryStream.push(chunk);
         },
         onUsage: (usage) => {
           const sid = useSessionStore.getState().sessionId;
           trackUsage(settings.provider, settings.model, sid, "summary", usage);
         },
         onDone: () => {
+          summaryStream.flush();
           session.setSummary({ themes: [], defenses: [], insights: [], homework: [] });
           useSessionStore.getState().finishSummaryStream();
         },
         onError: (error) => {
+          summaryStream.cancel();
           session.setSummary({ themes: [], defenses: [], insights: [], homework: [] });
           useSessionStore.getState().finishSummaryStream();
           const statusCode = error instanceof AIError ? error.statusCode : undefined;

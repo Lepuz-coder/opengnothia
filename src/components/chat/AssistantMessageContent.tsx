@@ -139,8 +139,10 @@ export function AssistantMessageContent({
   }
 
   return (
-    <div className="streaming-text-content">
-      {displayedContent}
+    <div className="markdown-content streaming-text-content">
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+        {displayedContent}
+      </ReactMarkdown>
       {isStreaming && content && (
         <span className="inline-block w-1.5 h-3.5 bg-[var(--text-primary)] ml-0.5 animate-pulse align-middle" />
       )}

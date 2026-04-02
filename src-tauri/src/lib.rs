@@ -382,6 +382,12 @@ pub fn run() {
             sql: include_str!("../migrations/015_add_course_step_progress.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 16,
+            description: "add course_notes table",
+            sql: include_str!("../migrations/016_add_course_notes.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

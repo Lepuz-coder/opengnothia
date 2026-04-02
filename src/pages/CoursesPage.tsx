@@ -13,8 +13,8 @@ import {
   completeCourseStep,
   updateCourseStepMessages,
   updateCourseStepProgress,
-  getPatientNotes,
-  getPatientNotesUpdatedAt,
+  getCourseNotes,
+  getCourseNotesUpdatedAt,
   saveTokenUsage,
 } from "@/services/db/queries";
 import { streamMessage, sendMessage } from "@/services/ai/aiService";
@@ -24,11 +24,12 @@ import { calculateCost } from "@/services/ai/costCalculator";
 import {
   buildCourseLessonSystemPrompt,
   buildCourseLessonGreetingPrompt,
-  buildCourseLessonNotesMessage,
+  buildCourseLessonCompactionPrompt,
+  buildCourseLessonNotesUpdateMessage,
+  buildCourseNotesUpdatePrompt,
   COURSE_LESSON_TRIGGER,
 } from "@/services/ai/coursePromptBuilder";
-import { buildPatientNotesUpdatePrompt, buildCompactionPrompt, BACKGROUND_NOTES_SYSTEM_PROMPT } from "@/services/ai/promptBuilder";
-import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
+import { updateCourseNotes } from "@/services/ai/courseNotes";
 import { getProvider } from "@/constants/providers";
 import { ChatContainer } from "@/components/chat/ChatContainer";
 import { ChatInput } from "@/components/chat/ChatInput";
@@ -398,6 +399,7 @@ function LessonView({
   const setSidebarHidden = useAppStore((s) => s.setSidebarHidden);
   const navigate = useNavigate();
   const [errorModalInfo, setErrorModalInfo] = useState<ErrorDisplayInfo | null>(null);
+  const [isSavingCourseNotes, setIsSavingCourseNotes] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const greetingSentRef = useRef(false);
   const lessonInstanceRef = useRef("");
@@ -413,6 +415,44 @@ function LessonView({
     if (messages.length === 0) return;
     void updateCourseStepMessages(course.id, stepIndex, messages);
   }, [course.id, stepIndex]);
+
+  const saveCourseLessonNotes = useCallback(async (completedMessages: ChatMessage[]) => {
+    const [existingNotes, notesUpdatedAt] = await Promise.all([
+      getCourseNotes(course.id),
+      getCourseNotesUpdatedAt(course.id),
+    ]);
+
+    const systemPrompt = buildCourseNotesUpdatePrompt(existingNotes, notesUpdatedAt, language as any);
+    const notesMessage = buildCourseLessonNotesUpdateMessage({
+      courseName: localizedCourseName,
+      topicTitle: step.topicTitle,
+      stepIndex,
+      totalSteps: course.steps.length,
+    });
+    const conversationForNotes: ChatMessage[] = [
+      ...completedMessages,
+      {
+        id: "course-notes-context",
+        role: "user",
+        content: notesMessage,
+        timestamp: new Date().toISOString(),
+      },
+    ];
+
+    await updateCourseNotes({
+      courseId: course.id,
+      provider: settings.provider,
+      apiKey: settings.apiKey,
+      model: settings.memoryModel,
+      messages: conversationForNotes,
+      systemPrompt,
+      customBaseUrl: settings.customBaseUrl || undefined,
+      thinkingEnabled: settings.memoryThinkingEnabled,
+      thinkingLevel: settings.memoryThinkingLevel,
+      thinkingType: settings.memoryThinkingType,
+      callType: "course_lesson",
+    });
+  }, [course.id, course.steps.length, language, localizedCourseName, settings, step.topicTitle, stepIndex]);
 
   // Hide sidebar on mount, restore on unmount
   useEffect(() => {
@@ -473,35 +513,25 @@ function LessonView({
   const handleStepComplete = useCallback(async (messagesSnapshot?: ChatMessage[]) => {
     const state = useCourseStore.getState();
     if (state.lessonCompleted) return;
+    const instanceId = lessonInstanceRef.current;
 
     const completedMessages = (messagesSnapshot ?? state.messages).filter((message) => !message.isStreaming);
     state.setLessonProgress(100);
     state.setLessonCompleted(true);
-    await completeCourseStep(course.id, stepIndex);
-
-    // Fire background notes update
-    Promise.all([getPatientNotes(), getPatientNotesUpdatedAt()]).then(([existingNotes, notesUpdatedAt]) => {
-      const patientNotesPrompt = buildPatientNotesUpdatePrompt(existingNotes, notesUpdatedAt, language as any);
-      const notesMessage = buildCourseLessonNotesMessage(step.topicTitle, stepIndex);
-      const conversationForNotes: ChatMessage[] = [
-        ...completedMessages,
-        { id: "notes-context", role: "user", content: notesMessage, timestamp: new Date().toISOString() },
-        { id: "notes-request", role: "user", content: patientNotesPrompt, timestamp: new Date().toISOString() },
-      ];
-      takeBackgroundNotes({
-        provider: settings.provider,
-        apiKey: settings.apiKey,
-        model: settings.memoryModel,
-        messages: conversationForNotes,
-        systemPrompt: BACKGROUND_NOTES_SYSTEM_PROMPT,
-        customBaseUrl: settings.customBaseUrl || undefined,
-        thinkingEnabled: settings.memoryThinkingEnabled,
-        thinkingLevel: settings.memoryThinkingLevel,
-        thinkingType: settings.memoryThinkingType,
-        callType: "course_lesson",
-      });
-    }).catch(() => undefined);
-  }, [course.id, stepIndex, step.topicTitle, settings, language]);
+    setIsSavingCourseNotes(true);
+    try {
+      await completeCourseStep(course.id, stepIndex);
+      try {
+        await saveCourseLessonNotes(completedMessages);
+      } catch {
+        // Best-effort course memory update
+      }
+    } finally {
+      if (isLessonInstanceActive(instanceId)) {
+        setIsSavingCourseNotes(false);
+      }
+    }
+  }, [course.id, isLessonInstanceActive, saveCourseLessonNotes, stepIndex]);
 
   const sendGreeting = useCallback(async () => {
     if (greetingSentRef.current) return;
@@ -509,7 +539,7 @@ function LessonView({
     const instanceId = lessonInstanceRef.current;
 
     try {
-      const patientNotes = await getPatientNotes();
+      const courseNotes = await getCourseNotes(course.id);
       if (!isLessonInstanceActive(instanceId)) return;
 
       const greetingPrompt = buildCourseLessonGreetingPrompt({
@@ -517,7 +547,7 @@ function LessonView({
         stepIndex,
         totalSteps: course.steps.length,
         courseName: localizedCourseName,
-        patientNotes,
+        courseNotes,
         language: language as any,
         provider: settings.provider,
       });
@@ -626,19 +656,19 @@ function LessonView({
 
     state.startCompaction();
     try {
-      const patientNotes = await getPatientNotes();
+      const courseNotes = await getCourseNotes(course.id);
       if (!isLessonInstanceActive(instanceId)) return;
       const systemPrompt = buildCourseLessonSystemPrompt({
         topicTitle: step.topicTitle,
         stepIndex,
         totalSteps: course.steps.length,
         courseName: localizedCourseName,
-        patientNotes,
+        courseNotes,
         language: language as any,
         provider: settings.provider,
       });
 
-      const compactionPrompt = buildCompactionPrompt(language as any);
+      const compactionPrompt = buildCourseLessonCompactionPrompt(language as any);
       const effectiveMsgs = getEffectiveMessages(
         state.messages.filter((m) => !m.isStreaming),
         state.compactedContext,
@@ -667,7 +697,7 @@ function LessonView({
         useCourseStore.getState().finishCompaction();
       }
     }
-  }, [course.steps.length, isLessonInstanceActive, language, localizedCourseName, settings, step, stepIndex]);
+  }, [course.id, course.steps.length, isLessonInstanceActive, language, localizedCourseName, settings, step, stepIndex]);
 
   const handleSendMessage = useCallback(async (content: string) => {
     const { isStreaming, lessonCompleted } = useCourseStore.getState();
@@ -683,7 +713,7 @@ function LessonView({
     useCourseStore.getState().addMessage(userMsg);
 
     try {
-      const patientNotes = await getPatientNotes();
+      const courseNotes = await getCourseNotes(course.id);
       if (!isLessonInstanceActive(instanceId)) return;
 
       const systemPrompt = buildCourseLessonSystemPrompt({
@@ -691,7 +721,7 @@ function LessonView({
         stepIndex,
         totalSteps: course.steps.length,
         courseName: localizedCourseName,
-        patientNotes,
+        courseNotes,
         language: language as any,
         provider: settings.provider,
       });
@@ -821,7 +851,8 @@ function LessonView({
         <div className="flex items-center gap-3">
           <button
             onClick={onBack}
-            className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
+            disabled={isSavingCourseNotes}
+            className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors disabled:opacity-50 disabled:cursor-wait"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
@@ -895,13 +926,14 @@ function LessonView({
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-green-400" />
               <span className="text-sm font-medium text-green-400">{t.courses.lessonCompleted}</span>
+              {isSavingCourseNotes && <Loader2 className="w-4 h-4 text-green-400 animate-spin" />}
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="secondary" size="sm" onClick={onBack}>
+              <Button variant="secondary" size="sm" onClick={onBack} disabled={isSavingCourseNotes}>
                 {t.courses.backToCourse}
               </Button>
               {hasNextStep && (
-                <Button size="sm" onClick={onNextStep}>
+                <Button size="sm" onClick={onNextStep} disabled={isSavingCourseNotes}>
                   {t.courses.nextStep}
                 </Button>
               )}

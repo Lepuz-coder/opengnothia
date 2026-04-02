@@ -165,8 +165,20 @@ export interface TokenUsageRecord {
   input_tokens: number;
   output_tokens: number;
   cost: number;
-  call_type: "greeting" | "chat" | "recommendation" | "summary" | "patient_notes" | "dream_analysis" | "journal_analysis" | "compaction" | "weekly_summary" | "insight_extraction" | "stt" | "tts";
+  call_type: "greeting" | "chat" | "recommendation" | "summary" | "patient_notes" | "dream_analysis" | "journal_analysis" | "compaction" | "weekly_summary" | "insight_extraction" | "stt" | "tts" | "course_lesson";
   created_at: string;
+}
+
+export interface CourseStepProgress {
+  id: string;
+  course_id: string;
+  step_index: number;
+  status: "locked" | "available" | "in_progress" | "completed";
+  messages: ChatMessage[];
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface SettingsState {

@@ -12,6 +12,7 @@ import {
   startCourseStep,
   completeCourseStep,
   updateCourseStepMessages,
+  updateCourseStepProgress,
   getCourseCompletedStepCount,
   getPatientNotes,
   getPatientNotesUpdatedAt,
@@ -298,6 +299,19 @@ function JourneyMapView({
                 <p className={`text-sm truncate ${status === "locked" ? "text-[var(--text-muted)]" : ""}`}>
                   {getLocalizedStepTitle(t, course.id, index, step.topicTitle)}
                 </p>
+                {status === "in_progress" && (progress?.progress ?? 0) > 0 && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="flex-1 h-1 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-yellow-500 transition-all duration-500"
+                        style={{ width: `${progress!.progress}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-[var(--text-muted)] tabular-nums">
+                      {progress!.progress}%
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Arrow for clickable items */}
@@ -360,6 +374,8 @@ function LessonView({
       if (isCompleted) {
         store.setLessonCompleted(true);
         store.setLessonProgress(100);
+      } else if (progress?.progress) {
+        store.setLessonProgress(progress.progress);
       }
 
       // Mark step as in_progress if it was available
@@ -428,7 +444,10 @@ function LessonView({
           if (lastMsg) {
             const fullContent = lastMsg.content;
             const progress = extractProgress(fullContent);
-            if (progress !== null) useCourseStore.getState().setLessonProgress(progress);
+            if (progress !== null) {
+              useCourseStore.getState().setLessonProgress(progress);
+              updateCourseStepProgress(course.id, stepIndex, progress);
+            }
             const hasMarker = fullContent.includes("<<<STEP_COMPLETE>>>");
             // Clean all markers from message
             useCourseStore.setState((s) => ({
@@ -440,6 +459,7 @@ function LessonView({
             }));
             if (hasMarker) {
               useCourseStore.getState().setLessonProgress(100);
+              updateCourseStepProgress(course.id, stepIndex, 100);
               handleStepComplete();
             }
           }
@@ -607,7 +627,10 @@ function LessonView({
         onDone: () => {
           const hasMarker = accumulatedContent.includes("<<<STEP_COMPLETE>>>");
           const progress = extractProgress(accumulatedContent);
-          if (progress !== null) useCourseStore.getState().setLessonProgress(progress);
+          if (progress !== null) {
+            useCourseStore.getState().setLessonProgress(progress);
+            updateCourseStepProgress(course.id, stepIndex, progress);
+          }
           const cleanContent = stripMarkers(accumulatedContent);
 
           const { streamingMessageId } = useCourseStore.getState();
@@ -629,6 +652,7 @@ function LessonView({
 
           if (hasMarker) {
             useCourseStore.getState().setLessonProgress(100);
+            updateCourseStepProgress(course.id, stepIndex, 100);
             handleStepComplete();
           }
 

@@ -716,6 +716,121 @@ const DIGITAL_DETOX_TEMPLATES: Record<Language, StepDescriptionTemplates> = {
   },
 };
 
+const HEALTHY_EATING_PSYCHOLOGY_TEMPLATES: Record<Language, StepDescriptionTemplates> = {
+  tr: {
+    withSubtitle: [
+      "Bu ders, {headline} konusunu {subtitle} üzerinden ele alarak yemekle ilişkinin nasıl şekillendiğini ve onu nasıl dönüştürebileceğini anlamana yardımcı olur.",
+      "Buradaki odak {headline}. {subtitle} sayesinde yeme kalıplarını daha net görür ve pratik bir farkındalık becerisi öğrenirsin.",
+      "Bu bölüm, {headline} konusunu {subtitle} çerçevesinde derinleştirir; otomatik yeme davranışlarını bilinçli seçimlere dönüştürür.",
+      "{headline} burada {subtitle} aracılığıyla ele alınır. Ders, yemekle ilişkinde neler olduğunu fark etmeni ve daha şefkatli bir yaklaşım geliştirmeni sağlar.",
+    ],
+    withoutSubtitle: [
+      "Bu ders, {headline} konusunu ele alarak yemekle ilişkinin nasıl şekillendiğini ve onu nasıl dönüştürebileceğini anlamana yardımcı olur.",
+      "Buradaki odak {headline}. Amaç, otomatik yeme davranışlarını fark edip bilinçli ve şefkatli seçimlere dönüştürmektir.",
+      "Bu bölüm, {headline} konusunu derinleştirerek yeme kalıplarını tanıma ve yemekle daha sağlıklı bir ilişki kurma araçları sunar.",
+      "{headline} burada ele alınır; böylece yemekle ilişkinde gerçekte neler olduğunu görebilir ve kendine daha nazik bir yaklaşım geliştirebilirsin.",
+    ],
+  },
+  en: {
+    withSubtitle: [
+      "This lesson explores {headline} through {subtitle}, helping you understand how your relationship with food is shaped and how to transform it.",
+      "Here the focus is {headline}. By examining {subtitle}, you build a clearer picture of your eating patterns and learn a practical awareness skill.",
+      "This section deepens your understanding of {headline} through {subtitle}, turning automatic eating behaviors into conscious, compassionate choices.",
+      "{headline} is addressed here through {subtitle}. The lesson guides you toward recognizing what drives your eating and responding with more kindness.",
+    ],
+    withoutSubtitle: [
+      "This lesson explores {headline}, helping you understand how your relationship with food is shaped and how to transform it.",
+      "Here the focus is {headline}. The goal is to turn automatic eating behaviors into conscious, compassionate choices.",
+      "This section deepens your understanding of {headline}, giving you tools to recognize eating patterns and build a healthier relationship with food.",
+      "{headline} is addressed here so you can see what is actually driving your eating and respond with more awareness and self-compassion.",
+    ],
+  },
+  zh: {
+    withSubtitle: [
+      "本节课通过{subtitle}来探索{headline}，帮助你理解你与食物的关系是如何形成的以及如何转变它。",
+      "这里的重点是{headline}。通过审视{subtitle}，你会更清晰地看到自己的进食模式并学到实用的觉察技能。",
+      "这一部分通过{subtitle}加深你对{headline}的理解，将自动化的进食行为转化为有意识的、有慈悲的选择。",
+      "这里通过{subtitle}来讨论{headline}。课程引导你认识是什么驱动了你的进食并以更多善意来回应。",
+    ],
+    withoutSubtitle: [
+      "本节课探索{headline}，帮助你理解你与食物的关系是如何形成的以及如何转变它。",
+      "这里的重点是{headline}。目标是将自动化的进食行为转化为有意识的、有慈悲的选择。",
+      "这一部分加深你对{headline}的理解，给你识别进食模式和建立更健康食物关系的工具。",
+      "这里讨论{headline}，帮你看清是什么在驱动你的进食，并以更多觉察和自我慈悲来回应。",
+    ],
+  },
+  es: {
+    withSubtitle: [
+      "Esta lección explora {headline} a través de {subtitle}, ayudándote a comprender cómo se forma tu relación con la comida y cómo transformarla.",
+      "Aquí el foco está en {headline}. Al examinar {subtitle}, construyes una imagen más clara de tus patrones alimentarios y aprendes una habilidad práctica de conciencia.",
+      "Esta sección profundiza en {headline} a través de {subtitle}, convirtiendo comportamientos alimentarios automáticos en elecciones conscientes y compasivas.",
+      "Aquí se aborda {headline} a través de {subtitle}. La lección te guía para reconocer qué impulsa tu alimentación y responder con más amabilidad.",
+    ],
+    withoutSubtitle: [
+      "Esta lección explora {headline}, ayudándote a comprender cómo se forma tu relación con la comida y cómo transformarla.",
+      "Aquí el foco está en {headline}. El objetivo es convertir comportamientos alimentarios automáticos en elecciones conscientes y compasivas.",
+      "Esta sección profundiza en {headline}, dándote herramientas para reconocer patrones alimentarios y construir una relación más saludable con la comida.",
+      "Aquí se aborda {headline} para que puedas ver qué impulsa realmente tu alimentación y responder con más conciencia y autocompasión.",
+    ],
+  },
+  pt: {
+    withSubtitle: [
+      "Esta aula explora {headline} através de {subtitle}, ajudando você a entender como sua relação com a comida se forma e como transformá-la.",
+      "Aqui o foco é {headline}. Ao examinar {subtitle}, você constrói uma imagem mais clara dos seus padrões alimentares e aprende uma habilidade prática de consciência.",
+      "Esta seção aprofunda sua compreensão de {headline} através de {subtitle}, transformando comportamentos alimentares automáticos em escolhas conscientes e compassivas.",
+      "Aqui, {headline} é abordado através de {subtitle}. A aula guia você a reconhecer o que impulsiona sua alimentação e a responder com mais gentileza.",
+    ],
+    withoutSubtitle: [
+      "Esta aula explora {headline}, ajudando você a entender como sua relação com a comida se forma e como transformá-la.",
+      "Aqui o foco é {headline}. O objetivo é transformar comportamentos alimentares automáticos em escolhas conscientes e compassivas.",
+      "Esta seção aprofunda sua compreensão de {headline}, oferecendo ferramentas para reconhecer padrões alimentares e construir uma relação mais saudável com a comida.",
+      "Aqui, {headline} é abordado para que você possa ver o que realmente impulsiona sua alimentação e responder com mais consciência e autocompaixão.",
+    ],
+  },
+  de: {
+    withSubtitle: [
+      "Diese Lektion erkundet {headline} durch {subtitle} und hilft dir zu verstehen, wie deine Beziehung zum Essen geformt wurde und wie du sie verändern kannst.",
+      "Hier liegt der Fokus auf {headline}. Indem du {subtitle} untersuchst, gewinnst du ein klareres Bild deiner Essmuster und lernst eine praktische Bewusstseinsfähigkeit.",
+      "Dieser Abschnitt vertieft dein Verständnis von {headline} durch {subtitle} und verwandelt automatische Essensverhalten in bewusste, mitfühlende Entscheidungen.",
+      "{headline} wird hier durch {subtitle} behandelt. Die Lektion leitet dich an, zu erkennen, was dein Essen antreibt, und mit mehr Freundlichkeit zu reagieren.",
+    ],
+    withoutSubtitle: [
+      "Diese Lektion erkundet {headline} und hilft dir zu verstehen, wie deine Beziehung zum Essen geformt wurde und wie du sie verändern kannst.",
+      "Hier liegt der Fokus auf {headline}. Das Ziel ist, automatische Essensverhalten in bewusste, mitfühlende Entscheidungen zu verwandeln.",
+      "Dieser Abschnitt vertieft dein Verständnis von {headline} und gibt dir Werkzeuge, um Essmuster zu erkennen und eine gesündere Beziehung zum Essen aufzubauen.",
+      "{headline} wird hier behandelt, damit du sehen kannst, was dein Essen tatsächlich antreibt, und mit mehr Bewusstheit und Selbstmitgefühl reagieren kannst.",
+    ],
+  },
+  fr: {
+    withSubtitle: [
+      "Cette leçon explore {headline} à travers {subtitle}, t'aidant à comprendre comment ta relation avec la nourriture s'est formée et comment la transformer.",
+      "Ici, l'accent est mis sur {headline}. En examinant {subtitle}, tu construis une image plus claire de tes schémas alimentaires et apprends une compétence pratique de conscience.",
+      "Cette section approfondit ta compréhension de {headline} à travers {subtitle}, transformant les comportements alimentaires automatiques en choix conscients et compatissants.",
+      "Ici, {headline} est abordé à travers {subtitle}. La leçon te guide pour reconnaître ce qui motive ton alimentation et répondre avec plus de bienveillance.",
+    ],
+    withoutSubtitle: [
+      "Cette leçon explore {headline}, t'aidant à comprendre comment ta relation avec la nourriture s'est formée et comment la transformer.",
+      "Ici, l'accent est mis sur {headline}. L'objectif est de transformer les comportements alimentaires automatiques en choix conscients et compatissants.",
+      "Cette section approfondit ta compréhension de {headline}, te donnant des outils pour reconnaître les schémas alimentaires et construire une relation plus saine avec la nourriture.",
+      "Ici, {headline} est abordé pour que tu puisses voir ce qui motive réellement ton alimentation et répondre avec plus de conscience et d'autocompassion.",
+    ],
+  },
+  ja: {
+    withSubtitle: [
+      "このレッスンでは、{subtitle}を通して{headline}を探求し、あなたと食べ物の関係がどう形作られてきたか、そしてどう変えられるかを理解する手助けをします。",
+      "ここでの焦点は{headline}です。{subtitle}を検証することで、自分の食事パターンをより明確に把握し、実践的な気づきのスキルを学びます。",
+      "このセクションでは、{subtitle}を通じて{headline}の理解を深め、自動的な食行動を意識的で思いやりのある選択に変えます。",
+      "ここでは{subtitle}を通じて{headline}を扱います。レッスンは、何があなたの食事を駆動しているかを認識し、より優しく対応するよう導きます。",
+    ],
+    withoutSubtitle: [
+      "このレッスンでは{headline}を探求し、あなたと食べ物の関係がどう形作られてきたか、そしてどう変えられるかを理解する手助けをします。",
+      "ここでの焦点は{headline}です。目標は、自動的な食行動を意識的で思いやりのある選択に変えることです。",
+      "このセクションでは{headline}の理解を深め、食事パターンを認識して食べ物とのより健全な関係を築くためのツールを提供します。",
+      "ここでは{headline}を扱い、何が実際にあなたの食事を駆動しているかを見て、より多くの気づきとセルフコンパッションを持って対応できるようにします。",
+    ],
+  },
+};
+
 const COURSE_TEMPLATES: Record<string, Record<Language, StepDescriptionTemplates>> = {
   spiritual_journey: STEP_DESCRIPTION_TEMPLATES,
   quit_smoking: QUIT_SMOKING_TEMPLATES,
@@ -723,6 +838,7 @@ const COURSE_TEMPLATES: Record<string, Record<Language, StepDescriptionTemplates
   anger_management: ANGER_MANAGEMENT_TEMPLATES,
   healthy_relationships: HEALTHY_RELATIONSHIPS_TEMPLATES,
   digital_detox: DIGITAL_DETOX_TEMPLATES,
+  healthy_eating_psychology: HEALTHY_EATING_PSYCHOLOGY_TEMPLATES,
 };
 
 export function getCourseStepDescription(

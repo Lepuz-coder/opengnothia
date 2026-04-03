@@ -594,6 +594,11 @@ export interface Translations {
     digitalDetoxLongDesc: string;
     digitalDetoxHighlights: string[];
     digitalDetoxSteps: string[];
+    healthyEatingPsychology: string;
+    healthyEatingPsychologyDesc: string;
+    healthyEatingPsychologyLongDesc: string;
+    healthyEatingPsychologyHighlights: string[];
+    healthyEatingPsychologySteps: string[];
     resetProgress: string;
     resetProgressConfirm: string;
     resetProgressWarning: string;

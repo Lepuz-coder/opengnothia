@@ -396,7 +396,57 @@ export const HEALTHY_EATING_PSYCHOLOGY: CourseDefinition = {
   ],
 };
 
-export const COURSES: CourseDefinition[] = [SPIRITUAL_JOURNEY, QUIT_SMOKING, MAKING_PEACE_WITH_ANXIETY, ANGER_MANAGEMENT, HEALTHY_RELATIONSHIPS, DIGITAL_DETOX, HEALTHY_EATING_PSYCHOLOGY];
+export const OVERCOMING_PROCRASTINATION: CourseDefinition = {
+  id: "overcoming_procrastination",
+  nameKey: "overcomingProcrastination",
+  descriptionKey: "overcomingProcrastinationDesc",
+  detailDescriptionKey: "overcomingProcrastinationLongDesc",
+  highlightsKey: "overcomingProcrastinationHighlights",
+  stepsKey: "overcomingProcrastinationSteps",
+  rolePrompt: "a warm, non-shaming procrastination coach who blends temporal motivation theory, self-determination theory, and behavioral activation. You treat procrastination as an emotion regulation problem, never as laziness or a character flaw. You validate the student's experience, normalize the struggle, explain the neuroscience of avoidance in accessible language, and always offer concrete, actionable micro-steps. You use plain language, explain any technical term the first time it appears, and balance science with compassion and gentle humor",
+  icon: "🎯",
+  steps: [
+    // Block 1: Understanding Procrastination (1-4)
+    { topicTitle: "What Is Procrastination? — Understanding That It Is an Emotion Problem, Not a Laziness Problem" },
+    { topicTitle: "The Emotional Roots of Avoidance — Why We Put Off What Matters Most" },
+    { topicTitle: "The Procrastination-Anxiety Loop — How Delaying Creates the Very Stress You Tried to Escape" },
+    { topicTitle: "Your Procrastination Profile — Mapping Your Personal Triggers, Patterns, and Avoidance Styles" },
+
+    // Block 2: The Fears Underneath (5-8)
+    { topicTitle: "Fear of Failure — When Not Trying Feels Safer Than Risking Imperfection" },
+    { topicTitle: "Fear of Success — The Hidden Dread of What Might Change If You Actually Succeed" },
+    { topicTitle: "Fear of Judgment — When the Imagined Audience Keeps You Frozen" },
+    { topicTitle: "Perfectionism as Avoidance — How Impossibly High Standards Become an Excuse Not to Start" },
+
+    // Block 3: Cognitive Patterns (9-12)
+    { topicTitle: "All-or-Nothing Thinking — Why 'If I Can't Do It Perfectly, Why Start at All' Keeps You Stuck" },
+    { topicTitle: "Catastrophizing About Tasks — How Your Mind Turns a Simple To-Do into an Impossible Mountain" },
+    { topicTitle: "The 'I'll Do It Later' Myth — Why Your Future Self Is Not Coming to Save You" },
+    { topicTitle: "Decision Paralysis — When Too Many Options or Too Much Planning Becomes Another Way to Avoid" },
+
+    // Block 4: Emotion Regulation and Resistance (13-16)
+    { topicTitle: "Sitting with Discomfort — Learning to Tolerate the Feelings That Trigger Avoidance" },
+    { topicTitle: "The Two-Minute Rule — How Starting Ridiculously Small Bypasses Resistance" },
+    { topicTitle: "Breaking the Avoidance Cycle — Understanding What Happens When You Act Despite the Urge to Delay" },
+    { topicTitle: "Self-Compassion vs. Self-Criticism — Why Beating Yourself Up Makes Procrastination Worse" },
+
+    // Block 5: Practical Action Strategies (17-20)
+    { topicTitle: "Micro-Steps — How to Break Any Task into Pieces So Small They Feel Almost Effortless" },
+    { topicTitle: "Implementation Intentions — The Science of Deciding When, Where, and How Before the Moment Arrives" },
+    { topicTitle: "Environment Design — Setting Up Your Space So That Starting Becomes the Path of Least Resistance" },
+    { topicTitle: "Momentum and the Progress Principle — Why Small Wins Create the Motivation You Were Waiting For" },
+
+    // Block 6: Sustaining Momentum (21-23)
+    { topicTitle: "Dealing with Setbacks — Why Slipping Back into Old Patterns Does Not Erase Your Progress" },
+    { topicTitle: "Motivation vs. Discipline — Why Waiting to Feel Ready Is the Biggest Procrastination Trap of All" },
+    { topicTitle: "Identity Shift — Moving from 'I Am a Procrastinator' to 'I Am Someone Who Takes Action'" },
+
+    // Block 7: Integration (24)
+    { topicTitle: "Your Anti-Procrastination Toolkit — Building a Sustainable Practice for Getting Things Done" },
+  ],
+};
+
+export const COURSES: CourseDefinition[] = [SPIRITUAL_JOURNEY, QUIT_SMOKING, MAKING_PEACE_WITH_ANXIETY, ANGER_MANAGEMENT, HEALTHY_RELATIONSHIPS, DIGITAL_DETOX, HEALTHY_EATING_PSYCHOLOGY, OVERCOMING_PROCRASTINATION];
 
 export function getCourseById(courseId: string): CourseDefinition | undefined {
   return COURSES.find((c) => c.id === courseId);

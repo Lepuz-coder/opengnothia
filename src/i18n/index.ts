@@ -599,6 +599,11 @@ export interface Translations {
     healthyEatingPsychologyLongDesc: string;
     healthyEatingPsychologyHighlights: string[];
     healthyEatingPsychologySteps: string[];
+    overcomingProcrastination: string;
+    overcomingProcrastinationDesc: string;
+    overcomingProcrastinationLongDesc: string;
+    overcomingProcrastinationHighlights: string[];
+    overcomingProcrastinationSteps: string[];
     resetProgress: string;
     resetProgressConfirm: string;
     resetProgressWarning: string;

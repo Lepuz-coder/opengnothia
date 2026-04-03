@@ -831,6 +831,121 @@ const HEALTHY_EATING_PSYCHOLOGY_TEMPLATES: Record<Language, StepDescriptionTempl
   },
 };
 
+const OVERCOMING_PROCRASTINATION_TEMPLATES: Record<Language, StepDescriptionTemplates> = {
+  tr: {
+    withSubtitle: [
+      "Bu ders, {headline} konusunu {subtitle} üzerinden ele alarak prokrastinasyonun nasıl çalıştığını ve onu aşmak için ne yapabileceğini anlamana yardımcı olur.",
+      "Buradaki odak {headline}. {subtitle} sayesinde kaçınma örüntülerini daha net görür ve harekete geçmek için pratik bir yol öğrenirsin.",
+      "Bu bölüm, {headline} konusunu {subtitle} çerçevesinde derinleştirir; erteleme dürtüsünü üzerine hareket edebileceğin bir farkındalığa dönüştürür.",
+      "{headline} burada {subtitle} aracılığıyla ele alınır. Ders, seni yerinde tutan şeyi fark etmeni ve daha şefkatli, daha etkili bir yanıt pratiği geliştirmeni sağlar.",
+    ],
+    withoutSubtitle: [
+      "Bu ders, {headline} konusunu ele alarak prokrastinasyonun nasıl çalıştığını ve onu aşmak için ne yapabileceğini anlamana yardımcı olur.",
+      "Buradaki odak {headline}. Amaç, erteleme dürtüsünü net bir anlayışa ve pratik becerilere dönüştürmektir.",
+      "Bu bölüm, {headline} konusunu derinleştirerek kaçınma örüntülerini tanıma ve harekete geçme araçları sunar.",
+      "{headline} burada ele alınır; böylece seni yerinde tutan şeyi görebilir ve daha şefkatli, daha etkili bir yaklaşım geliştirebilirsin.",
+    ],
+  },
+  en: {
+    withSubtitle: [
+      "This lesson explores {headline} through {subtitle}, helping you understand how procrastination works and what you can do to move past it.",
+      "Here the focus is {headline}. By examining {subtitle}, you build a clearer picture of your avoidance patterns and learn a practical way to take action.",
+      "This section deepens your understanding of {headline} through {subtitle}, turning the urge to delay into awareness you can act on.",
+      "{headline} is addressed here through {subtitle}. The lesson guides you toward recognizing what keeps you stuck and practicing a kinder, more effective response.",
+    ],
+    withoutSubtitle: [
+      "This lesson explores {headline}, helping you understand how procrastination works and what you can do to move past it.",
+      "Here the focus is {headline}. The goal is to turn the urge to delay into clear understanding and practical skills.",
+      "This section deepens your understanding of {headline}, giving you tools to recognize avoidance patterns and take action with more confidence.",
+      "{headline} is addressed here so you can see what keeps you stuck and practice a kinder, more effective way forward.",
+    ],
+  },
+  zh: {
+    withSubtitle: [
+      "本节课通过{subtitle}来探索{headline}，帮助你理解拖延是如何运作的以及你可以做什么来克服它。",
+      "这里的重点是{headline}。通过审视{subtitle}，你会更清晰地看到自己的逃避模式并学到采取行动的实用方法。",
+      "这一部分通过{subtitle}加深你对{headline}的理解，将延迟的冲动转化为可以付诸行动的觉察。",
+      "这里通过{subtitle}来讨论{headline}。课程引导你识别是什么让你停滞，并练习更温和、更有效的回应。",
+    ],
+    withoutSubtitle: [
+      "本节课探索{headline}，帮助你理解拖延是如何运作的以及你可以做什么来克服它。",
+      "这里的重点是{headline}。目标是将延迟的冲动转化为清晰的理解和实用的技能。",
+      "这一部分加深你对{headline}的理解，给你识别逃避模式和更自信地采取行动的工具。",
+      "这里讨论{headline}，帮你看清是什么让你停滞，并练习更温和、更有效的前进方式。",
+    ],
+  },
+  es: {
+    withSubtitle: [
+      "Esta lección explora {headline} a través de {subtitle}, ayudándote a comprender cómo funciona la procrastinación y qué puedes hacer para superarla.",
+      "Aquí el foco está en {headline}. Al examinar {subtitle}, construyes una imagen más clara de tus patrones de evitación y aprendes una forma práctica de actuar.",
+      "Esta sección profundiza en {headline} a través de {subtitle}, convirtiendo el impulso de retrasar en conciencia sobre la que puedes actuar.",
+      "Aquí se aborda {headline} a través de {subtitle}. La lección te guía para reconocer qué te mantiene atascado y practicar una respuesta más amable y efectiva.",
+    ],
+    withoutSubtitle: [
+      "Esta lección explora {headline}, ayudándote a comprender cómo funciona la procrastinación y qué puedes hacer para superarla.",
+      "Aquí el foco está en {headline}. El objetivo es convertir el impulso de retrasar en comprensión clara y habilidades prácticas.",
+      "Esta sección profundiza en {headline}, dándote herramientas para reconocer patrones de evitación y actuar con más confianza.",
+      "Aquí se aborda {headline} para que puedas ver qué te mantiene atascado y practicar una forma más amable y efectiva de avanzar.",
+    ],
+  },
+  pt: {
+    withSubtitle: [
+      "Esta aula explora {headline} através de {subtitle}, ajudando você a entender como a procrastinação funciona e o que pode fazer para superá-la.",
+      "Aqui o foco é {headline}. Ao examinar {subtitle}, você constrói uma imagem mais clara dos seus padrões de evitação e aprende uma forma prática de agir.",
+      "Esta seção aprofunda sua compreensão de {headline} através de {subtitle}, transformando o impulso de adiar em consciência sobre a qual você pode agir.",
+      "Aqui, {headline} é abordado através de {subtitle}. A aula guia você a reconhecer o que te mantém preso e a praticar uma resposta mais gentil e eficaz.",
+    ],
+    withoutSubtitle: [
+      "Esta aula explora {headline}, ajudando você a entender como a procrastinação funciona e o que pode fazer para superá-la.",
+      "Aqui o foco é {headline}. O objetivo é transformar o impulso de adiar em compreensão clara e habilidades práticas.",
+      "Esta seção aprofunda sua compreensão de {headline}, oferecendo ferramentas para reconhecer padrões de evitação e agir com mais confiança.",
+      "Aqui, {headline} é abordado para que você possa ver o que te mantém preso e praticar uma forma mais gentil e eficaz de avançar.",
+    ],
+  },
+  de: {
+    withSubtitle: [
+      "Diese Lektion erkundet {headline} durch {subtitle} und hilft dir zu verstehen, wie Prokrastination funktioniert und was du tun kannst, um sie zu überwinden.",
+      "Hier liegt der Fokus auf {headline}. Indem du {subtitle} untersuchst, gewinnst du ein klareres Bild deiner Vermeidungsmuster und lernst einen praktischen Weg zu handeln.",
+      "Dieser Abschnitt vertieft dein Verständnis von {headline} durch {subtitle} und verwandelt den Drang zu verzögern in Bewusstheit, nach der du handeln kannst.",
+      "{headline} wird hier durch {subtitle} behandelt. Die Lektion leitet dich an, zu erkennen, was dich festhält, und eine freundlichere, effektivere Reaktion zu üben.",
+    ],
+    withoutSubtitle: [
+      "Diese Lektion erkundet {headline} und hilft dir zu verstehen, wie Prokrastination funktioniert und was du tun kannst, um sie zu überwinden.",
+      "Hier liegt der Fokus auf {headline}. Das Ziel ist, den Drang zu verzögern in klares Verständnis und praktische Fähigkeiten zu verwandeln.",
+      "Dieser Abschnitt vertieft dein Verständnis von {headline} und gibt dir Werkzeuge, um Vermeidungsmuster zu erkennen und selbstbewusster zu handeln.",
+      "{headline} wird hier behandelt, damit du sehen kannst, was dich festhält, und einen freundlicheren, effektiveren Weg nach vorn üben kannst.",
+    ],
+  },
+  fr: {
+    withSubtitle: [
+      "Cette leçon explore {headline} à travers {subtitle}, t'aidant à comprendre comment la procrastination fonctionne et ce que tu peux faire pour la surmonter.",
+      "Ici, l'accent est mis sur {headline}. En examinant {subtitle}, tu construis une image plus claire de tes schémas d'évitement et apprends une façon pratique d'agir.",
+      "Cette section approfondit ta compréhension de {headline} à travers {subtitle}, transformant l'envie de reporter en conscience sur laquelle tu peux agir.",
+      "Ici, {headline} est abordé à travers {subtitle}. La leçon te guide pour reconnaître ce qui te bloque et pratiquer une réponse plus bienveillante et efficace.",
+    ],
+    withoutSubtitle: [
+      "Cette leçon explore {headline}, t'aidant à comprendre comment la procrastination fonctionne et ce que tu peux faire pour la surmonter.",
+      "Ici, l'accent est mis sur {headline}. L'objectif est de transformer l'envie de reporter en compréhension claire et en compétences pratiques.",
+      "Cette section approfondit ta compréhension de {headline}, te donnant des outils pour reconnaître les schémas d'évitement et agir avec plus de confiance.",
+      "Ici, {headline} est abordé pour que tu puisses voir ce qui te bloque et pratiquer une façon plus bienveillante et efficace d'avancer.",
+    ],
+  },
+  ja: {
+    withSubtitle: [
+      "このレッスンでは、{subtitle}を通して{headline}を探求し、先延ばしがどう機能するのか、そしてそれを乗り越えるために何ができるかを理解する手助けをします。",
+      "ここでの焦点は{headline}です。{subtitle}を検証することで、自分の回避パターンをより明確に把握し、行動を起こす実践的な方法を学びます。",
+      "このセクションでは、{subtitle}を通じて{headline}の理解を深め、遅らせたい衝動を行動できる気づきに変えます。",
+      "ここでは{subtitle}を通じて{headline}を扱います。レッスンは、何があなたを停滞させているかを認識し、より優しく効果的な対応を練習するよう導きます。",
+    ],
+    withoutSubtitle: [
+      "このレッスンでは{headline}を探求し、先延ばしがどう機能するのか、そしてそれを乗り越えるために何ができるかを理解する手助けをします。",
+      "ここでの焦点は{headline}です。目標は、遅らせたい衝動を明確な理解と実践的なスキルに変えることです。",
+      "このセクションでは{headline}の理解を深め、回避パターンを認識してより自信を持って行動するためのツールを提供します。",
+      "ここでは{headline}を扱い、何があなたを停滞させているかを見て、より優しく効果的な前進の仕方を練習できるようにします。",
+    ],
+  },
+};
+
 const COURSE_TEMPLATES: Record<string, Record<Language, StepDescriptionTemplates>> = {
   spiritual_journey: STEP_DESCRIPTION_TEMPLATES,
   quit_smoking: QUIT_SMOKING_TEMPLATES,
@@ -839,6 +954,7 @@ const COURSE_TEMPLATES: Record<string, Record<Language, StepDescriptionTemplates
   healthy_relationships: HEALTHY_RELATIONSHIPS_TEMPLATES,
   digital_detox: DIGITAL_DETOX_TEMPLATES,
   healthy_eating_psychology: HEALTHY_EATING_PSYCHOLOGY_TEMPLATES,
+  overcoming_procrastination: OVERCOMING_PROCRASTINATION_TEMPLATES,
 };
 
 export function getCourseStepDescription(

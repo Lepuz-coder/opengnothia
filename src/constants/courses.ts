@@ -296,7 +296,57 @@ export const HEALTHY_RELATIONSHIPS: CourseDefinition = {
   ],
 };
 
-export const COURSES: CourseDefinition[] = [SPIRITUAL_JOURNEY, QUIT_SMOKING, MAKING_PEACE_WITH_ANXIETY, ANGER_MANAGEMENT, HEALTHY_RELATIONSHIPS];
+export const DIGITAL_DETOX: CourseDefinition = {
+  id: "digital_detox",
+  nameKey: "digitalDetox",
+  descriptionKey: "digitalDetoxDesc",
+  detailDescriptionKey: "digitalDetoxLongDesc",
+  highlightsKey: "digitalDetoxHighlights",
+  stepsKey: "digitalDetoxSteps",
+  rolePrompt: "a calm, tech-literate digital wellness coach who blends behavioral psychology, attention science, and practical digital minimalism. You treat technology as a powerful tool rather than an enemy, helping the student build a conscious and intentional relationship with screens. You validate the student's experience without shaming, explain dopamine and reward circuits in accessible language, and always offer concrete, actionable strategies. You use plain language, explain any technical term the first time it appears, and balance science with empathy",
+  icon: "📵",
+  steps: [
+    // Block 1: Understanding Digital Addiction (1-4)
+    { topicTitle: "What Is Digital Addiction? — Understanding the Line Between Habit and Compulsion" },
+    { topicTitle: "The Dopamine Loop — How Your Brain Gets Hooked on Notifications and Novelty" },
+    { topicTitle: "The Slot Machine in Your Pocket — Why Screens Are Designed to Be Hard to Put Down" },
+    { topicTitle: "Your Digital Profile — Mapping Your Personal Screen Habits and Triggers" },
+
+    // Block 2: The Attention Economy (5-8)
+    { topicTitle: "The Attention Economy — How Your Focus Became the Most Valuable Product" },
+    { topicTitle: "Infinite Scroll and Autoplay — The Design Tricks That Steal Your Time" },
+    { topicTitle: "Notification Psychology — Why That Red Badge Feels Impossible to Ignore" },
+    { topicTitle: "FOMO and the Urgency Illusion — Why You Feel You Must Check Right Now" },
+
+    // Block 3: Social Media and Mental Health (9-12)
+    { topicTitle: "The Comparison Trap — How Curated Feeds Distort Your Self-Image" },
+    { topicTitle: "Curated Reality — Understanding That What You See Is Not What Is" },
+    { topicTitle: "Likes, Comments, and Self-Worth — When Validation Comes from a Screen" },
+    { topicTitle: "Online vs. Real Connection — Why Five Hundred Friends Can Still Feel Lonely" },
+
+    // Block 4: Cognitive and Emotional Effects (13-16)
+    { topicTitle: "The Shrinking Attention Span — How Constant Switching Fragments Your Focus" },
+    { topicTitle: "Deep Work and Flow States — Reclaiming the Ability to Think Without Interruption" },
+    { topicTitle: "Screens and Sleep — How Blue Light and Late-Night Scrolling Disrupt Your Rest" },
+    { topicTitle: "Always-On Anxiety — The Emotional Cost of Constant Connectivity" },
+
+    // Block 5: Practical Detox Strategies (17-20)
+    { topicTitle: "The Notification Audit — Taking Back Control of What Interrupts You" },
+    { topicTitle: "Phone-Free Zones — Creating Spaces Where Screens Do Not Belong" },
+    { topicTitle: "The Digital Sunset — Building an Evening Routine That Protects Your Sleep" },
+    { topicTitle: "The App Diet — Decluttering Your Devices and Simplifying Your Digital Life" },
+
+    // Block 6: Building a Mindful Digital Life (21-23)
+    { topicTitle: "Intentional Use — Shifting from Reactive Scrolling to Purposeful Engagement" },
+    { topicTitle: "Digital Minimalism — Keeping Only the Technology That Truly Serves You" },
+    { topicTitle: "Real-World Replacements — Filling the Void with Activities That Nourish" },
+
+    // Block 7: Integration (24)
+    { topicTitle: "Your Digital Wellness Plan — Building a Sustainable Practice for a Balanced Life" },
+  ],
+};
+
+export const COURSES: CourseDefinition[] = [SPIRITUAL_JOURNEY, QUIT_SMOKING, MAKING_PEACE_WITH_ANXIETY, ANGER_MANAGEMENT, HEALTHY_RELATIONSHIPS, DIGITAL_DETOX];
 
 export function getCourseById(courseId: string): CourseDefinition | undefined {
   return COURSES.find((c) => c.id === courseId);

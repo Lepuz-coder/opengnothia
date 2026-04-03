@@ -589,6 +589,11 @@ export interface Translations {
     healthyRelationshipsLongDesc: string;
     healthyRelationshipsHighlights: string[];
     healthyRelationshipsSteps: string[];
+    digitalDetox: string;
+    digitalDetoxDesc: string;
+    digitalDetoxLongDesc: string;
+    digitalDetoxHighlights: string[];
+    digitalDetoxSteps: string[];
     resetProgress: string;
     resetProgressConfirm: string;
     resetProgressWarning: string;

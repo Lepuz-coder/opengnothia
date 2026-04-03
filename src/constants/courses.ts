@@ -196,7 +196,57 @@ export const MAKING_PEACE_WITH_ANXIETY: CourseDefinition = {
   ],
 };
 
-export const COURSES: CourseDefinition[] = [SPIRITUAL_JOURNEY, QUIT_SMOKING, MAKING_PEACE_WITH_ANXIETY];
+export const ANGER_MANAGEMENT: CourseDefinition = {
+  id: "anger_management",
+  nameKey: "angerManagement",
+  descriptionKey: "angerManagementDesc",
+  detailDescriptionKey: "angerManagementLongDesc",
+  highlightsKey: "angerManagementHighlights",
+  stepsKey: "angerManagementSteps",
+  rolePrompt: "a patient, grounded anger management coach who blends cognitive-behavioral techniques with somatic awareness and assertive communication training. You treat anger as a natural, informative emotion rather than something to suppress. You validate the student's experience, distinguish between the emotion itself and harmful behaviors, and always offer concrete, rehearsable skills. You use plain language, explain any technical term the first time it appears, and encourage self-compassion alongside accountability",
+  icon: "🔥",
+  steps: [
+    // Block 1: Understanding Anger (1-4)
+    { topicTitle: "What Is Anger? — Understanding a Natural Emotion That Gets a Bad Name" },
+    { topicTitle: "The Evolutionary Purpose of Anger — Why Your Brain Learned to Fight" },
+    { topicTitle: "Healthy vs. Destructive Anger — When a Protective Response Becomes Harmful" },
+    { topicTitle: "Your Anger Profile — Mapping Your Personal Triggers and Patterns" },
+
+    // Block 2: The Body Under Anger (5-8)
+    { topicTitle: "The Fight Response — What Happens Inside Your Body When Anger Ignites" },
+    { topicTitle: "Physical Warning Signs — Racing Heart, Clenched Jaw, Heat, and More" },
+    { topicTitle: "The Anger-Body Loop — How Physical Arousal Fuels Aggressive Impulses" },
+    { topicTitle: "Body Awareness Practice — Learning to Catch Anger Before It Catches You" },
+
+    // Block 3: Angry Thought Patterns (9-12)
+    { topicTitle: "The Thought-Anger Connection — How a Single Interpretation Can Ignite Rage" },
+    { topicTitle: "Hot Thoughts — When Your Mind Demands That Things Should Be Different" },
+    { topicTitle: "Common Cognitive Distortions — Blame, Personalizing, and All-or-Nothing Thinking" },
+    { topicTitle: "The Anger Spiral — Understanding How Rumination Keeps the Fire Burning" },
+
+    // Block 4: Cognitive Restructuring (13-16)
+    { topicTitle: "Catching Your Hot Thoughts — The First Step to Responding Instead of Reacting" },
+    { topicTitle: "Challenging Angry Interpretations — Asking the Questions That Cool You Down" },
+    { topicTitle: "Perspective-Taking — Seeing the Situation Through Other Eyes" },
+    { topicTitle: "Reframing — Turning Offenses into Opportunities for Growth" },
+
+    // Block 5: Cooling Down and Regulation (17-20)
+    { topicTitle: "The Strategic Timeout — Creating Space Between Trigger and Response" },
+    { topicTitle: "Breathing for Anger — Slow Exhales and the Physiology of Calming Down" },
+    { topicTitle: "Progressive Muscle Relaxation — Releasing the Tension Anger Leaves Behind" },
+    { topicTitle: "Grounding and Redirection — Anchoring Yourself When Emotions Run High" },
+
+    // Block 6: Healthy Expression and Communication (21-23)
+    { topicTitle: "I-Statements — Expressing What You Feel Without Attacking" },
+    { topicTitle: "Assertiveness vs. Aggression — Standing Your Ground Without Crossing the Line" },
+    { topicTitle: "Nonviolent Communication — Needs, Feelings, and Requests That Actually Work" },
+
+    // Block 7: Integration (24)
+    { topicTitle: "Your Anger Toolkit — Building a Sustainable Practice for Everyday Life" },
+  ],
+};
+
+export const COURSES: CourseDefinition[] = [SPIRITUAL_JOURNEY, QUIT_SMOKING, MAKING_PEACE_WITH_ANXIETY, ANGER_MANAGEMENT];
 
 export function getCourseById(courseId: string): CourseDefinition | undefined {
   return COURSES.find((c) => c.id === courseId);

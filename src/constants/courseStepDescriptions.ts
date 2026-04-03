@@ -371,10 +371,126 @@ const MAKING_PEACE_WITH_ANXIETY_TEMPLATES: Record<Language, StepDescriptionTempl
   },
 };
 
+const ANGER_MANAGEMENT_TEMPLATES: Record<Language, StepDescriptionTemplates> = {
+  tr: {
+    withSubtitle: [
+      "Bu ders, {headline} konusunu {subtitle} üzerinden ele alarak öfkenin nasıl işlediğini ve onunla nasıl daha sağlıklı başa çıkabileceğini anlamana yardımcı olur.",
+      "Buradaki odak {headline}. {subtitle} sayesinde öfke örüntülerini daha net görür ve pratik bir yanıt yolu öğrenirsin.",
+      "Bu bölüm, {headline} konusunu {subtitle} çerçevesinde derinleştirir; kontrolsüz öfkeyi fark edebileceğin ve yönetebileceğin bir anlayışa dönüştürür.",
+      "{headline} burada {subtitle} aracılığıyla ele alınır. Ders, içinde neler olduğunu fark etmeni ve tepki yerine bilinçli bir yanıt geliştirmeni sağlar.",
+    ],
+    withoutSubtitle: [
+      "Bu ders, {headline} konusunu ele alarak öfkenin nasıl işlediğini ve onunla nasıl daha sağlıklı başa çıkabileceğini anlamana yardımcı olur.",
+      "Buradaki odak {headline}. Amaç, kontrolsüz öfkeyi net bir anlayışa ve pratik becerilere dönüştürmektir.",
+      "Bu bölüm, {headline} konusunu derinleştirerek örüntüleri tanıma ve daha sakin yanıt verme araçları sunar.",
+      "{headline} burada ele alınır; böylece içinde gerçekte neler olduğunu görebilir ve tepki yerine bilinçli bir yanıt geliştirebilirsin.",
+    ],
+  },
+  en: {
+    withSubtitle: [
+      "This lesson explores {headline} through {subtitle}, helping you understand how anger works and how to respond to it more skillfully.",
+      "Here the focus is {headline}. By examining {subtitle}, you build a clearer picture of your anger patterns and learn a practical way to respond.",
+      "This section deepens your understanding of {headline} through {subtitle}, turning reactive impulses into awareness you can act on.",
+      "{headline} is addressed here through {subtitle}. The lesson guides you toward recognizing what happens inside you and choosing a calmer response.",
+    ],
+    withoutSubtitle: [
+      "This lesson explores {headline}, helping you understand how anger works and how to respond to it more skillfully.",
+      "Here the focus is {headline}. The goal is to turn reactive impulses into clear understanding and practical skills.",
+      "This section deepens your understanding of {headline}, giving you tools to recognize patterns and respond with more control.",
+      "{headline} is addressed here so you can see what is actually happening inside you and choose a calmer, more intentional response.",
+    ],
+  },
+  zh: {
+    withSubtitle: [
+      "本节课通过{subtitle}来探索{headline}，帮助你理解愤怒是如何运作的以及如何更有技巧地回应它。",
+      "这里的重点是{headline}。通过审视{subtitle}，你会更清晰地看到自己的愤怒模式并学到实用的应对方法。",
+      "这一部分通过{subtitle}加深你对{headline}的理解，将冲动反应转化为可以付诸行动的觉察。",
+      "这里通过{subtitle}来讨论{headline}。课程引导你识别内在发生了什么，并选择更平静的回应方式。",
+    ],
+    withoutSubtitle: [
+      "本节课探索{headline}，帮助你理解愤怒是如何运作的以及如何更有技巧地回应它。",
+      "这里的重点是{headline}。目标是将冲动反应转化为清晰的理解和实用的技能。",
+      "这一部分加深你对{headline}的理解，给你识别模式和更有控制力地回应的工具。",
+      "这里讨论{headline}，帮你看清内在实际发生了什么，并选择更平静、更有意识的回应方式。",
+    ],
+  },
+  es: {
+    withSubtitle: [
+      "Esta lección explora {headline} a través de {subtitle}, ayudándote a comprender cómo funciona la ira y cómo responder a ella con más habilidad.",
+      "Aquí el foco está en {headline}. Al examinar {subtitle}, construyes una imagen más clara de tus patrones de ira y aprendes una forma práctica de responder.",
+      "Esta sección profundiza en {headline} a través de {subtitle}, convirtiendo impulsos reactivos en conciencia sobre la que puedes actuar.",
+      "Aquí se aborda {headline} a través de {subtitle}. La lección te guía para reconocer lo que ocurre dentro de ti y elegir una respuesta más tranquila.",
+    ],
+    withoutSubtitle: [
+      "Esta lección explora {headline}, ayudándote a comprender cómo funciona la ira y cómo responder a ella con más habilidad.",
+      "Aquí el foco está en {headline}. El objetivo es convertir impulsos reactivos en comprensión clara y habilidades prácticas.",
+      "Esta sección profundiza en {headline}, dándote herramientas para reconocer patrones y responder con más control.",
+      "Aquí se aborda {headline} para que puedas ver lo que realmente está pasando dentro de ti y elegir una respuesta más tranquila e intencional.",
+    ],
+  },
+  pt: {
+    withSubtitle: [
+      "Esta aula explora {headline} através de {subtitle}, ajudando você a entender como a raiva funciona e como responder a ela com mais habilidade.",
+      "Aqui o foco é {headline}. Ao examinar {subtitle}, você constrói uma imagem mais clara dos seus padrões de raiva e aprende uma forma prática de responder.",
+      "Esta seção aprofunda sua compreensão de {headline} através de {subtitle}, transformando impulsos reativos em consciência sobre a qual você pode agir.",
+      "Aqui, {headline} é abordado através de {subtitle}. A aula guia você a reconhecer o que acontece dentro de si e a escolher uma resposta mais calma.",
+    ],
+    withoutSubtitle: [
+      "Esta aula explora {headline}, ajudando você a entender como a raiva funciona e como responder a ela com mais habilidade.",
+      "Aqui o foco é {headline}. O objetivo é transformar impulsos reativos em compreensão clara e habilidades práticas.",
+      "Esta seção aprofunda sua compreensão de {headline}, oferecendo ferramentas para reconhecer padrões e responder com mais controle.",
+      "Aqui, {headline} é abordado para que você possa ver o que realmente está acontecendo dentro de si e escolher uma resposta mais calma e intencional.",
+    ],
+  },
+  de: {
+    withSubtitle: [
+      "Diese Lektion erkundet {headline} durch {subtitle} und hilft dir zu verstehen, wie Wut funktioniert und wie du geschickter darauf reagieren kannst.",
+      "Hier liegt der Fokus auf {headline}. Indem du {subtitle} untersuchst, gewinnst du ein klareres Bild deiner Wutmuster und lernst einen praktischen Umgang damit.",
+      "Dieser Abschnitt vertieft dein Verständnis von {headline} durch {subtitle} und verwandelt reaktive Impulse in Bewusstheit, nach der du handeln kannst.",
+      "{headline} wird hier durch {subtitle} behandelt. Die Lektion leitet dich an, zu erkennen, was in dir passiert, und eine ruhigere Reaktion zu wählen.",
+    ],
+    withoutSubtitle: [
+      "Diese Lektion erkundet {headline} und hilft dir zu verstehen, wie Wut funktioniert und wie du geschickter darauf reagieren kannst.",
+      "Hier liegt der Fokus auf {headline}. Das Ziel ist, reaktive Impulse in klares Verständnis und praktische Fähigkeiten zu verwandeln.",
+      "Dieser Abschnitt vertieft dein Verständnis von {headline} und gibt dir Werkzeuge, um Muster zu erkennen und kontrollierter zu reagieren.",
+      "{headline} wird hier behandelt, damit du sehen kannst, was tatsächlich in dir passiert, und eine ruhigere, bewusstere Reaktion wählen kannst.",
+    ],
+  },
+  fr: {
+    withSubtitle: [
+      "Cette leçon explore {headline} à travers {subtitle}, t'aidant à comprendre comment la colère fonctionne et comment y répondre plus habilement.",
+      "Ici, l'accent est mis sur {headline}. En examinant {subtitle}, tu construis une image plus claire de tes schémas de colère et apprends une façon pratique d'y répondre.",
+      "Cette section approfondit ta compréhension de {headline} à travers {subtitle}, transformant les impulsions réactives en conscience sur laquelle tu peux agir.",
+      "Ici, {headline} est abordé à travers {subtitle}. La leçon te guide pour reconnaître ce qui se passe en toi et choisir une réponse plus calme.",
+    ],
+    withoutSubtitle: [
+      "Cette leçon explore {headline}, t'aidant à comprendre comment la colère fonctionne et comment y répondre plus habilement.",
+      "Ici, l'accent est mis sur {headline}. L'objectif est de transformer les impulsions réactives en compréhension claire et en compétences pratiques.",
+      "Cette section approfondit ta compréhension de {headline}, te donnant des outils pour reconnaître les schémas et répondre avec plus de contrôle.",
+      "Ici, {headline} est abordé pour que tu puisses voir ce qui se passe réellement en toi et choisir une réponse plus calme et intentionnelle.",
+    ],
+  },
+  ja: {
+    withSubtitle: [
+      "このレッスンでは、{subtitle}を通して{headline}を探求し、怒りがどう働くのか、そしてより巧みに対応するにはどうすればよいかを理解する手助けをします。",
+      "ここでの焦点は{headline}です。{subtitle}を検証することで、自分の怒りパターンをより明確に把握し、実践的な対処法を学びます。",
+      "このセクションでは、{subtitle}を通じて{headline}の理解を深め、反射的な衝動を行動できる気づきに変えます。",
+      "ここでは{subtitle}を通じて{headline}を扱います。レッスンは、自分の内側で何が起きているかを認識し、より穏やかな反応を選ぶよう導きます。",
+    ],
+    withoutSubtitle: [
+      "このレッスンでは{headline}を探求し、怒りがどう働くのか、そしてより巧みに対応するにはどうすればよいかを理解する手助けをします。",
+      "ここでの焦点は{headline}です。目標は、反射的な衝動を明確な理解と実践的なスキルに変えることです。",
+      "このセクションでは{headline}の理解を深め、パターンを認識してより制御された対応をするためのツールを提供します。",
+      "ここでは{headline}を扱い、自分の内側で実際に何が起きているかを見て、より穏やかで意図的な反応を選べるようにします。",
+    ],
+  },
+};
+
 const COURSE_TEMPLATES: Record<string, Record<Language, StepDescriptionTemplates>> = {
   spiritual_journey: STEP_DESCRIPTION_TEMPLATES,
   quit_smoking: QUIT_SMOKING_TEMPLATES,
   making_peace_with_anxiety: MAKING_PEACE_WITH_ANXIETY_TEMPLATES,
+  anger_management: ANGER_MANAGEMENT_TEMPLATES,
 };
 
 export function getCourseStepDescription(

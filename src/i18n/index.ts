@@ -579,6 +579,11 @@ export interface Translations {
     makingPeaceWithAnxietyLongDesc: string;
     makingPeaceWithAnxietyHighlights: string[];
     makingPeaceWithAnxietySteps: string[];
+    angerManagement: string;
+    angerManagementDesc: string;
+    angerManagementLongDesc: string;
+    angerManagementHighlights: string[];
+    angerManagementSteps: string[];
     resetProgress: string;
     resetProgressConfirm: string;
     resetProgressWarning: string;

@@ -38,6 +38,7 @@ import { ChatInput } from "@/components/chat/ChatInput";
 import { Button } from "@/components/ui/Button";
 import { ErrorModal } from "@/components/ui/ErrorModal";
 import { Modal } from "@/components/ui/Modal";
+import { Tabs } from "@/components/ui/Tabs";
 import type { ChatMessage, CourseStepProgress, Language, TokenUsage } from "@/types";
 import { ArrowLeft, Lock, Check, Play, Loader2, ChevronRight, CheckCircle2, MoreVertical, Search, X, BookOpen, Sparkles, Target, RotateCcw } from "lucide-react";
 import { createBufferedTextStream } from "@/lib/createBufferedTextStream";
@@ -236,6 +237,7 @@ function CourseListView({
 }) {
   const [courseStats, setCourseStats] = useState<Record<string, CourseStats>>({});
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<"started" | "completed" | "explore">("started");
 
   useEffect(() => {
     let cancelled = false;
@@ -273,6 +275,18 @@ function CourseListView({
     highlights: getLocalizedCourseHighlights(t, course),
   }));
 
+  const startedCourses = localizedCourses.filter(({ course }) => {
+    const stats = courseStats[course.id];
+    if (!stats) return false;
+    return stats.overallProgress > 0 && stats.completedCount < course.steps.length;
+  });
+
+  const completedCourses = localizedCourses.filter(({ course }) => {
+    const stats = courseStats[course.id];
+    if (!stats) return false;
+    return stats.completedCount === course.steps.length;
+  });
+
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const filteredCourses = normalizedQuery
     ? localizedCourses.filter(({ name, description, detailDescription, highlights }) =>
@@ -282,11 +296,92 @@ function CourseListView({
       )
     : localizedCourses;
 
+  const renderCourseCard = ({ course, name, description, detailDescription, highlights }: typeof localizedCourses[number]) => {
+    const stats = courseStats[course.id];
+    const completed = stats?.completedCount ?? 0;
+    const total = course.steps.length;
+    const pct = stats?.overallProgress ?? 0;
+
+    return (
+      <button
+        key={course.id}
+        onClick={() => onSelectCourse(course)}
+        className="text-left p-6 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] hover:border-primary-500/50 hover:bg-[var(--bg-secondary)]/80 transition-all duration-200 group"
+      >
+        <div className="flex flex-col gap-5">
+          <div className="flex items-start gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-500/10 text-3xl shadow-sm shadow-primary-500/10">
+              {course.icon}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-4 mb-3">
+                <div className="min-w-0">
+                  <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-1">
+                    {name}
+                  </h3>
+                  <p className="text-sm text-[var(--text-secondary)] mb-3">
+                    {description}
+                  </p>
+                </div>
+                <ChevronRight className="w-5 h-5 mt-1 flex-shrink-0 text-[var(--text-muted)] group-hover:text-primary-500 group-hover:translate-x-0.5 transition-all" />
+              </div>
+              <p className="text-sm leading-6 text-[var(--text-muted)]">
+                {detailDescription}
+              </p>
+            </div>
+          </div>
+
+          {highlights.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)] mb-3">
+                {t.courses.whatYouWillLearn}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {highlights.map((highlight) => (
+                  <span
+                    key={`${course.id}-${highlight}`}
+                    className="px-3 py-1.5 rounded-full border border-primary-500/20 bg-primary-500/10 text-xs font-medium text-primary-500"
+                  >
+                    {highlight}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-2 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
+              <div
+                className="h-full rounded-full bg-primary-500 transition-all duration-500"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <span className="text-xs text-[var(--text-muted)] whitespace-nowrap">
+              {completed} {t.courses.of} {total} ({pct}%)
+            </span>
+          </div>
+        </div>
+      </button>
+    );
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6 space-y-4">
         <h1 className="text-2xl font-bold">{t.courses.title}</h1>
-        <div className="relative">
+        <Tabs
+          tabs={[
+            { id: "started", label: t.courses.tabStarted },
+            { id: "completed", label: t.courses.tabCompleted },
+            { id: "explore", label: t.courses.tabExplore },
+          ]}
+          activeTab={activeTab}
+          onChange={(id) => setActiveTab(id as "started" | "completed" | "explore")}
+        />
+      </div>
+
+      {activeTab === "explore" && (
+        <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
           <input
             type="text"
@@ -306,85 +401,65 @@ function CourseListView({
             </button>
           )}
         </div>
-      </div>
-      {filteredCourses.length > 0 ? (
-        <div className="grid gap-4">
-          {filteredCourses.map(({ course, name, description, detailDescription, highlights }) => {
-            const stats = courseStats[course.id];
-            const completed = stats?.completedCount ?? 0;
-            const total = course.steps.length;
-            const pct = stats?.overallProgress ?? 0;
+      )}
 
-            return (
-              <button
-                key={course.id}
-                onClick={() => onSelectCourse(course)}
-                className="text-left p-6 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] hover:border-primary-500/50 hover:bg-[var(--bg-secondary)]/80 transition-all duration-200 group"
-              >
-                <div className="flex flex-col gap-5">
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-500/10 text-3xl shadow-sm shadow-primary-500/10">
-                      {course.icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-4 mb-3">
-                        <div className="min-w-0">
-                          <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-1">
-                            {name}
-                          </h3>
-                          <p className="text-sm text-[var(--text-secondary)] mb-3">
-                            {description}
-                          </p>
-                        </div>
-                        <ChevronRight className="w-5 h-5 mt-1 flex-shrink-0 text-[var(--text-muted)] group-hover:text-primary-500 group-hover:translate-x-0.5 transition-all" />
-                      </div>
-                      <p className="text-sm leading-6 text-[var(--text-muted)]">
-                        {detailDescription}
-                      </p>
-                    </div>
-                  </div>
+      {activeTab === "started" && (
+        startedCourses.length > 0 ? (
+          <div className="grid gap-4">
+            {startedCourses.map(renderCourseCard)}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-[var(--border-color)] bg-[var(--bg-secondary)] px-6 py-16 text-center">
+            <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center bg-primary-500/10">
+              <BookOpen className="w-8 h-8 text-primary-500" />
+            </div>
+            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
+              {t.courses.noStartedCourses}
+            </h3>
+            <p className="text-sm text-[var(--text-secondary)] mb-6 max-w-sm mx-auto">
+              {t.courses.noStartedCoursesDescription}
+            </p>
+            <Button onClick={() => setActiveTab("explore")}>
+              <Sparkles className="w-4 h-4" />
+              {t.courses.startExploring}
+            </Button>
+          </div>
+        )
+      )}
 
-                  {highlights.length > 0 && (
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)] mb-3">
-                        {t.courses.whatYouWillLearn}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {highlights.map((highlight) => (
-                          <span
-                            key={`${course.id}-${highlight}`}
-                            className="px-3 py-1.5 rounded-full border border-primary-500/20 bg-primary-500/10 text-xs font-medium text-primary-500"
-                          >
-                            {highlight}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+      {activeTab === "completed" && (
+        completedCourses.length > 0 ? (
+          <div className="grid gap-4">
+            {completedCourses.map(renderCourseCard)}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-[var(--border-color)] bg-[var(--bg-secondary)] px-6 py-16 text-center">
+            <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center bg-primary-500/10">
+              <Target className="w-8 h-8 text-primary-500" />
+            </div>
+            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
+              {t.courses.noCompletedCourses}
+            </h3>
+            <p className="text-sm text-[var(--text-secondary)] max-w-sm mx-auto">
+              {t.courses.noCompletedCoursesDescription}
+            </p>
+          </div>
+        )
+      )}
 
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 h-2 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-primary-500 transition-all duration-500"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                    <span className="text-xs text-[var(--text-muted)] whitespace-nowrap">
-                      {completed} {t.courses.of} {total} ({pct}%)
-                    </span>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="rounded-2xl border border-dashed border-[var(--border-color)] bg-[var(--bg-secondary)] px-6 py-12 text-center">
-          <Search className="w-8 h-8 mx-auto text-[var(--text-muted)] mb-3" />
-          <p className="text-sm text-[var(--text-muted)]">
-            "{searchQuery}" {t.courses.noSearchResults}
-          </p>
-        </div>
+      {activeTab === "explore" && (
+        filteredCourses.length > 0 ? (
+          <div className="grid gap-4">
+            {filteredCourses.map(renderCourseCard)}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-[var(--border-color)] bg-[var(--bg-secondary)] px-6 py-12 text-center">
+            <Search className="w-8 h-8 mx-auto text-[var(--text-muted)] mb-3" />
+            <p className="text-sm text-[var(--text-muted)]">
+              "{searchQuery}" {t.courses.noSearchResults}
+            </p>
+          </div>
+        )
       )}
     </div>
   );

@@ -584,6 +584,11 @@ export interface Translations {
     angerManagementLongDesc: string;
     angerManagementHighlights: string[];
     angerManagementSteps: string[];
+    healthyRelationships: string;
+    healthyRelationshipsDesc: string;
+    healthyRelationshipsLongDesc: string;
+    healthyRelationshipsHighlights: string[];
+    healthyRelationshipsSteps: string[];
     resetProgress: string;
     resetProgressConfirm: string;
     resetProgressWarning: string;

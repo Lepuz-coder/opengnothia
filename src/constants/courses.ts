@@ -246,7 +246,57 @@ export const ANGER_MANAGEMENT: CourseDefinition = {
   ],
 };
 
-export const COURSES: CourseDefinition[] = [SPIRITUAL_JOURNEY, QUIT_SMOKING, MAKING_PEACE_WITH_ANXIETY, ANGER_MANAGEMENT];
+export const HEALTHY_RELATIONSHIPS: CourseDefinition = {
+  id: "healthy_relationships",
+  nameKey: "healthyRelationships",
+  descriptionKey: "healthyRelationshipsDesc",
+  detailDescriptionKey: "healthyRelationshipsLongDesc",
+  highlightsKey: "healthyRelationshipsHighlights",
+  stepsKey: "healthyRelationshipsSteps",
+  rolePrompt: "a warm, insightful relationship coach who draws on attachment theory, Gottman research, and emotionally focused therapy. You treat all close relationships — romantic, family, and friendship — with equal importance. You normalize the student's experience, avoid pathologizing language, balance science with empathy, and always offer concrete, rehearsable skills. You validate emotions before offering tools, use plain language, and explain any technical term the first time it appears",
+  icon: "💞",
+  steps: [
+    // Block 1: Foundations — Understanding Relationships and Yourself (1-4)
+    { topicTitle: "What Is a Healthy Relationship? — Separating Myths from What Actually Works" },
+    { topicTitle: "Attachment Styles — How Your Early Bonds Shape the Way You Love and Connect" },
+    { topicTitle: "Family-of-Origin Patterns — Recognizing What You Learned Before You Chose It" },
+    { topicTitle: "Your Relationship Profile — Mapping Your Strengths, Triggers, and Blind Spots" },
+
+    // Block 2: Communication — The Core Skill (5-8)
+    { topicTitle: "Active Listening — Hearing What Is Really Being Said Behind the Words" },
+    { topicTitle: "Emotional Validation — Making Others Feel Seen Without Fixing or Judging" },
+    { topicTitle: "Expressing Needs Clearly — Turning Complaints into Requests That Connect" },
+    { topicTitle: "Repair After Miscommunication — How to Come Back When a Conversation Goes Wrong" },
+
+    // Block 3: Boundaries — Protecting the Self Within Connection (9-12)
+    { topicTitle: "What Are Boundaries? — Understanding the Line Between Closeness and Self-Loss" },
+    { topicTitle: "Setting Boundaries — Saying No with Kindness and Conviction" },
+    { topicTitle: "Maintaining Boundaries Under Pressure — When Others Push Back or Guilt-Trip" },
+    { topicTitle: "Digital Boundaries — Protecting Your Energy in the Age of Constant Connection" },
+
+    // Block 4: Conflict Resolution — Navigating Disagreements (13-16)
+    { topicTitle: "The Four Horsemen — Recognizing Criticism, Contempt, Defensiveness, and Stonewalling" },
+    { topicTitle: "Fighting Fair — Rules of Engagement That Protect the Relationship" },
+    { topicTitle: "Repair Attempts — Small Gestures That De-Escalate Big Conflicts" },
+    { topicTitle: "The Art of Compromise — Finding Solutions That Honor Both Sides" },
+
+    // Block 5: Emotional Intimacy, Trust, and Vulnerability (17-20)
+    { topicTitle: "Emotional Intimacy — Building Closeness Through Vulnerability and Presence" },
+    { topicTitle: "Love Languages and Emotional Needs — Understanding How People Give and Receive Care" },
+    { topicTitle: "Trust and Betrayal — How Trust Is Built, Broken, and Repaired" },
+    { topicTitle: "Codependency vs. Interdependence — Loving Without Losing Yourself" },
+
+    // Block 6: Self-Awareness and Relationship Patterns (21-23)
+    { topicTitle: "Unhealthy Relationship Dynamics — Recognizing Pursuit, Withdrawal, and People-Pleasing" },
+    { topicTitle: "Core Wounds in Relationships — How Old Pain Repeats in New Connections" },
+    { topicTitle: "Accountability Without Self-Blame — Taking Responsibility and Staying Kind to Yourself" },
+
+    // Block 7: Integration (24)
+    { topicTitle: "Your Relationship Toolkit — Building a Sustainable Practice for Healthier Connections" },
+  ],
+};
+
+export const COURSES: CourseDefinition[] = [SPIRITUAL_JOURNEY, QUIT_SMOKING, MAKING_PEACE_WITH_ANXIETY, ANGER_MANAGEMENT, HEALTHY_RELATIONSHIPS];
 
 export function getCourseById(courseId: string): CourseDefinition | undefined {
   return COURSES.find((c) => c.id === courseId);

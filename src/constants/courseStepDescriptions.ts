@@ -486,11 +486,127 @@ const ANGER_MANAGEMENT_TEMPLATES: Record<Language, StepDescriptionTemplates> = {
   },
 };
 
+const HEALTHY_RELATIONSHIPS_TEMPLATES: Record<Language, StepDescriptionTemplates> = {
+  tr: {
+    withSubtitle: [
+      "Bu ders, {headline} konusunu {subtitle} üzerinden ele alarak ilişkilerinin nasıl işlediğini ve onları nasıl daha sağlıklı hale getirebileceğini anlamana yardımcı olur.",
+      "Buradaki odak {headline}. {subtitle} sayesinde ilişki örüntülerini daha net görür ve pratik bir beceri öğrenirsin.",
+      "Bu bölüm, {headline} konusunu {subtitle} çerçevesinde derinleştirir; alışkanlık haline gelmiş kalıpları fark edebileceğin bir anlayışa dönüştürür.",
+      "{headline} burada {subtitle} aracılığıyla ele alınır. Ders, ilişkilerinde neler olduğunu fark etmeni ve daha bilinçli bir bağ kurmanı sağlar.",
+    ],
+    withoutSubtitle: [
+      "Bu ders, {headline} konusunu ele alarak ilişkilerinin nasıl işlediğini ve onları nasıl daha sağlıklı hale getirebileceğini anlamana yardımcı olur.",
+      "Buradaki odak {headline}. Amaç, otomatik tepkileri bilinçli seçimlere ve pratik becerilere dönüştürmektir.",
+      "Bu bölüm, {headline} konusunu derinleştirerek ilişki örüntülerini tanıma ve daha sağlıklı bağlar kurma araçları sunar.",
+      "{headline} burada ele alınır; böylece ilişkilerinde gerçekte neler olduğunu görebilir ve daha bilinçli, daha bağlayıcı bir yaklaşım geliştirebilirsin.",
+    ],
+  },
+  en: {
+    withSubtitle: [
+      "This lesson explores {headline} through {subtitle}, helping you understand how your relationships work and how to make them healthier.",
+      "Here the focus is {headline}. By examining {subtitle}, you build a clearer picture of your relational patterns and learn a practical skill to use right away.",
+      "This section deepens your understanding of {headline} through {subtitle}, turning habitual reactions into conscious choices.",
+      "{headline} is addressed here through {subtitle}. The lesson guides you toward recognizing what happens in your relationships and building stronger connections.",
+    ],
+    withoutSubtitle: [
+      "This lesson explores {headline}, helping you understand how your relationships work and how to make them healthier.",
+      "Here the focus is {headline}. The goal is to turn automatic reactions into conscious choices and practical skills.",
+      "This section deepens your understanding of {headline}, giving you tools to recognize patterns and build stronger connections.",
+      "{headline} is addressed here so you can see what is actually happening in your relationships and respond with more awareness and care.",
+    ],
+  },
+  zh: {
+    withSubtitle: [
+      "本节课通过{subtitle}来探索{headline}，帮助你理解你的关系是如何运作的以及如何使其更健康。",
+      "这里的重点是{headline}。通过审视{subtitle}，你会更清晰地看到自己的关系模式并学到可以立即使用的实用技能。",
+      "这一部分通过{subtitle}加深你对{headline}的理解，将习惯性反应转化为有意识的选择。",
+      "这里通过{subtitle}来讨论{headline}。课程引导你识别关系中发生了什么并建立更强的连接。",
+    ],
+    withoutSubtitle: [
+      "本节课探索{headline}，帮助你理解你的关系是如何运作的以及如何使其更健康。",
+      "这里的重点是{headline}。目标是将自动反应转化为有意识的选择和实用技能。",
+      "这一部分加深你对{headline}的理解，给你识别模式和建立更强连接的工具。",
+      "这里讨论{headline}，帮你看清关系中实际发生了什么，并以更多觉察和关怀来回应。",
+    ],
+  },
+  es: {
+    withSubtitle: [
+      "Esta lección explora {headline} a través de {subtitle}, ayudándote a comprender cómo funcionan tus relaciones y cómo hacerlas más saludables.",
+      "Aquí el foco está en {headline}. Al examinar {subtitle}, construyes una imagen más clara de tus patrones relacionales y aprendes una habilidad práctica.",
+      "Esta sección profundiza en {headline} a través de {subtitle}, convirtiendo reacciones habituales en elecciones conscientes.",
+      "Aquí se aborda {headline} a través de {subtitle}. La lección te guía para reconocer lo que ocurre en tus relaciones y construir conexiones más fuertes.",
+    ],
+    withoutSubtitle: [
+      "Esta lección explora {headline}, ayudándote a comprender cómo funcionan tus relaciones y cómo hacerlas más saludables.",
+      "Aquí el foco está en {headline}. El objetivo es convertir reacciones automáticas en elecciones conscientes y habilidades prácticas.",
+      "Esta sección profundiza en {headline}, dándote herramientas para reconocer patrones y construir conexiones más fuertes.",
+      "Aquí se aborda {headline} para que puedas ver lo que realmente está pasando en tus relaciones y responder con más consciencia y cuidado.",
+    ],
+  },
+  pt: {
+    withSubtitle: [
+      "Esta aula explora {headline} através de {subtitle}, ajudando você a entender como seus relacionamentos funcionam e como torná-los mais saudáveis.",
+      "Aqui o foco é {headline}. Ao examinar {subtitle}, você constrói uma imagem mais clara dos seus padrões relacionais e aprende uma habilidade prática.",
+      "Esta seção aprofunda sua compreensão de {headline} através de {subtitle}, transformando reações habituais em escolhas conscientes.",
+      "Aqui, {headline} é abordado através de {subtitle}. A aula guia você a reconhecer o que acontece nos seus relacionamentos e a construir conexões mais fortes.",
+    ],
+    withoutSubtitle: [
+      "Esta aula explora {headline}, ajudando você a entender como seus relacionamentos funcionam e como torná-los mais saudáveis.",
+      "Aqui o foco é {headline}. O objetivo é transformar reações automáticas em escolhas conscientes e habilidades práticas.",
+      "Esta seção aprofunda sua compreensão de {headline}, oferecendo ferramentas para reconhecer padrões e construir conexões mais fortes.",
+      "Aqui, {headline} é abordado para que você possa ver o que realmente está acontecendo nos seus relacionamentos e responder com mais consciência e cuidado.",
+    ],
+  },
+  de: {
+    withSubtitle: [
+      "Diese Lektion erkundet {headline} durch {subtitle} und hilft dir zu verstehen, wie deine Beziehungen funktionieren und wie du sie gesünder gestalten kannst.",
+      "Hier liegt der Fokus auf {headline}. Indem du {subtitle} untersuchst, gewinnst du ein klareres Bild deiner Beziehungsmuster und lernst eine praktische Fähigkeit.",
+      "Dieser Abschnitt vertieft dein Verständnis von {headline} durch {subtitle} und verwandelt gewohnheitsmäßige Reaktionen in bewusste Entscheidungen.",
+      "{headline} wird hier durch {subtitle} behandelt. Die Lektion leitet dich an, zu erkennen, was in deinen Beziehungen passiert, und stärkere Verbindungen aufzubauen.",
+    ],
+    withoutSubtitle: [
+      "Diese Lektion erkundet {headline} und hilft dir zu verstehen, wie deine Beziehungen funktionieren und wie du sie gesünder gestalten kannst.",
+      "Hier liegt der Fokus auf {headline}. Das Ziel ist, automatische Reaktionen in bewusste Entscheidungen und praktische Fähigkeiten zu verwandeln.",
+      "Dieser Abschnitt vertieft dein Verständnis von {headline} und gibt dir Werkzeuge, um Muster zu erkennen und stärkere Verbindungen aufzubauen.",
+      "{headline} wird hier behandelt, damit du sehen kannst, was tatsächlich in deinen Beziehungen passiert, und mit mehr Bewusstsein und Fürsorge reagieren kannst.",
+    ],
+  },
+  fr: {
+    withSubtitle: [
+      "Cette leçon explore {headline} à travers {subtitle}, t'aidant à comprendre comment tes relations fonctionnent et comment les rendre plus saines.",
+      "Ici, l'accent est mis sur {headline}. En examinant {subtitle}, tu construis une image plus claire de tes schémas relationnels et apprends une compétence pratique.",
+      "Cette section approfondit ta compréhension de {headline} à travers {subtitle}, transformant les réactions habituelles en choix conscients.",
+      "Ici, {headline} est abordé à travers {subtitle}. La leçon te guide pour reconnaître ce qui se passe dans tes relations et construire des connexions plus fortes.",
+    ],
+    withoutSubtitle: [
+      "Cette leçon explore {headline}, t'aidant à comprendre comment tes relations fonctionnent et comment les rendre plus saines.",
+      "Ici, l'accent est mis sur {headline}. L'objectif est de transformer les réactions automatiques en choix conscients et en compétences pratiques.",
+      "Cette section approfondit ta compréhension de {headline}, te donnant des outils pour reconnaître les schémas et construire des connexions plus fortes.",
+      "Ici, {headline} est abordé pour que tu puisses voir ce qui se passe réellement dans tes relations et répondre avec plus de conscience et de soin.",
+    ],
+  },
+  ja: {
+    withSubtitle: [
+      "このレッスンでは、{subtitle}を通して{headline}を探求し、あなたの関係がどう機能しているか、そしてより健全にするにはどうすればよいかを理解する手助けをします。",
+      "ここでの焦点は{headline}です。{subtitle}を検証することで、自分の関係パターンをより明確に把握し、すぐに使える実践的なスキルを学びます。",
+      "このセクションでは、{subtitle}を通じて{headline}の理解を深め、習慣的な反応を意識的な選択に変えます。",
+      "ここでは{subtitle}を通じて{headline}を扱います。レッスンは、関係の中で何が起きているかを認識し、より強いつながりを築くよう導きます。",
+    ],
+    withoutSubtitle: [
+      "このレッスンでは{headline}を探求し、あなたの関係がどう機能しているか、そしてより健全にするにはどうすればよいかを理解する手助けをします。",
+      "ここでの焦点は{headline}です。目標は、自動的な反応を意識的な選択と実践的なスキルに変えることです。",
+      "このセクションでは{headline}の理解を深め、パターンを認識してより強いつながりを築くためのツールを提供します。",
+      "ここでは{headline}を扱い、関係の中で実際に何が起きているかを見て、より多くの気づきと思いやりを持って対応できるようにします。",
+    ],
+  },
+};
+
 const COURSE_TEMPLATES: Record<string, Record<Language, StepDescriptionTemplates>> = {
   spiritual_journey: STEP_DESCRIPTION_TEMPLATES,
   quit_smoking: QUIT_SMOKING_TEMPLATES,
   making_peace_with_anxiety: MAKING_PEACE_WITH_ANXIETY_TEMPLATES,
   anger_management: ANGER_MANAGEMENT_TEMPLATES,
+  healthy_relationships: HEALTHY_RELATIONSHIPS_TEMPLATES,
 };
 
 export function getCourseStepDescription(

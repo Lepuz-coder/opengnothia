@@ -601,12 +601,128 @@ const HEALTHY_RELATIONSHIPS_TEMPLATES: Record<Language, StepDescriptionTemplates
   },
 };
 
+const DIGITAL_DETOX_TEMPLATES: Record<Language, StepDescriptionTemplates> = {
+  tr: {
+    withSubtitle: [
+      "Bu ders, {headline} konusunu {subtitle} üzerinden ele alarak dijital alışkanlıklarının nasıl çalıştığını ve onları nasıl bilinçli hale getirebileceğini anlamana yardımcı olur.",
+      "Buradaki odak {headline}. {subtitle} sayesinde ekran kullanım örüntülerini daha net görür ve pratik bir strateji öğrenirsin.",
+      "Bu bölüm, {headline} konusunu {subtitle} çerçevesinde derinleştirir; otomatik dijital davranışları fark edebileceğin bir anlayışa dönüştürür.",
+      "{headline} burada {subtitle} aracılığıyla ele alınır. Ders, teknolojiyle ilişkinde neler olduğunu fark etmeni ve daha bilinçli seçimler yapmana yardımcı olur.",
+    ],
+    withoutSubtitle: [
+      "Bu ders, {headline} konusunu ele alarak dijital alışkanlıklarının nasıl çalıştığını ve onları nasıl bilinçli hale getirebileceğini anlamana yardımcı olur.",
+      "Buradaki odak {headline}. Amaç, otomatik dijital davranışları fark edip bilinçli seçimlere dönüştürmektir.",
+      "Bu bölüm, {headline} konusunu derinleştirerek ekran alışkanlıklarını tanıma ve daha sağlıklı bir dijital yaşam kurma araçları sunar.",
+      "{headline} burada ele alınır; böylece teknolojiyle ilişkinde gerçekte neler olduğunu görebilir ve kendi koşullarında kullanmayı öğrenebilirsin.",
+    ],
+  },
+  en: {
+    withSubtitle: [
+      "This lesson explores {headline} through {subtitle}, helping you understand how your digital habits work and how to make them more intentional.",
+      "Here the focus is {headline}. By examining {subtitle}, you build a clearer picture of your screen patterns and learn a practical strategy to reclaim your attention.",
+      "This section deepens your understanding of {headline} through {subtitle}, turning automatic digital behaviors into conscious choices.",
+      "{headline} is addressed here through {subtitle}. The lesson guides you toward recognizing what technology does to your attention and building healthier habits.",
+    ],
+    withoutSubtitle: [
+      "This lesson explores {headline}, helping you understand how your digital habits work and how to make them more intentional.",
+      "Here the focus is {headline}. The goal is to turn automatic digital behaviors into conscious choices and practical skills.",
+      "This section deepens your understanding of {headline}, giving you tools to recognize screen patterns and build a healthier digital life.",
+      "{headline} is addressed here so you can see what technology is actually doing to your attention and learn to use it on your own terms.",
+    ],
+  },
+  zh: {
+    withSubtitle: [
+      "本节课通过{subtitle}来探索{headline}，帮助你理解你的数字习惯是如何运作的以及如何使其更有意识。",
+      "这里的重点是{headline}。通过审视{subtitle}，你会更清晰地看到自己的屏幕模式并学到夺回注意力的实用策略。",
+      "这一部分通过{subtitle}加深你对{headline}的理解，将自动化的数字行为转化为有意识的选择。",
+      "这里通过{subtitle}来讨论{headline}。课程引导你认识技术对注意力的影响并建立更健康的习惯。",
+    ],
+    withoutSubtitle: [
+      "本节课探索{headline}，帮助你理解你的数字习惯是如何运作的以及如何使其更有意识。",
+      "这里的重点是{headline}。目标是将自动化的数字行为转化为有意识的选择和实用技能。",
+      "这一部分加深你对{headline}的理解，给你识别屏幕模式和建立更健康数字生活的工具。",
+      "这里讨论{headline}，帮你看清技术实际上对你的注意力做了什么，并学会按自己的方式使用它。",
+    ],
+  },
+  es: {
+    withSubtitle: [
+      "Esta lección explora {headline} a través de {subtitle}, ayudándote a comprender cómo funcionan tus hábitos digitales y cómo hacerlos más intencionales.",
+      "Aquí el foco está en {headline}. Al examinar {subtitle}, construyes una imagen más clara de tus patrones de pantalla y aprendes una estrategia práctica para recuperar tu atención.",
+      "Esta sección profundiza en {headline} a través de {subtitle}, convirtiendo comportamientos digitales automáticos en elecciones conscientes.",
+      "Aquí se aborda {headline} a través de {subtitle}. La lección te guía para reconocer lo que la tecnología hace con tu atención y construir hábitos más saludables.",
+    ],
+    withoutSubtitle: [
+      "Esta lección explora {headline}, ayudándote a comprender cómo funcionan tus hábitos digitales y cómo hacerlos más intencionales.",
+      "Aquí el foco está en {headline}. El objetivo es convertir comportamientos digitales automáticos en elecciones conscientes y habilidades prácticas.",
+      "Esta sección profundiza en {headline}, dándote herramientas para reconocer patrones de pantalla y construir una vida digital más saludable.",
+      "Aquí se aborda {headline} para que puedas ver lo que la tecnología realmente hace con tu atención y aprender a usarla en tus propios términos.",
+    ],
+  },
+  pt: {
+    withSubtitle: [
+      "Esta aula explora {headline} através de {subtitle}, ajudando você a entender como seus hábitos digitais funcionam e como torná-los mais intencionais.",
+      "Aqui o foco é {headline}. Ao examinar {subtitle}, você constrói uma imagem mais clara dos seus padrões de tela e aprende uma estratégia prática para retomar sua atenção.",
+      "Esta seção aprofunda sua compreensão de {headline} através de {subtitle}, transformando comportamentos digitais automáticos em escolhas conscientes.",
+      "Aqui, {headline} é abordado através de {subtitle}. A aula guia você a reconhecer o que a tecnologia faz com sua atenção e a construir hábitos mais saudáveis.",
+    ],
+    withoutSubtitle: [
+      "Esta aula explora {headline}, ajudando você a entender como seus hábitos digitais funcionam e como torná-los mais intencionais.",
+      "Aqui o foco é {headline}. O objetivo é transformar comportamentos digitais automáticos em escolhas conscientes e habilidades práticas.",
+      "Esta seção aprofunda sua compreensão de {headline}, oferecendo ferramentas para reconhecer padrões de tela e construir uma vida digital mais saudável.",
+      "Aqui, {headline} é abordado para que você possa ver o que a tecnologia realmente faz com sua atenção e aprender a usá-la nos seus próprios termos.",
+    ],
+  },
+  de: {
+    withSubtitle: [
+      "Diese Lektion erkundet {headline} durch {subtitle} und hilft dir zu verstehen, wie deine digitalen Gewohnheiten funktionieren und wie du sie bewusster gestalten kannst.",
+      "Hier liegt der Fokus auf {headline}. Indem du {subtitle} untersuchst, gewinnst du ein klareres Bild deiner Bildschirmmuster und lernst eine praktische Strategie, um deine Aufmerksamkeit zurückzugewinnen.",
+      "Dieser Abschnitt vertieft dein Verständnis von {headline} durch {subtitle} und verwandelt automatische digitale Verhaltensweisen in bewusste Entscheidungen.",
+      "{headline} wird hier durch {subtitle} behandelt. Die Lektion leitet dich an, zu erkennen, was Technologie mit deiner Aufmerksamkeit macht, und gesündere Gewohnheiten aufzubauen.",
+    ],
+    withoutSubtitle: [
+      "Diese Lektion erkundet {headline} und hilft dir zu verstehen, wie deine digitalen Gewohnheiten funktionieren und wie du sie bewusster gestalten kannst.",
+      "Hier liegt der Fokus auf {headline}. Das Ziel ist, automatische digitale Verhaltensweisen in bewusste Entscheidungen und praktische Fähigkeiten zu verwandeln.",
+      "Dieser Abschnitt vertieft dein Verständnis von {headline} und gibt dir Werkzeuge, um Bildschirmmuster zu erkennen und ein gesünderes digitales Leben aufzubauen.",
+      "{headline} wird hier behandelt, damit du sehen kannst, was Technologie tatsächlich mit deiner Aufmerksamkeit macht, und lernst, sie nach deinen eigenen Bedingungen zu nutzen.",
+    ],
+  },
+  fr: {
+    withSubtitle: [
+      "Cette leçon explore {headline} à travers {subtitle}, t'aidant à comprendre comment tes habitudes numériques fonctionnent et comment les rendre plus intentionnelles.",
+      "Ici, l'accent est mis sur {headline}. En examinant {subtitle}, tu construis une image plus claire de tes schémas d'écran et apprends une stratégie pratique pour reprendre ton attention.",
+      "Cette section approfondit ta compréhension de {headline} à travers {subtitle}, transformant les comportements numériques automatiques en choix conscients.",
+      "Ici, {headline} est abordé à travers {subtitle}. La leçon te guide pour reconnaître ce que la technologie fait à ton attention et construire des habitudes plus saines.",
+    ],
+    withoutSubtitle: [
+      "Cette leçon explore {headline}, t'aidant à comprendre comment tes habitudes numériques fonctionnent et comment les rendre plus intentionnelles.",
+      "Ici, l'accent est mis sur {headline}. L'objectif est de transformer les comportements numériques automatiques en choix conscients et en compétences pratiques.",
+      "Cette section approfondit ta compréhension de {headline}, te donnant des outils pour reconnaître les schémas d'écran et construire une vie numérique plus saine.",
+      "Ici, {headline} est abordé pour que tu puisses voir ce que la technologie fait réellement à ton attention et apprendre à l'utiliser à tes propres conditions.",
+    ],
+  },
+  ja: {
+    withSubtitle: [
+      "このレッスンでは、{subtitle}を通して{headline}を探求し、あなたのデジタル習慣がどう機能しているか、そしてより意図的にするにはどうすればよいかを理解する手助けをします。",
+      "ここでの焦点は{headline}です。{subtitle}を検証することで、自分のスクリーンパターンをより明確に把握し、注意力を取り戻す実践的な戦略を学びます。",
+      "このセクションでは、{subtitle}を通じて{headline}の理解を深め、自動的なデジタル行動を意識的な選択に変えます。",
+      "ここでは{subtitle}を通じて{headline}を扱います。レッスンは、テクノロジーが注意力に何をしているかを認識し、より健全な習慣を築くよう導きます。",
+    ],
+    withoutSubtitle: [
+      "このレッスンでは{headline}を探求し、あなたのデジタル習慣がどう機能しているか、そしてより意図的にするにはどうすればよいかを理解する手助けをします。",
+      "ここでの焦点は{headline}です。目標は、自動的なデジタル行動を意識的な選択と実践的なスキルに変えることです。",
+      "このセクションでは{headline}の理解を深め、スクリーンパターンを認識してより健全なデジタルライフを築くためのツールを提供します。",
+      "ここでは{headline}を扱い、テクノロジーが実際にあなたの注意力に何をしているかを見て、自分の条件で使えるようになることを目指します。",
+    ],
+  },
+};
+
 const COURSE_TEMPLATES: Record<string, Record<Language, StepDescriptionTemplates>> = {
   spiritual_journey: STEP_DESCRIPTION_TEMPLATES,
   quit_smoking: QUIT_SMOKING_TEMPLATES,
   making_peace_with_anxiety: MAKING_PEACE_WITH_ANXIETY_TEMPLATES,
   anger_management: ANGER_MANAGEMENT_TEMPLATES,
   healthy_relationships: HEALTHY_RELATIONSHIPS_TEMPLATES,
+  digital_detox: DIGITAL_DETOX_TEMPLATES,
 };
 
 export function getCourseStepDescription(

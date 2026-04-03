@@ -446,7 +446,57 @@ export const OVERCOMING_PROCRASTINATION: CourseDefinition = {
   ],
 };
 
-export const COURSES: CourseDefinition[] = [SPIRITUAL_JOURNEY, QUIT_SMOKING, MAKING_PEACE_WITH_ANXIETY, ANGER_MANAGEMENT, HEALTHY_RELATIONSHIPS, DIGITAL_DETOX, HEALTHY_EATING_PSYCHOLOGY, OVERCOMING_PROCRASTINATION];
+export const LIVING_WITH_GRIEF: CourseDefinition = {
+  id: "living_with_grief",
+  nameKey: "livingWithGrief",
+  descriptionKey: "livingWithGriefDesc",
+  detailDescriptionKey: "livingWithGriefLongDesc",
+  highlightsKey: "livingWithGriefHighlights",
+  stepsKey: "livingWithGriefSteps",
+  rolePrompt: "a deeply compassionate, trauma-informed grief companion who draws on the dual process model of coping, continuing bonds theory, and meaning reconstruction research. You treat all forms of loss — death, divorce, job loss, health changes, identity shifts — with equal respect and never prescribe rigid stages. You normalize the student's experience, validate every emotion without rushing to fix it, and always offer gentle, concrete steps when the student is ready. You use plain language, explain any concept the first time it appears, and balance scientific grounding with genuine warmth. IMPORTANT: You are a supportive companion, not a therapist. Never diagnose, never minimize, and always remind the student that professional support is available if the pain feels too heavy to carry alone",
+  icon: "🕯️",
+  steps: [
+    // Block 1: Understanding Grief and Loss (1-4)
+    { topicTitle: "What Is Grief? — Understanding the Natural Response to Any Significant Loss" },
+    { topicTitle: "Types of Loss — Why Grief Is Not Limited to Death" },
+    { topicTitle: "The Grief Process — Why Healing Is Not Linear and There Are No Fixed Stages" },
+    { topicTitle: "Your Grief Profile — Mapping Your Personal Loss, Reactions, and Coping Patterns" },
+
+    // Block 2: The Emotional Landscape of Grief (5-8)
+    { topicTitle: "Sadness and Longing — The Core Ache That Comes in Waves" },
+    { topicTitle: "Anger and Guilt in Grief — The Emotions Nobody Tells You to Expect" },
+    { topicTitle: "Fear and Anxiety After Loss — When the Ground Beneath You Feels Uncertain" },
+    { topicTitle: "Numbness and Denial — When Feeling Nothing Is the Mind's Way of Protecting You" },
+
+    // Block 3: The Body and Mind Under Grief (9-12)
+    { topicTitle: "The Physical Weight of Grief — How Loss Lives in the Body" },
+    { topicTitle: "Sleep and Appetite Disruption — Understanding Why Basic Needs Go Off Course" },
+    { topicTitle: "Grief Brain — The Cognitive Fog That Makes Thinking and Deciding Feel Impossible" },
+    { topicTitle: "Fatigue and Energy — Why Grief Exhausts You Even When You Have Done Nothing" },
+
+    // Block 4: Navigating the Grief Journey (13-16)
+    { topicTitle: "Sitting with Pain — Learning to Be Present with Grief Instead of Running from It" },
+    { topicTitle: "Meaning-Making — Finding Purpose Not in the Loss Itself but in How You Carry It" },
+    { topicTitle: "Continuing Bonds — Maintaining a Living Connection with What Was Lost" },
+    { topicTitle: "Complicated Grief — Recognizing When the Pain Gets Stuck and Needs Extra Support" },
+
+    // Block 5: Healing Practices (17-20)
+    { topicTitle: "Self-Care During Grief — Small Acts of Kindness Toward Yourself When Everything Hurts" },
+    { topicTitle: "Journaling and Expression — Giving Your Grief a Voice Through Words, Art, or Movement" },
+    { topicTitle: "Rituals and Remembrance — Creating Meaningful Ways to Honor What You Have Lost" },
+    { topicTitle: "Rebuilding Routine — Gently Restoring Structure When Daily Life Has Fallen Apart" },
+
+    // Block 6: Grief in Relationships and Society (21-23)
+    { topicTitle: "How Others Respond to Your Grief — Navigating Unhelpful Comments and Silent Distance" },
+    { topicTitle: "Asking for Help — Learning to Reach Out When Grief Feels Too Heavy to Carry Alone" },
+    { topicTitle: "Supporting Others Who Grieve — Being Present Without Fixing, Judging, or Comparing" },
+
+    // Block 7: Integration (24)
+    { topicTitle: "Building a Life That Honors Both the Loss and the Future — Your Grief Integration Toolkit" },
+  ],
+};
+
+export const COURSES: CourseDefinition[] = [SPIRITUAL_JOURNEY, QUIT_SMOKING, MAKING_PEACE_WITH_ANXIETY, ANGER_MANAGEMENT, HEALTHY_RELATIONSHIPS, DIGITAL_DETOX, HEALTHY_EATING_PSYCHOLOGY, OVERCOMING_PROCRASTINATION, LIVING_WITH_GRIEF];
 
 export function getCourseById(courseId: string): CourseDefinition | undefined {
   return COURSES.find((c) => c.id === courseId);

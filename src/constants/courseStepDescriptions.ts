@@ -946,6 +946,121 @@ const OVERCOMING_PROCRASTINATION_TEMPLATES: Record<Language, StepDescriptionTemp
   },
 };
 
+const LIVING_WITH_GRIEF_TEMPLATES: Record<Language, StepDescriptionTemplates> = {
+  tr: {
+    withSubtitle: [
+      "Bu ders, {headline} konusunu {subtitle} üzerinden ele alarak yasın nasıl işlediğini ve bu süreçte kendine nasıl nazik davranabileceğini anlamana yardımcı olur.",
+      "Buradaki odak {headline}. {subtitle} sayesinde yas deneyimini daha net görür ve iyileşme yolunda somut bir adım öğrenirsin.",
+      "Bu bölüm, {headline} konusunu {subtitle} çerçevesinde derinleştirir; kaybın bıraktığı izleri fark edebileceğin ve onlarla barışabileceğin bir anlayışa dönüştürür.",
+      "{headline} burada {subtitle} aracılığıyla ele alınır. Ders, yasınla ilgili neler olduğunu fark etmeni ve kendine daha şefkatli yaklaşmanı sağlar.",
+    ],
+    withoutSubtitle: [
+      "Bu ders, {headline} konusunu ele alarak yasın nasıl işlediğini ve bu süreçte kendine nasıl nazik davranabileceğini anlamana yardımcı olur.",
+      "Buradaki odak {headline}. Amaç, kaybın bıraktığı etkileri anlamak ve iyileşme için somut araçlar sunmaktır.",
+      "Bu bölüm, {headline} konusunu derinleştirerek yas sürecinde seni destekleyen farkındalık ve pratik araçlar sunar.",
+      "{headline} burada ele alınır; böylece yasınla ilgili gerçekte neler olduğunu görebilir ve kendinle daha nazik bir ilişki kurabilirsin.",
+    ],
+  },
+  en: {
+    withSubtitle: [
+      "This lesson explores {headline} through {subtitle}, helping you understand how grief works and how to be gentle with yourself through the process.",
+      "Here the focus is {headline}. By examining {subtitle}, you build a clearer picture of your grief experience and learn a concrete step toward healing.",
+      "This section deepens your understanding of {headline} through {subtitle}, turning the weight of loss into awareness you can hold with more compassion.",
+      "{headline} is addressed here through {subtitle}. The lesson guides you toward recognizing what grief is doing inside you and responding with kindness.",
+    ],
+    withoutSubtitle: [
+      "This lesson explores {headline}, helping you understand how grief works and how to be gentle with yourself through the process.",
+      "Here the focus is {headline}. The goal is to understand the effects of loss and offer concrete tools for healing.",
+      "This section deepens your understanding of {headline}, giving you awareness and practical tools to support yourself through grief.",
+      "{headline} is addressed here so you can see what grief is actually doing inside you and build a kinder relationship with yourself.",
+    ],
+  },
+  zh: {
+    withSubtitle: [
+      "本节课通过{subtitle}来探索{headline}，帮助你理解悲伤是如何运作的以及如何在这个过程中温柔对待自己。",
+      "这里的重点是{headline}。通过审视{subtitle}，你会更清晰地看到自己的悲伤体验并学到走向疗愈的具体步骤。",
+      "这一部分通过{subtitle}加深你对{headline}的理解，将失去的重量转化为你可以用更多慈悲来承载的觉察。",
+      "这里通过{subtitle}来讨论{headline}。课程引导你认识悲伤在你内在做了什么，并以善意来回应。",
+    ],
+    withoutSubtitle: [
+      "本节课探索{headline}，帮助你理解悲伤是如何运作的以及如何在这个过程中温柔对待自己。",
+      "这里的重点是{headline}。目标是理解失去的影响并提供疗愈的具体工具。",
+      "这一部分加深你对{headline}的理解，给你在悲伤中支持自己的觉察和实用工具。",
+      "这里讨论{headline}，帮你看清悲伤实际上在你内在做了什么，并与自己建立更温柔的关系。",
+    ],
+  },
+  es: {
+    withSubtitle: [
+      "Esta lección explora {headline} a través de {subtitle}, ayudándote a comprender cómo funciona el duelo y cómo ser amable contigo mismo durante el proceso.",
+      "Aquí el foco está en {headline}. Al examinar {subtitle}, construyes una imagen más clara de tu experiencia de duelo y aprendes un paso concreto hacia la sanación.",
+      "Esta sección profundiza en {headline} a través de {subtitle}, convirtiendo el peso de la pérdida en conciencia que puedes sostener con más compasión.",
+      "Aquí se aborda {headline} a través de {subtitle}. La lección te guía para reconocer lo que el duelo está haciendo dentro de ti y responder con amabilidad.",
+    ],
+    withoutSubtitle: [
+      "Esta lección explora {headline}, ayudándote a comprender cómo funciona el duelo y cómo ser amable contigo mismo durante el proceso.",
+      "Aquí el foco está en {headline}. El objetivo es comprender los efectos de la pérdida y ofrecer herramientas concretas para sanar.",
+      "Esta sección profundiza en {headline}, dándote conciencia y herramientas prácticas para apoyarte durante el duelo.",
+      "Aquí se aborda {headline} para que puedas ver lo que el duelo realmente está haciendo dentro de ti y construir una relación más amable contigo mismo.",
+    ],
+  },
+  pt: {
+    withSubtitle: [
+      "Esta aula explora {headline} através de {subtitle}, ajudando você a entender como o luto funciona e como ser gentil consigo mesmo durante o processo.",
+      "Aqui o foco é {headline}. Ao examinar {subtitle}, você constrói uma imagem mais clara da sua experiência de luto e aprende um passo concreto em direção à cura.",
+      "Esta seção aprofunda sua compreensão de {headline} através de {subtitle}, transformando o peso da perda em consciência que você pode sustentar com mais compaixão.",
+      "Aqui, {headline} é abordado através de {subtitle}. A aula guia você a reconhecer o que o luto está fazendo dentro de você e a responder com gentileza.",
+    ],
+    withoutSubtitle: [
+      "Esta aula explora {headline}, ajudando você a entender como o luto funciona e como ser gentil consigo mesmo durante o processo.",
+      "Aqui o foco é {headline}. O objetivo é compreender os efeitos da perda e oferecer ferramentas concretas para a cura.",
+      "Esta seção aprofunda sua compreensão de {headline}, oferecendo consciência e ferramentas práticas para se apoiar durante o luto.",
+      "Aqui, {headline} é abordado para que você possa ver o que o luto realmente está fazendo dentro de você e construir uma relação mais gentil consigo mesmo.",
+    ],
+  },
+  de: {
+    withSubtitle: [
+      "Diese Lektion erkundet {headline} durch {subtitle} und hilft dir zu verstehen, wie Trauer funktioniert und wie du während des Prozesses sanft mit dir selbst umgehen kannst.",
+      "Hier liegt der Fokus auf {headline}. Indem du {subtitle} untersuchst, gewinnst du ein klareres Bild deiner Trauererfahrung und lernst einen konkreten Schritt zur Heilung.",
+      "Dieser Abschnitt vertieft dein Verständnis von {headline} durch {subtitle} und verwandelt das Gewicht des Verlusts in Bewusstheit, die du mit mehr Mitgefühl halten kannst.",
+      "{headline} wird hier durch {subtitle} behandelt. Die Lektion leitet dich an, zu erkennen, was Trauer in dir bewirkt, und mit Freundlichkeit zu reagieren.",
+    ],
+    withoutSubtitle: [
+      "Diese Lektion erkundet {headline} und hilft dir zu verstehen, wie Trauer funktioniert und wie du während des Prozesses sanft mit dir selbst umgehen kannst.",
+      "Hier liegt der Fokus auf {headline}. Das Ziel ist, die Auswirkungen des Verlusts zu verstehen und konkrete Werkzeuge zur Heilung anzubieten.",
+      "Dieser Abschnitt vertieft dein Verständnis von {headline} und gibt dir Bewusstheit und praktische Werkzeuge, um dich durch die Trauer zu unterstützen.",
+      "{headline} wird hier behandelt, damit du sehen kannst, was Trauer tatsächlich in dir bewirkt, und eine freundlichere Beziehung zu dir selbst aufbauen kannst.",
+    ],
+  },
+  fr: {
+    withSubtitle: [
+      "Cette leçon explore {headline} à travers {subtitle}, t'aidant à comprendre comment le deuil fonctionne et comment être doux avec toi-même pendant le processus.",
+      "Ici, l'accent est mis sur {headline}. En examinant {subtitle}, tu construis une image plus claire de ton expérience de deuil et apprends un pas concret vers la guérison.",
+      "Cette section approfondit ta compréhension de {headline} à travers {subtitle}, transformant le poids de la perte en conscience que tu peux porter avec plus de compassion.",
+      "Ici, {headline} est abordé à travers {subtitle}. La leçon te guide pour reconnaître ce que le deuil fait en toi et répondre avec bienveillance.",
+    ],
+    withoutSubtitle: [
+      "Cette leçon explore {headline}, t'aidant à comprendre comment le deuil fonctionne et comment être doux avec toi-même pendant le processus.",
+      "Ici, l'accent est mis sur {headline}. L'objectif est de comprendre les effets de la perte et d'offrir des outils concrets pour guérir.",
+      "Cette section approfondit ta compréhension de {headline}, te donnant conscience et outils pratiques pour te soutenir à travers le deuil.",
+      "Ici, {headline} est abordé pour que tu puisses voir ce que le deuil fait réellement en toi et construire une relation plus douce avec toi-même.",
+    ],
+  },
+  ja: {
+    withSubtitle: [
+      "このレッスンでは、{subtitle}を通して{headline}を探求し、悲嘆がどう機能するのか、そしてそのプロセスの中で自分に優しくする方法を理解する手助けをします。",
+      "ここでの焦点は{headline}です。{subtitle}を検証することで、自分の悲嘆体験をより明確に把握し、癒しに向けた具体的な一歩を学びます。",
+      "このセクションでは、{subtitle}を通じて{headline}の理解を深め、喪失の重さをより多くの慈悲を持って抱える気づきに変えます。",
+      "ここでは{subtitle}を通じて{headline}を扱います。レッスンは、悲嘆があなたの内側で何をしているかを認識し、優しさを持って応答するよう導きます。",
+    ],
+    withoutSubtitle: [
+      "このレッスンでは{headline}を探求し、悲嘆がどう機能するのか、そしてそのプロセスの中で自分に優しくする方法を理解する手助けをします。",
+      "ここでの焦点は{headline}です。目標は、喪失の影響を理解し、癒しのための具体的なツールを提供することです。",
+      "このセクションでは{headline}の理解を深め、悲嘆を通じて自分を支えるための気づきと実践的なツールを提供します。",
+      "ここでは{headline}を扱い、悲嘆が実際にあなたの内側で何をしているかを見て、自分とのより優しい関係を築けるようにします。",
+    ],
+  },
+};
+
 const COURSE_TEMPLATES: Record<string, Record<Language, StepDescriptionTemplates>> = {
   spiritual_journey: STEP_DESCRIPTION_TEMPLATES,
   quit_smoking: QUIT_SMOKING_TEMPLATES,
@@ -955,6 +1070,7 @@ const COURSE_TEMPLATES: Record<string, Record<Language, StepDescriptionTemplates
   digital_detox: DIGITAL_DETOX_TEMPLATES,
   healthy_eating_psychology: HEALTHY_EATING_PSYCHOLOGY_TEMPLATES,
   overcoming_procrastination: OVERCOMING_PROCRASTINATION_TEMPLATES,
+  living_with_grief: LIVING_WITH_GRIEF_TEMPLATES,
 };
 
 export function getCourseStepDescription(

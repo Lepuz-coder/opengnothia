@@ -604,6 +604,11 @@ export interface Translations {
     overcomingProcrastinationLongDesc: string;
     overcomingProcrastinationHighlights: string[];
     overcomingProcrastinationSteps: string[];
+    livingWithGrief: string;
+    livingWithGriefDesc: string;
+    livingWithGriefLongDesc: string;
+    livingWithGriefHighlights: string[];
+    livingWithGriefSteps: string[];
     resetProgress: string;
     resetProgressConfirm: string;
     resetProgressWarning: string;

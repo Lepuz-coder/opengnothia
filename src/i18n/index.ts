@@ -613,6 +613,14 @@ export interface Translations {
     resetProgressConfirm: string;
     resetProgressWarning: string;
     resetProgressCancel: string;
+    tabStarted: string;
+    tabCompleted: string;
+    tabExplore: string;
+    noStartedCourses: string;
+    noStartedCoursesDescription: string;
+    startExploring: string;
+    noCompletedCourses: string;
+    noCompletedCoursesDescription: string;
   };
   placeholder: {
     featureComingSoon: string;

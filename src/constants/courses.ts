@@ -346,7 +346,57 @@ export const DIGITAL_DETOX: CourseDefinition = {
   ],
 };
 
-export const COURSES: CourseDefinition[] = [SPIRITUAL_JOURNEY, QUIT_SMOKING, MAKING_PEACE_WITH_ANXIETY, ANGER_MANAGEMENT, HEALTHY_RELATIONSHIPS, DIGITAL_DETOX];
+export const HEALTHY_EATING_PSYCHOLOGY: CourseDefinition = {
+  id: "healthy_eating_psychology",
+  nameKey: "healthyEatingPsychology",
+  descriptionKey: "healthyEatingPsychologyDesc",
+  detailDescriptionKey: "healthyEatingPsychologyLongDesc",
+  highlightsKey: "healthyEatingPsychologyHighlights",
+  stepsKey: "healthyEatingPsychologySteps",
+  rolePrompt: "a warm, non-judgmental food psychology coach who combines intuitive eating principles, mindful eating research, and behavioral psychology. You treat all foods as morally neutral, never prescribe diets or calorie counts, and explicitly reject diet culture. You validate the student's experience around food without shame, normalize emotional eating as a common coping pattern rather than a character flaw, and always offer concrete, body-positive awareness exercises. You use plain language, explain any technical term the first time it appears, and balance science with compassion. IMPORTANT: Never recommend specific diets, calorie targets, macronutrient ratios, or weight-loss strategies. This course is about psychological relationship with food, not nutrition science or body modification",
+  icon: "🍃",
+  steps: [
+    // Block 1: Understanding Your Relationship with Food (1-4)
+    { topicTitle: "What Is Emotional Eating? — Understanding Why We Reach for Food Beyond Hunger" },
+    { topicTitle: "The Many Reasons We Eat — Comfort, Habit, Boredom, and the Stories Behind Every Bite" },
+    { topicTitle: "Food as a Coping Mechanism — How Eating Became Your Way of Managing Difficult Emotions" },
+    { topicTitle: "Your Eating Profile — Mapping Your Personal Patterns, Triggers, and Food History" },
+
+    // Block 2: Hunger and Fullness Awareness (5-8)
+    { topicTitle: "Physical vs. Emotional Hunger — Learning to Tell the Difference Between Body and Mind" },
+    { topicTitle: "The Hunger-Fullness Scale — Tuning In to Your Body's Signals Before, During, and After Eating" },
+    { topicTitle: "Interoception — Rebuilding the Connection to Your Body's Inner Wisdom" },
+    { topicTitle: "Mindful Eating Basics — Slowing Down Enough to Actually Taste Your Food" },
+
+    // Block 3: Emotional Eating Patterns (9-12)
+    { topicTitle: "Stress Eating — Why Tension Sends You Straight to the Kitchen" },
+    { topicTitle: "Boredom and Loneliness Eating — Filling an Emotional Void with Food" },
+    { topicTitle: "Reward Eating — When Food Becomes Your Only Source of Pleasure" },
+    { topicTitle: "The Restrict-Binge Cycle — How Deprivation Creates the Very Loss of Control You Fear" },
+
+    // Block 4: Cognitive Patterns and Food Beliefs (13-16)
+    { topicTitle: "Diet Culture Myths — Unlearning the Rules That Were Never True" },
+    { topicTitle: "Food Guilt and Shame — Why You Feel Bad After Eating and How to Stop" },
+    { topicTitle: "All-or-Nothing Thinking About Food — Breaking Free from the Good Food, Bad Food Trap" },
+    { topicTitle: "Body Image and Self-Worth — Separating How You Look from Who You Are" },
+
+    // Block 5: Mindful Eating Practices (17-20)
+    { topicTitle: "Eating with Full Attention — Turning Every Meal into a Practice of Presence" },
+    { topicTitle: "The Art of Savoring — Discovering That Satisfaction Comes from Awareness, Not Quantity" },
+    { topicTitle: "Portion Awareness Without Restriction — Honoring Both Appetite and Fullness Without Rules" },
+    { topicTitle: "Intuitive Eating Principles — Trusting Your Body to Guide You Back to Balance" },
+
+    // Block 6: Building a Healthy Food Relationship (21-23)
+    { topicTitle: "Self-Compassion Around Food — Replacing the Inner Critic with a Kinder Voice" },
+    { topicTitle: "Social Eating and External Pressure — Navigating Meals with Others Without Losing Yourself" },
+    { topicTitle: "Sustainable Habits Without Rigid Rules — Creating Structure That Feels Like Freedom" },
+
+    // Block 7: Integration (24)
+    { topicTitle: "Your Food Wellness Plan — Building a Lifelong Practice of Peace with Eating" },
+  ],
+};
+
+export const COURSES: CourseDefinition[] = [SPIRITUAL_JOURNEY, QUIT_SMOKING, MAKING_PEACE_WITH_ANXIETY, ANGER_MANAGEMENT, HEALTHY_RELATIONSHIPS, DIGITAL_DETOX, HEALTHY_EATING_PSYCHOLOGY];
 
 export function getCourseById(courseId: string): CourseDefinition | undefined {
   return COURSES.find((c) => c.id === courseId);

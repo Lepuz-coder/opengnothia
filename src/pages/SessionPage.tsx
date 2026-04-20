@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useLocation } from "react-router";
 import { useSessionStore } from "@/stores/useSessionStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useAppStore } from "@/stores/useAppStore";
@@ -100,6 +100,7 @@ function VoiceStatusBadge({ status, t }: { status: VoiceLoopStatus; t: ReturnTyp
 
 export default function SessionPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const session = useSessionStore();
   const settings = useSettingsStore();
   const { t, language } = useTranslation();
@@ -133,6 +134,19 @@ export default function SessionPage() {
       useAppStore.getState().setSidebarHidden(false);
     };
   }, []);
+
+  // Handle navigation state from dashboard (open start modal)
+  const navStateHandled = useRef(false);
+  useEffect(() => {
+    if (navStateHandled.current) return;
+    navStateHandled.current = true;
+    const state = location.state as { openStartModal?: boolean } | null;
+    if (!state) return;
+    if (state.openStartModal && (session.status === "idle" || session.status === "pre")) {
+      setStartModalOpen(true);
+    }
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location, navigate, session.status]);
 
   const handleStartSession = useCallback(async () => {
     setSidebarHidden(true);

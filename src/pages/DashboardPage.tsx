@@ -225,9 +225,8 @@ export default function DashboardPage() {
         todaySession={todaySession}
         profile={profile}
         t={t}
-        onStart={() => navigate("/session")}
+        onStart={() => navigate("/session", { state: { openStartModal: true } })}
         onContinue={() => navigate("/session")}
-        onView={() => navigate("/session")}
       />
 
       {/* Mood Section */}

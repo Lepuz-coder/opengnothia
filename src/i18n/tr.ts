@@ -167,6 +167,10 @@ export const tr: Translations = {
     acceptInsight: "Kabul Et",
     rejectInsight: "Reddet",
     selectGroupFirst: "Önce bir grup seç",
+    contextWindow: "Bağlam penceresi",
+    sessionSpent: "Harcama",
+    addToMyInsights: "İçgörülerime Ekle",
+    addedToInsightsToast: "İçgörülerine Eklendi",
   },
   journal: {
     title: "Günlük",

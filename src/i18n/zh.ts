@@ -167,6 +167,10 @@ export const zh: Translations = {
     acceptInsight: "接受",
     rejectInsight: "拒绝",
     selectGroupFirst: "请先选择一个分组",
+    contextWindow: "上下文窗口",
+    sessionSpent: "已花费",
+    addToMyInsights: "添加到我的洞察",
+    addedToInsightsToast: "已添加到你的洞察",
   },
   journal: {
     title: "日记",

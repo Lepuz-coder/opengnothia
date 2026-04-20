@@ -169,6 +169,10 @@ export interface Translations {
     acceptInsight: string;
     rejectInsight: string;
     selectGroupFirst: string;
+    contextWindow: string;
+    sessionSpent: string;
+    addToMyInsights: string;
+    addedToInsightsToast: string;
   };
   journal: {
     title: string;

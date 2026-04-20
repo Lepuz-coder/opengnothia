@@ -1,4 +1,4 @@
-import { MessageSquare, Play, ArrowRight, Check, Sparkles } from "lucide-react";
+import { MessageSquare, Play, ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import type { Session, UserProfile } from "@/types";
 import type { Translations } from "@/i18n";
@@ -9,14 +9,13 @@ interface TodaySessionHeroProps {
   t: Translations;
   onStart: () => void;
   onContinue: () => void;
-  onView: () => void;
 }
 
 function minutesSince(iso: string): number {
   return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
 }
 
-export function TodaySessionHero({ todaySession, profile, t, onStart, onContinue, onView }: TodaySessionHeroProps) {
+export function TodaySessionHero({ todaySession, profile, t, onStart, onContinue }: TodaySessionHeroProps) {
   const isActive = todaySession?.status === "active";
   const isCompleted = todaySession?.status === "completed";
 
@@ -25,8 +24,6 @@ export function TodaySessionHero({ todaySession, profile, t, onStart, onContinue
   let primaryLabel: string;
   let primaryIcon = Play;
   let primaryAction = onStart;
-  let secondaryLabel: string | null = null;
-  let secondaryAction: (() => void) | null = null;
   let accent: "primary" | "accent" = "primary";
 
   if (isActive) {
@@ -39,15 +36,10 @@ export function TodaySessionHero({ todaySession, profile, t, onStart, onContinue
     accent = "primary";
   } else if (isCompleted) {
     title = t.dashboard.sessionCompletedToday;
-    const narrative = todaySession!.summary_narrative?.split(/[.!?]/)[0]?.trim();
-    const firstTheme = todaySession!.summary?.themes?.[0];
-    const preview = narrative || firstTheme || "";
-    subtitle = preview.length > 120 ? preview.slice(0, 117) + "..." : preview;
-    primaryLabel = t.dashboard.viewTodaySession;
-    primaryIcon = Check;
-    primaryAction = onView;
-    secondaryLabel = t.dashboard.startAnotherSession;
-    secondaryAction = onStart;
+    subtitle = "";
+    primaryLabel = t.dashboard.startAnotherSession;
+    primaryIcon = Play;
+    primaryAction = onStart;
     accent = "accent";
   } else {
     title = t.dashboard.readyForSession;
@@ -104,11 +96,6 @@ export function TodaySessionHero({ todaySession, profile, t, onStart, onContinue
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {secondaryLabel && secondaryAction && (
-            <Button variant="ghost" size="md" onClick={secondaryAction}>
-              {secondaryLabel}
-            </Button>
-          )}
           <Button variant="primary" size="lg" onClick={primaryAction}>
             <PrimaryIcon className="w-4 h-4" />
             {primaryLabel}

@@ -6,6 +6,7 @@ import { getTokenUsageRecords, getTokenUsageSummaryByProvider } from "@/services
 import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslation, getDateLocale } from "@/i18n";
 import type { TokenUsageRecord } from "@/types";
+import { SpendingStrip } from "@/components/dashboard/SpendingStrip";
 
 interface ProviderSummary {
   provider: string;
@@ -119,6 +120,9 @@ export default function ExpensesPage() {
           <p className="text-xl font-bold">{formatCost(totalCost)}</p>
         </div>
       </div>
+
+      {/* Today's Spending */}
+      <SpendingStrip records={records} t={t} />
 
       {/* Provider Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

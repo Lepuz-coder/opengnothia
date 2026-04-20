@@ -8,6 +8,7 @@ import { useTranslation } from "@/i18n";
 import { cn } from "@/lib/cn";
 import { getInsightGroups, getInsightsByIds } from "@/services/db/queries";
 import { EMOJI_PRESETS, COLOR_PRESETS } from "@/constants/insightPresets";
+import { showToast } from "@/stores/useToastStore";
 import type { ExtractedInsight, Insight, InsightGroup } from "@/types";
 
 interface SessionEndSummaryProps {
@@ -434,21 +435,13 @@ export function SessionEndSummary({
                             </p>
                             <div className="flex items-center justify-end gap-2 pt-1">
                               <Button
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => onRemoveInsight(insight.id)}
-                                disabled={acceptingId === insight.id}
-                              >
-                                <X className="w-3.5 h-3.5" />
-                                {t.session.rejectInsight}
-                              </Button>
-                              <Button
                                 size="sm"
                                 disabled={acceptingId !== null}
                                 onClick={async () => {
                                   setAcceptingId(insight.id);
                                   try {
                                     await onAcceptExtractedInsight(insight);
+                                    showToast(t.session.addedToInsightsToast, "success");
                                   } finally {
                                     setAcceptingId(null);
                                   }
@@ -459,7 +452,7 @@ export function SessionEndSummary({
                                 ) : (
                                   <Check className="w-3.5 h-3.5" />
                                 )}
-                                {t.session.acceptInsight}
+                                {t.session.addToMyInsights}
                               </Button>
                             </div>
                           </div>

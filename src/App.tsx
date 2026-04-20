@@ -8,6 +8,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useCloseGuard } from "@/hooks/useCloseGuard";
 import { useDatabase } from "@/hooks/useDatabase";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { ToastContainer } from "@/components/ui/ToastContainer";
 import logoImg from "@/assets/logo.svg";
 import OnboardingPage from "@/pages/OnboardingPage";
 import { LockScreen } from "@/components/LockScreen";
@@ -151,6 +152,7 @@ function AppContent() {
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>
+      <ToastContainer />
     </BrowserRouter>
   );
 }

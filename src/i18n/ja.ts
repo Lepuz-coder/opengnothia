@@ -167,6 +167,10 @@ export const ja: Translations = {
     acceptInsight: "承認",
     rejectInsight: "却下",
     selectGroupFirst: "まずグループを選択してください",
+    contextWindow: "コンテキストウィンドウ",
+    sessionSpent: "使用額",
+    addToMyInsights: "マイインサイトに追加",
+    addedToInsightsToast: "インサイトに追加しました",
   },
   journal: {
     title: "ジャーナル",

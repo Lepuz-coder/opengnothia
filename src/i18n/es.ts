@@ -167,6 +167,10 @@ export const es: Translations = {
     acceptInsight: "Aceptar",
     rejectInsight: "Rechazar",
     selectGroupFirst: "Selecciona un grupo primero",
+    contextWindow: "Ventana de contexto",
+    sessionSpent: "Gastado",
+    addToMyInsights: "Añadir a mis reflexiones",
+    addedToInsightsToast: "Añadido a tus reflexiones",
   },
   journal: {
     title: "Diario",

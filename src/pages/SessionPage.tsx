@@ -17,8 +17,8 @@ import type { ChatInputHandle } from "@/components/chat/ChatInput";
 import { TranscriptApiKeyModal } from "@/components/chat/TranscriptApiKeyModal";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { transcribeAudio } from "@/services/ai/transcriptionService";
-import { SessionTimer } from "@/components/chat/SessionTimer";
 import { SessionEndSummary } from "@/components/session/SessionEndSummary";
+import { SessionControlsBar } from "@/components/session/SessionControlsBar";
 import { PastSessionsList } from "@/components/session/PastSessionsList";
 import type { PastSessionsListHandle, WeekSummaryInfo } from "@/components/session/PastSessionsList";
 import { PastSessionDetail } from "@/components/session/PastSessionDetail";
@@ -73,13 +73,6 @@ function getEffectiveMessages(
     timestamp: new Date().toISOString(),
   };
   return [contextMsg, ...messages.slice(compactedAtIndex)];
-}
-
-function formatTokenCount(n: number): string {
-  if (n === 0) return "—";
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return String(n);
 }
 
 function VoiceStatusBadge({ status, t }: { status: VoiceLoopStatus; t: ReturnType<typeof useTranslation>["t"] }) {
@@ -1053,8 +1046,6 @@ export default function SessionPage() {
   const modelConfig = providerConfig?.models.find((m) => m.id === settings.model);
   const contextWindow = modelConfig?.contextWindow ?? 0;
   const modelName = modelConfig?.name ?? settings.model;
-  const usagePercent = contextWindow > 0 ? (session.currentInputTokens / contextWindow) * 100 : 0;
-  const tokenBarColor = usagePercent >= 80 ? "bg-red-500" : usagePercent >= 50 ? "bg-yellow-500" : "bg-green-500";
 
   return (
     <div className="flex flex-col h-screen">
@@ -1067,22 +1058,6 @@ export default function SessionPage() {
           </Badge>
         </div>
         <div className="flex items-center gap-3">
-          {/* Token usage display */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-[var(--text-muted)]">{modelName}</span>
-            <div className="flex items-center gap-1.5">
-              <div className="w-16 h-1.5 rounded-full bg-[var(--bg-secondary)] overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${tokenBarColor}`}
-                  style={{ width: `${Math.min(usagePercent, 100)}%` }}
-                />
-              </div>
-              <span className="text-xs text-[var(--text-muted)] tabular-nums">
-                {formatTokenCount(session.currentInputTokens)} / {formatTokenCount(contextWindow)}
-              </span>
-            </div>
-          </div>
-          <div className="w-px h-4 bg-[var(--border-color)]" />
           {/* Voice mode controls */}
           {session.sessionMode === "voice" && voiceLoop.status !== "idle" && (
             <>
@@ -1107,14 +1082,6 @@ export default function SessionPage() {
               <div className="w-px h-4 bg-[var(--border-color)]" />
             </>
           )}
-          {session.startedAt && <SessionTimer startedAt={session.startedAt} />}
-          <button
-            onClick={() => setEndConfirmOpen(true)}
-            disabled={session.isCompacting}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {t.session.endSession}
-          </button>
           <button
             onClick={() => session.toggleInsightsPanel()}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
@@ -1181,6 +1148,15 @@ export default function SessionPage() {
               )}
             </>
           )}
+          <SessionControlsBar
+            startedAt={session.startedAt}
+            onEndSession={() => setEndConfirmOpen(true)}
+            endDisabled={session.isCompacting}
+            modelName={modelName}
+            currentTokens={session.currentInputTokens}
+            contextWindow={contextWindow}
+            sessionId={session.sessionId}
+          />
         </div>
         {session.insightsPanelOpen && (
           <SessionInsightsPanel onClose={() => session.setInsightsPanelOpen(false)} />

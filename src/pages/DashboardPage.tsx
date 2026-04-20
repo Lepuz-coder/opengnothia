@@ -1,18 +1,23 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router";
-import { MessageSquare, BookOpen, Moon, Pencil, Lightbulb, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  MessageSquare, BookOpen, Moon, Pencil, Heart, Flame,
+  ChevronLeft, ChevronRight,
+} from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/cn";
-import { saveMoodEntry, getTodayMoodEntry, getMoodEntriesByDateRange, getCompletedSessionCount, getJournalEntryCount, getDreamCount } from "@/services/db/queries";
-import { useTranslation, getDayNames, getDateLocale } from "@/i18n";
-import type { MoodEntry } from "@/types";
-
-const MOOD_EMOJIS: Record<number, string> = {
-  1: "\u{1F62B}", 2: "\u{1F622}", 3: "\u{1F614}", 4: "\u{1F615}", 5: "\u{1F610}",
-  6: "\u{1F642}", 7: "\u{1F60A}", 8: "\u{1F604}", 9: "\u{1F929}", 10: "\u{1F973}",
-};
-
-// DAY_NAMES moved to component level using getDayNames(language)
+import {
+  saveMoodEntry, getTodayMoodEntry, getMoodEntriesByDateRange,
+  getCompletedSessionCount, getJournalEntryCount, getDreamCount,
+  getTodaySession, getJournalEntryByDate, getDreamsByDateRange,
+  getUserProfile,
+} from "@/services/db/queries";
+import { useTranslation, getDayNames, getDateLocale, type Translations } from "@/i18n";
+import type { MoodEntry, Session, UserProfile, JournalEntry, Dream } from "@/types";
+import { MoodChart } from "@/components/dashboard/MoodChart";
+import { MoodPickerScale, MoodIcon } from "@/components/dashboard/MoodPickerScale";
+import { TodaySessionHero } from "@/components/dashboard/TodaySessionHero";
+import { RitualCard } from "@/components/dashboard/RitualCard";
 
 function getCalendarDays(year: number, month: number): Date[] {
   const firstOfMonth = new Date(year, month, 1);
@@ -49,84 +54,27 @@ function formatMonthYear(year: number, month: number, locale: string): string {
   return date.toLocaleDateString(locale, { month: "long", year: "numeric" });
 }
 
-function MoodChart({ entries, daysInMonth, noDataText }: { entries: MoodEntry[]; daysInMonth: number; noDataText: string }) {
-  if (entries.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-[160px] text-sm text-[var(--text-muted)]">
-        {noDataText}
-      </div>
-    );
+function getMoodBandLabel(mood: number, t: Translations): string {
+  if (mood <= 2) return t.dashboard.moodBandBad;
+  if (mood <= 4) return t.dashboard.moodBandOkay;
+  if (mood <= 6) return t.dashboard.moodBandNeutral;
+  if (mood <= 8) return t.dashboard.moodBandGood;
+  return t.dashboard.moodBandGreat;
+}
+
+function computeStreak(moodDates: Set<string>, todayStr: string): number {
+  const anchor = new Date(todayStr + "T00:00:00");
+  if (!moodDates.has(formatYMD(anchor))) {
+    anchor.setDate(anchor.getDate() - 1);
+    if (!moodDates.has(formatYMD(anchor))) return 0;
   }
-
-  const padding = { top: 20, right: 20, bottom: 30, left: 30 };
-  const width = 600;
-  const height = 200;
-  const chartW = width - padding.left - padding.right;
-  const chartH = height - padding.top - padding.bottom;
-
-  const points = entries.map((e) => {
-    const day = parseInt(e.date.split("-")[2], 10);
-    const x = padding.left + ((day - 1) / Math.max(daysInMonth - 1, 1)) * chartW;
-    const y = padding.top + chartH - ((e.mood - 1) / 9) * chartH;
-    return { x, y, mood: e.mood, day };
-  });
-
-  const linePoints = points.map((p) => `${p.x},${p.y}`).join(" ");
-
-  const xLabels = [1, 5, 10, 15, 20, 25, daysInMonth].filter(
-    (d, i, arr) => d <= daysInMonth && arr.indexOf(d) === i
-  );
-
-  return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto mt-4">
-      {/* Horizontal gridlines */}
-      {[2, 4, 6, 8, 10].map((v) => {
-        const y = padding.top + chartH - ((v - 1) / 9) * chartH;
-        return (
-          <g key={v}>
-            <line
-              x1={padding.left} y1={y} x2={width - padding.right} y2={y}
-              stroke="var(--border-color)" strokeDasharray="4 4"
-            />
-            <text x={padding.left - 8} y={y + 4} textAnchor="end" fill="var(--text-muted)" fontSize="10">
-              {v}
-            </text>
-          </g>
-        );
-      })}
-
-      {/* Area fill */}
-      {points.length > 1 && (
-        <polygon
-          points={`${points[0].x},${padding.top + chartH} ${linePoints} ${points[points.length - 1].x},${padding.top + chartH}`}
-          fill="var(--color-primary-500)" opacity="0.1"
-        />
-      )}
-
-      {/* Line */}
-      {points.length > 1 && (
-        <polyline
-          points={linePoints} fill="none"
-          stroke="var(--color-primary-400)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-        />
-      )}
-
-      {/* Data points */}
-      {points.map((p) => (
-        <circle key={p.day} cx={p.x} cy={p.y} r={4} fill="var(--color-primary-400)" />
-      ))}
-
-      {/* X-axis labels */}
-      {xLabels.map((d) => {
-        const x = padding.left + ((d - 1) / Math.max(daysInMonth - 1, 1)) * chartW;
-        return (
-          <text key={d} x={x} y={height - 5} textAnchor="middle" fill="var(--text-muted)" fontSize="10">
-            {d}
-          </text>
-        );
-      })}
-    </svg>
-  );
+  let streak = 0;
+  const d = new Date(anchor);
+  while (moodDates.has(formatYMD(d))) {
+    streak++;
+    d.setDate(d.getDate() - 1);
+  }
+  return streak;
 }
 
 export default function DashboardPage() {
@@ -134,17 +82,20 @@ export default function DashboardPage() {
   const { t, language } = useTranslation();
   const DAY_NAMES = getDayNames(language);
   const locale = getDateLocale(language);
+
   const [todayMood, setTodayMood] = useState<number | null>(null);
   const [sessionCount, setSessionCount] = useState(0);
   const [journalCount, setJournalCount] = useState(0);
   const [dreamCount, setDreamCount] = useState(0);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [todaySession, setTodaySession] = useState<Session | null>(null);
+  const [todayJournal, setTodayJournal] = useState<JournalEntry | null>(null);
+  const [todayDreams, setTodayDreams] = useState<Dream[]>([]);
 
-  // Calendar state
   const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth());
   const [moodEntries, setMoodEntries] = useState<MoodEntry[]>([]);
 
-  // Computed
   const calendarDays = useMemo(() => getCalendarDays(currentYear, currentMonth), [currentYear, currentMonth]);
   const todayStr = useMemo(() => formatYMD(new Date()), []);
   const moodByDate = useMemo(() => {
@@ -162,7 +113,11 @@ export default function DashboardPage() {
   }, [moodEntries, currentYear, currentMonth]);
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
-  // Load mood entries for calendar range
+  const streak = useMemo(() => {
+    const moodDates = new Set(moodEntries.map((e) => e.date));
+    return computeStreak(moodDates, todayStr);
+  }, [moodEntries, todayStr]);
+
   const loadMoodEntries = useCallback(async () => {
     const days = getCalendarDays(currentYear, currentMonth);
     const startDate = formatYMD(days[0]);
@@ -171,6 +126,18 @@ export default function DashboardPage() {
     setMoodEntries(data);
   }, [currentYear, currentMonth]);
 
+  const loadTodayData = useCallback(async () => {
+    const today = formatYMD(new Date());
+    const [session, journal, dreams] = await Promise.all([
+      getTodaySession(),
+      getJournalEntryByDate(today),
+      getDreamsByDateRange(today, today),
+    ]);
+    setTodaySession(session);
+    setTodayJournal(journal);
+    setTodayDreams(dreams);
+  }, []);
+
   useEffect(() => {
     getTodayMoodEntry().then((entry) => {
       if (entry) setTodayMood(entry.mood);
@@ -178,13 +145,14 @@ export default function DashboardPage() {
     getCompletedSessionCount().then(setSessionCount);
     getJournalEntryCount().then(setJournalCount);
     getDreamCount().then(setDreamCount);
-  }, []);
+    getUserProfile().then(setProfile);
+    loadTodayData();
+  }, [loadTodayData]);
 
   useEffect(() => {
     loadMoodEntries();
   }, [loadMoodEntries]);
 
-  // Month navigation
   const handlePrevMonth = () => {
     setCurrentMonth((m) => {
       if (m === 0) {
@@ -225,88 +193,125 @@ export default function DashboardPage() {
     }
   }
 
+  const firstName = profile?.name?.split(" ")[0] ?? null;
+  const headerGreeting = firstName ? `${t.dashboard.greeting}, ${firstName}` : t.dashboard.greeting;
+
+  const todayDreamEntry = todayDreams[0] ?? null;
+  const hasTodayJournal = todayJournal !== null;
+  const hasTodayDream = todayDreamEntry !== null;
+
+  const truncate = (s: string, n: number) => (s.length > n ? s.slice(0, n).trim() + "..." : s);
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">{t.dashboard.greeting}</h1>
-        <p className="text-[var(--text-muted)]">
-          {new Date().toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" })}
-        </p>
+      <div className="flex items-end justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{headerGreeting}</h1>
+          <p className="text-sm text-[var(--text-muted)] mt-1 capitalize">
+            {new Date().toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" })}
+          </p>
+        </div>
+        {streak >= 2 && (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent-500/15 text-accent-300 text-xs font-semibold border border-accent-500/20">
+            <Flame className="w-3.5 h-3.5" />
+            {streak} {t.dashboard.streakDays}
+          </div>
+        )}
       </div>
 
-      {/* Quick Access */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          { icon: MessageSquare, label: t.dashboard.quickSession, color: "bg-primary-900/30 text-primary-400", path: "/session" },
-          { icon: BookOpen, label: t.dashboard.quickJournal, color: "bg-blue-900/30 text-blue-400", path: "/journal" },
-          { icon: Moon, label: t.dashboard.quickDreams, color: "bg-purple-900/30 text-purple-400", path: "/dreams" },
-          { icon: Lightbulb, label: t.dashboard.quickInsights, color: "bg-amber-900/30 text-amber-400", path: "/insights" },
-        ].map((btn) => (
-          <button
-            key={btn.label}
-            onClick={() => navigate(btn.path)}
-            className="flex items-center gap-3 p-4 rounded-xl border border-[var(--border-color)] hover:border-primary-500/50 hover:bg-[var(--bg-primary)] transition-all"
-          >
-            <div className={`w-10 h-10 rounded-xl ${btn.color} flex items-center justify-center shrink-0`}>
-              <btn.icon className="w-5 h-5" />
+      {/* Hero: Today's Session */}
+      <TodaySessionHero
+        todaySession={todaySession}
+        profile={profile}
+        t={t}
+        onStart={() => navigate("/session")}
+        onContinue={() => navigate("/session")}
+        onView={() => navigate("/session")}
+      />
+
+      {/* Mood Section */}
+      {todayMood === null ? (
+        <Card padding="lg">
+          <MoodPickerScale selected={null} onSelect={handleMoodSelect} t={t} />
+        </Card>
+      ) : (
+        <Card>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-primary-500/10 border border-primary-500/20 shrink-0">
+              <MoodIcon mood={todayMood} className="w-9 h-9" />
             </div>
-            <span className="text-sm font-medium">{btn.label}</span>
-          </button>
-        ))}
-      </div>
-
-       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          { icon: MessageSquare, label: t.dashboard.totalSessions, count: sessionCount, color: "bg-primary-900/30 text-primary-400" },
-          { icon: BookOpen, label: t.dashboard.totalJournal, count: journalCount, color: "bg-blue-900/30 text-blue-400" },
-          { icon: Moon, label: t.dashboard.totalDreams, count: dreamCount, color: "bg-purple-900/30 text-purple-400" },
-        ].map((stat) => (
-          <Card key={stat.label}>
-            <div className="flex flex-col items-center gap-2 text-center">
-              <div className={`w-10 h-10 rounded-xl ${stat.color} flex items-center justify-center`}>
-                <stat.icon className="w-5 h-5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs uppercase tracking-[0.18em] text-primary-400 font-semibold mb-0.5">
+                {t.dashboard.moodQuestion}
+              </p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-[var(--text-primary)]">{todayMood}</span>
+                <span className="text-sm text-[var(--text-muted)]">/ 10</span>
+                <span className="text-sm font-medium text-[var(--text-secondary)] ml-1">
+                  · {getMoodBandLabel(todayMood, t)}
+                </span>
               </div>
-              <span className="text-2xl font-bold">{stat.count}</span>
-              <span className="text-xs text-[var(--text-muted)]">{stat.label}</span>
             </div>
-          </Card>
-        ))}
+            <button
+              onClick={() => setTodayMood(null)}
+              className="flex items-center gap-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors shrink-0"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              {t.dashboard.changeMood}
+            </button>
+          </div>
+        </Card>
+      )}
+
+      {/* Ritual Row: Journal + Dream */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <RitualCard
+          icon={BookOpen}
+          colorBg="bg-blue-900/30 text-blue-400"
+          title={t.dashboard.journalTitle}
+          body={hasTodayJournal ? truncate(todayJournal!.content, 100) : t.dashboard.journalEmptyBody}
+          done={hasTodayJournal}
+          actionLabel={hasTodayJournal ? t.dashboard.viewTodayJournal : t.dashboard.addTodayJournal}
+          actionVariant={hasTodayJournal ? "ghost" : "secondary"}
+          onAction={() => navigate("/journal")}
+          totalCount={journalCount}
+          totalLabel={t.dashboard.totalCountSuffix}
+        />
+        <RitualCard
+          icon={Moon}
+          colorBg="bg-purple-900/30 text-purple-400"
+          title={t.dashboard.dreamsTitle}
+          body={hasTodayDream ? truncate(todayDreamEntry!.content, 100) : t.dashboard.dreamEmptyBody}
+          done={hasTodayDream}
+          actionLabel={hasTodayDream ? t.dashboard.viewLastDream : t.dashboard.addTodayDream}
+          actionVariant={hasTodayDream ? "ghost" : "secondary"}
+          onAction={() => navigate("/dreams")}
+          totalCount={dreamCount}
+          totalLabel={t.dashboard.totalCountSuffix}
+        />
       </div>
 
-
-      {/* Mood Entry */}
-      <Card>
-        {todayMood === null ? (
-          <>
-            <h3 className="text-lg font-semibold mb-4">{t.dashboard.moodQuestion}</h3>
-            <div className="grid grid-cols-5 gap-2">
-              {Array.from({ length: 10 }, (_, i) => i + 1).map((mood) => (
-                <button
-                  key={mood}
-                  onClick={() => handleMoodSelect(mood)}
-                  className="flex flex-col items-center gap-1 p-3 rounded-xl border border-[var(--border-color)] hover:border-primary-500 hover:bg-primary-500/10 transition-all"
-                >
-                  <span className="text-2xl">{MOOD_EMOJIS[mood]}</span>
-                  <span className="text-xs font-medium text-[var(--text-secondary)]">{mood}</span>
-                </button>
-              ))}
+      {/* Mood History (Calendar + Chart) */}
+      {moodEntries.length > 0 && (
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Heart className="w-4 h-4 text-primary-400" />
+              <h3 className="text-sm font-semibold text-[var(--text-secondary)]">
+                {t.dashboard.moodHistoryTitle}
+              </h3>
             </div>
-          </>
-        ) : (
-          <div>
-            {/* Month Navigation */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-1">
               <button
                 onClick={handlePrevMonth}
-                className="p-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-secondary)]"
+                className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-secondary)]"
               >
-                <ChevronLeft className="w-5 h-5" />
+                <ChevronLeft className="w-4 h-4" />
               </button>
               <button
                 onClick={handleGoToToday}
-                className="text-sm font-semibold text-[var(--text-secondary)] capitalize hover:text-[var(--text-primary)] transition-colors"
+                className="text-xs font-semibold text-[var(--text-secondary)] capitalize hover:text-[var(--text-primary)] transition-colors px-2 py-1"
               >
                 {formatMonthYear(currentYear, currentMonth, locale)}
               </button>
@@ -314,79 +319,85 @@ export default function DashboardPage() {
                 onClick={handleNextMonth}
                 disabled={isNextDisabled}
                 className={cn(
-                  "p-2 rounded-lg transition-colors text-[var(--text-secondary)]",
+                  "p-1.5 rounded-lg transition-colors text-[var(--text-secondary)]",
                   isNextDisabled ? "opacity-30 cursor-not-allowed" : "hover:bg-[var(--bg-tertiary)]"
                 )}
               >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Day Headers */}
-            <div className="grid grid-cols-7 gap-1 mb-1">
-              {DAY_NAMES.map((name) => (
-                <div key={name} className="text-center text-xs font-medium text-[var(--text-muted)] py-1">
-                  {name}
-                </div>
-              ))}
-            </div>
-
-            {/* Calendar Grid */}
-            <div className="grid grid-cols-7 gap-1">
-              {calendarDays.map((day) => {
-                const dateStr = formatYMD(day);
-                const isCurrentMonth = day.getMonth() === currentMonth;
-                const isToday = dateStr === todayStr;
-                const isFuture = dateStr > todayStr;
-                const moodEntry = moodByDate.get(dateStr);
-
-                return (
-                  <div
-                    key={dateStr}
-                    className={cn(
-                      "min-h-[56px] p-1.5 rounded-xl border text-center transition-all duration-200 flex flex-col items-center gap-0.5",
-                      isCurrentMonth
-                        ? "bg-[var(--bg-secondary)] border-[var(--border-color)]"
-                        : "bg-[var(--bg-primary)] border-transparent opacity-30",
-                      isToday && "ring-2 ring-primary-500/50 border-primary-500/30",
-                      isFuture && isCurrentMonth && "opacity-40",
-                    )}
-                  >
-                    <span className={cn(
-                      "text-[10px] font-bold self-start",
-                      isToday ? "text-primary-400" : isCurrentMonth ? "text-[var(--text-primary)]" : "text-[var(--text-muted)]"
-                    )}>
-                      {day.getDate()}
-                    </span>
-                    {moodEntry && (
-                      <>
-                        <span className="text-lg leading-none">{MOOD_EMOJIS[moodEntry.mood]}</span>
-                        <span className="text-[10px] text-[var(--text-muted)]">{moodEntry.mood}</span>
-                      </>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Mood Trend Chart */}
-            <MoodChart entries={currentMonthEntries} daysInMonth={daysInMonth} noDataText={t.dashboard.noDataThisMonth} />
-
-            {/* Edit today's mood */}
-            <div className="flex justify-center mt-3">
-              <button
-                onClick={() => setTodayMood(null)}
-                className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] flex items-center gap-1.5 transition-colors"
-              >
-                <Pencil className="w-3.5 h-3.5" />
-                {t.dashboard.changeMood}
+                <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
-        )}
-      </Card>
 
-     
+          <div className="grid grid-cols-7 gap-1 mb-1">
+            {DAY_NAMES.map((name) => (
+              <div key={name} className="text-center text-xs font-medium text-[var(--text-muted)] py-1">
+                {name}
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-7 gap-1">
+            {calendarDays.map((day) => {
+              const dateStr = formatYMD(day);
+              const isCurrentMonth = day.getMonth() === currentMonth;
+              const isToday = dateStr === todayStr;
+              const isFuture = dateStr > todayStr;
+              const moodEntry = moodByDate.get(dateStr);
+
+              return (
+                <div
+                  key={dateStr}
+                  className={cn(
+                    "min-h-[56px] p-1.5 rounded-xl border text-center transition-all duration-200 flex flex-col items-center gap-0.5",
+                    isCurrentMonth
+                      ? "bg-[var(--bg-primary)] border-[var(--border-color)]"
+                      : "bg-transparent border-transparent opacity-30",
+                    isToday && "ring-2 ring-primary-500/50 border-primary-500/30",
+                    isFuture && isCurrentMonth && "opacity-40",
+                  )}
+                >
+                  <span className={cn(
+                    "text-[10px] font-bold self-start",
+                    isToday ? "text-primary-400" : isCurrentMonth ? "text-[var(--text-primary)]" : "text-[var(--text-muted)]"
+                  )}>
+                    {day.getDate()}
+                  </span>
+                  {moodEntry && (
+                    <>
+                      <MoodIcon mood={moodEntry.mood} className="w-5 h-5" />
+                      <span className="text-[10px] text-[var(--text-muted)]">{moodEntry.mood}</span>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <MoodChart entries={currentMonthEntries} daysInMonth={daysInMonth} noDataText={t.dashboard.noDataThisMonth} />
+        </Card>
+      )}
+
+      {/* Stats Summary */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { icon: MessageSquare, label: t.dashboard.totalSessions, count: sessionCount, color: "bg-primary-900/30 text-primary-400" },
+          { icon: BookOpen, label: t.dashboard.totalJournal, count: journalCount, color: "bg-blue-900/30 text-blue-400" },
+          { icon: Moon, label: t.dashboard.totalDreams, count: dreamCount, color: "bg-purple-900/30 text-purple-400" },
+        ].map((stat) => (
+          <div
+            key={stat.label}
+            className="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-secondary)]/50 border border-[var(--border-color)]"
+          >
+            <div className={`w-9 h-9 rounded-lg ${stat.color} flex items-center justify-center shrink-0`}>
+              <stat.icon className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-lg font-bold leading-none">{stat.count}</div>
+              <div className="text-[10px] text-[var(--text-muted)] mt-1 truncate">{stat.label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

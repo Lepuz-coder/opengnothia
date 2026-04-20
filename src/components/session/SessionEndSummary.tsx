@@ -3,12 +3,12 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Loader2, Lightbulb, X, Pencil, Plus, Check } from "lucide-react";
+import { Loader2, Lightbulb, X, Pencil, Plus, Check, Sparkles } from "lucide-react";
 import { useTranslation } from "@/i18n";
 import { cn } from "@/lib/cn";
-import { getInsightGroups } from "@/services/db/queries";
+import { getInsightGroups, getInsightsByIds } from "@/services/db/queries";
 import { EMOJI_PRESETS, COLOR_PRESETS } from "@/constants/insightPresets";
-import type { ExtractedInsight, InsightGroup } from "@/types";
+import type { ExtractedInsight, Insight, InsightGroup } from "@/types";
 
 interface SessionEndSummaryProps {
   summaryNarrative: string;
@@ -21,6 +21,8 @@ interface SessionEndSummaryProps {
   onRemoveInsight: (id: string) => void;
   onUpdateInsight: (id: string, content: string) => void;
   onAddInsight: (insight: ExtractedInsight) => void;
+  sessionInsightIds: string[];
+  onAcceptExtractedInsight: (insight: ExtractedInsight) => Promise<void>;
 }
 
 function groupInsightsForDisplay(insights: ExtractedInsight[]) {
@@ -73,6 +75,8 @@ export function SessionEndSummary({
   onRemoveInsight,
   onUpdateInsight,
   onAddInsight,
+  sessionInsightIds,
+  onAcceptExtractedInsight,
 }: SessionEndSummaryProps) {
   const { t } = useTranslation();
 
@@ -99,6 +103,11 @@ export function SessionEndSummary({
   for (let i = stepThresholds.length - 1; i >= 0; i--) {
     if (progress >= stepThresholds[i]) { stepIndex = i; break; }
   }
+
+  // User-added insights from the active session (persisted via panel)
+  const [userInsights, setUserInsights] = useState<Insight[]>([]);
+  const [userInsightsLoading, setUserInsightsLoading] = useState(false);
+  const [acceptingId, setAcceptingId] = useState<string | null>(null);
 
   // Inline editing state
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -129,6 +138,41 @@ export function SessionEndSummary({
       return [];
     }
   };
+
+  // Load user-added insights (from panel) + keep dbGroups fresh to display them
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      if (sessionInsightIds.length === 0) {
+        setUserInsights([]);
+        return;
+      }
+      setUserInsightsLoading(true);
+      try {
+        const [insights, groups] = await Promise.all([
+          getInsightsByIds(sessionInsightIds),
+          dbGroupsLoaded ? Promise.resolve(dbGroups) : getInsightGroups(),
+        ]);
+        if (cancelled) return;
+        const order = new Map(sessionInsightIds.map((id, idx) => [id, idx]));
+        insights.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+        setUserInsights(insights);
+        if (!dbGroupsLoaded) {
+          setDbGroups(groups);
+          setDbGroupsLoaded(true);
+        }
+      } catch {
+        if (!cancelled) setUserInsights([]);
+      } finally {
+        if (!cancelled) setUserInsightsLoading(false);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionInsightIds]);
 
   const selectFirstGroup = (groups: InsightGroup[]) => {
     const sessionNewGroups = getNewGroupsFromInsights(extractedInsights);
@@ -256,12 +300,61 @@ export function SessionEndSummary({
         )}
       </Card>
 
-      {/* Extracted insights */}
-      {(isExtractingInsights || extractedInsights.length > 0 || insightExtractionError || showAddForm) && (
+      {/* User-added insights (from the active session panel) */}
+      {(userInsights.length > 0 || userInsightsLoading) && (
         <Card>
           <h3 className="font-semibold mb-3 flex items-center gap-2">
             <Lightbulb className="w-4 h-4" />
-            {t.session.extractedInsights}
+            {t.session.yourSessionInsights}
+            <span className="text-xs font-normal text-[var(--text-muted)] tabular-nums">
+              · {userInsights.length}
+            </span>
+          </h3>
+          {userInsightsLoading ? (
+            <div className="space-y-3 animate-pulse">
+              <div className="h-3 bg-[var(--bg-tertiary)] rounded w-full" />
+              <div className="h-3 bg-[var(--bg-tertiary)] rounded w-5/6" />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {(() => {
+                const byGroup = new Map<string, { group: InsightGroup | null; insights: Insight[] }>();
+                for (const insight of userInsights) {
+                  const key = insight.group_id;
+                  const group = dbGroups.find((g) => g.id === key) ?? null;
+                  const existing = byGroup.get(key);
+                  if (existing) existing.insights.push(insight);
+                  else byGroup.set(key, { group, insights: [insight] });
+                }
+                return Array.from(byGroup.values()).map(({ group, insights }) => (
+                  <div key={group?.id ?? "unknown"} className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">{group?.emoji ?? "💡"}</span>
+                      <span className="text-sm font-medium text-[var(--text-primary)]">
+                        {group?.name ?? "—"}
+                      </span>
+                    </div>
+                    {insights.map((insight) => (
+                      <div key={insight.id} className="pl-7">
+                        <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+                          {insight.content}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ));
+              })()}
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* AI-suggested insights */}
+      {(isExtractingInsights || extractedInsights.length > 0 || insightExtractionError || showAddForm) && (
+        <Card>
+          <h3 className="font-semibold mb-3 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-purple-400" />
+            {t.session.aiSuggestedInsights}
           </h3>
 
           {isExtractingInsights ? (
@@ -319,28 +412,55 @@ export function SessionEndSummary({
                             </div>
                           </div>
                         ) : (
-                          <div className="flex items-start gap-2 group/insight">
-                            <p className="flex-1 text-sm text-[var(--text-secondary)] leading-relaxed">
-                              {insight.content}
-                            </p>
-                            <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover/insight:opacity-100 transition-all">
+                          <div className="rounded-xl border border-[var(--border-color)]/60 bg-[var(--bg-primary)] p-3 space-y-2.5 group/insight">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 font-medium uppercase tracking-wide">
+                                <Sparkles className="w-3 h-3" />
+                                {t.session.aiCreatedBadge}
+                              </span>
                               <button
                                 onClick={() => {
                                   setEditingId(insight.id);
                                   setEditContent(insight.content);
                                 }}
-                                className="p-1 rounded-lg hover:bg-[var(--bg-tertiary)] transition-all"
+                                className="ml-auto p-1 rounded-lg hover:bg-[var(--bg-tertiary)] transition-all opacity-0 group-hover/insight:opacity-100"
                                 title={t.common.edit}
                               >
                                 <Pencil className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                               </button>
-                              <button
+                            </div>
+                            <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+                              {insight.content}
+                            </p>
+                            <div className="flex items-center justify-end gap-2 pt-1">
+                              <Button
+                                variant="secondary"
+                                size="sm"
                                 onClick={() => onRemoveInsight(insight.id)}
-                                className="p-1 rounded-lg hover:bg-red-500/10 transition-all"
-                                title={t.common.delete}
+                                disabled={acceptingId === insight.id}
                               >
-                                <X className="w-3.5 h-3.5 text-red-400" />
-                              </button>
+                                <X className="w-3.5 h-3.5" />
+                                {t.session.rejectInsight}
+                              </Button>
+                              <Button
+                                size="sm"
+                                disabled={acceptingId !== null}
+                                onClick={async () => {
+                                  setAcceptingId(insight.id);
+                                  try {
+                                    await onAcceptExtractedInsight(insight);
+                                  } finally {
+                                    setAcceptingId(null);
+                                  }
+                                }}
+                              >
+                                {acceptingId === insight.id ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <Check className="w-3.5 h-3.5" />
+                                )}
+                                {t.session.acceptInsight}
+                              </Button>
                             </div>
                           </div>
                         )}

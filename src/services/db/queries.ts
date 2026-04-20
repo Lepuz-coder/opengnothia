@@ -547,6 +547,17 @@ export async function getInsightsByGroupId(groupId: string): Promise<Insight[]> 
   return rows.map((r) => ({ ...r, is_pinned: Boolean(r.is_pinned) }));
 }
 
+export async function getInsightsByIds(ids: string[]): Promise<Insight[]> {
+  if (ids.length === 0) return [];
+  const db = await getDatabase();
+  const placeholders = ids.map(() => "?").join(",");
+  const rows = await db.select<Insight[]>(
+    `SELECT * FROM insights WHERE id IN (${placeholders}) ORDER BY created_at ASC`,
+    ids
+  );
+  return rows.map((r) => ({ ...r, is_pinned: Boolean(r.is_pinned) }));
+}
+
 export async function createInsight(data: {
   group_id: string;
   content: string;

@@ -24,6 +24,10 @@ interface SessionState {
   isExtractingInsights: boolean;
   insightExtractionError: boolean;
   sessionMode: SessionMode;
+  insightsPanelOpen: boolean;
+  sessionInsightIds: string[];
+  pendingInsightDraft: string;
+  pendingGroupId: string | null;
 
   setStatus: (status: SessionStatus) => void;
   startSession: (moodBefore: number) => void;
@@ -60,6 +64,13 @@ interface SessionState {
   updateExtractedInsight: (id: string, content: string) => void;
   addExtractedInsight: (insight: ExtractedInsight) => void;
   setSessionMode: (mode: SessionMode) => void;
+
+  toggleInsightsPanel: () => void;
+  setInsightsPanelOpen: (open: boolean) => void;
+  addSessionInsightId: (id: string) => void;
+  removeSessionInsightId: (id: string) => void;
+  setPendingInsightDraft: (text: string) => void;
+  setPendingGroupId: (id: string | null) => void;
 }
 
 function generateId() {
@@ -89,6 +100,10 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   isExtractingInsights: false,
   insightExtractionError: false,
   sessionMode: "chat",
+  insightsPanelOpen: false,
+  sessionInsightIds: [],
+  pendingInsightDraft: "",
+  pendingGroupId: null,
 
   setStatus: (status) => set({ status }),
 
@@ -109,6 +124,10 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       isCompacting: false,
       compactedContext: null,
       compactedAtIndex: 0,
+      insightsPanelOpen: false,
+      sessionInsightIds: [],
+      pendingInsightDraft: "",
+      pendingGroupId: null,
     }),
 
   addMessage: (message) =>
@@ -146,6 +165,10 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       isExtractingInsights: false,
       insightExtractionError: false,
       sessionMode: "chat",
+      insightsPanelOpen: false,
+      sessionInsightIds: [],
+      pendingInsightDraft: "",
+      pendingGroupId: null,
     }),
 
   startStreaming: () => {
@@ -275,4 +298,13 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   addExtractedInsight: (insight) =>
     set((s) => ({ extractedInsights: [...s.extractedInsights, insight] })),
   setSessionMode: (sessionMode) => set({ sessionMode }),
+
+  toggleInsightsPanel: () => set((s) => ({ insightsPanelOpen: !s.insightsPanelOpen })),
+  setInsightsPanelOpen: (insightsPanelOpen) => set({ insightsPanelOpen }),
+  addSessionInsightId: (id) =>
+    set((s) => ({ sessionInsightIds: [...s.sessionInsightIds, id] })),
+  removeSessionInsightId: (id) =>
+    set((s) => ({ sessionInsightIds: s.sessionInsightIds.filter((x) => x !== id) })),
+  setPendingInsightDraft: (pendingInsightDraft) => set({ pendingInsightDraft }),
+  setPendingGroupId: (pendingGroupId) => set({ pendingGroupId }),
 }));

@@ -33,9 +33,10 @@ import { getAllSchools, getSchoolById } from "@/stores/useSchoolsStore";
 import { providers, getProvider, modelSupportsThinking } from "@/constants/providers";
 import { ErrorModal } from "@/components/ui/ErrorModal";
 import { testTranscriptApiKey } from "@/services/ai/ttsService";
-import { Square, Loader2, FileText, Sparkles, Mic, MessageSquare, Pause, Play } from "lucide-react";
+import { Square, Loader2, FileText, Sparkles, Mic, MessageSquare, Pause, Play, Lightbulb, ChevronRight } from "lucide-react";
 import { useVoiceConversation, type VoiceLoopStatus } from "@/hooks/useVoiceConversation";
 import { VoiceConversationView } from "@/components/session/VoiceConversationView";
+import { SessionInsightsPanel } from "@/components/session/SessionInsightsPanel";
 import type { AIProvider, ChatMessage, ThinkingLevel, TokenUsage, ExtractedInsight, SessionMode } from "@/types";
 import { createBufferedTextStream } from "@/lib/createBufferedTextStream";
 
@@ -709,6 +710,8 @@ export default function SessionPage() {
     }
   }, [settings, navigate, setSidebarHidden]);
 
+  const acceptedGroupIdMap = useRef<Map<string, string>>(new Map());
+
   const handleSaveAndClose = useCallback(async () => {
     setSaving(true);
     const state = useSessionStore.getState();
@@ -719,43 +722,38 @@ export default function SessionPage() {
         summary_narrative: state.summaryNarrative || undefined,
       });
     }
-
-    // Persist extracted insights
-    const insightsToSave = state.extractedInsights;
-    if (insightsToSave.length > 0) {
-      const newGroupIdMap = new Map<string, string>();
-      for (const insight of insightsToSave) {
-        let targetGroupId = insight.group_id;
-
-        if (!targetGroupId && insight.new_group) {
-          const groupKey = insight.new_group.name;
-          if (newGroupIdMap.has(groupKey)) {
-            targetGroupId = newGroupIdMap.get(groupKey)!;
-          } else {
-            targetGroupId = await createInsightGroup({
-              name: insight.new_group.name,
-              emoji: insight.new_group.emoji,
-              description: insight.new_group.description,
-              color: insight.new_group.color,
-            });
-            newGroupIdMap.set(groupKey, targetGroupId);
-          }
-        }
-
-        if (targetGroupId) {
-          await createInsight({
-            group_id: targetGroupId,
-            content: insight.content,
-          });
-        }
-      }
-    }
-
+    acceptedGroupIdMap.current.clear();
     session.reset();
     setSidebarHidden(false);
     setSaving(false);
     navigate("/dashboard");
   }, [navigate, setSidebarHidden]);
+
+  const handleAcceptExtractedInsight = useCallback(async (insight: ExtractedInsight) => {
+    let targetGroupId = insight.group_id;
+    if (!targetGroupId && insight.new_group) {
+      const groupKey = insight.new_group.name;
+      const cached = acceptedGroupIdMap.current.get(groupKey);
+      if (cached) {
+        targetGroupId = cached;
+      } else {
+        targetGroupId = await createInsightGroup({
+          name: insight.new_group.name,
+          emoji: insight.new_group.emoji,
+          description: insight.new_group.description,
+          color: insight.new_group.color,
+        });
+        acceptedGroupIdMap.current.set(groupKey, targetGroupId);
+      }
+    }
+    if (!targetGroupId) return;
+    const newInsightId = await createInsight({
+      group_id: targetGroupId,
+      content: insight.content,
+    });
+    useSessionStore.getState().addSessionInsightId(newInsightId);
+    useSessionStore.getState().removeExtractedInsight(insight.id);
+  }, []);
 
   // Viewing a past session
   if (viewingSessionId) {
@@ -1034,6 +1032,8 @@ export default function SessionPage() {
           onRemoveInsight={(id) => useSessionStore.getState().removeExtractedInsight(id)}
           onUpdateInsight={(id, content) => useSessionStore.getState().updateExtractedInsight(id, content)}
           onAddInsight={(insight) => useSessionStore.getState().addExtractedInsight(insight)}
+          sessionInsightIds={session.sessionInsightIds}
+          onAcceptExtractedInsight={handleAcceptExtractedInsight}
         />
         <ErrorModal
           isOpen={errorModalInfo !== null}
@@ -1115,49 +1115,77 @@ export default function SessionPage() {
           >
             {t.session.endSession}
           </button>
+          <button
+            onClick={() => session.toggleInsightsPanel()}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+              session.insightsPanelOpen
+                ? "bg-primary-500/10 text-primary-400"
+                : "hover:bg-[var(--bg-tertiary)]"
+            }`}
+          >
+            <Lightbulb className="w-4 h-4" />
+            {t.session.myInsights}
+            {session.sessionInsightIds.length > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full bg-primary-500/20 text-primary-400 text-xs tabular-nums">
+                {session.sessionInsightIds.length}
+              </span>
+            )}
+            <ChevronRight
+              className={`w-3.5 h-3.5 transition-transform ${
+                session.insightsPanelOpen ? "rotate-180" : ""
+              }`}
+            />
+          </button>
         </div>
       </div>
 
-      {/* Content area: voice mode vs chat mode */}
-      {session.sessionMode === "voice" && voiceLoop.status !== "idle" ? (
-        <VoiceConversationView
-          voiceStatus={voiceLoop.status}
-          currentAIText={voiceLoop.currentAIText}
-          lastUserTranscript={voiceLoop.lastUserTranscript}
-          isStreaming={session.isStreaming}
-          audioLevel={voiceLoop.recorder.audioLevel}
-          onRecordingStop={voiceLoop.handleRecordingStop}
-          onConfirmTranscript={voiceLoop.confirmTranscript}
-          onRetryRecording={voiceLoop.retryRecording}
-          error={voiceLoop.error}
-        />
-      ) : (
-        <>
-          {/* Chat */}
-          <ChatContainer messages={session.messages} isLoading={session.isLoading} isStreaming={session.isStreaming} isCompacting={session.isCompacting} />
+      {/* Content area with optional right insights panel */}
+      <div className="flex flex-1 min-h-0">
+        <div className="flex flex-col flex-1 min-w-0">
+          {session.sessionMode === "voice" && voiceLoop.status !== "idle" ? (
+            <VoiceConversationView
+              voiceStatus={voiceLoop.status}
+              currentAIText={voiceLoop.currentAIText}
+              lastUserTranscript={voiceLoop.lastUserTranscript}
+              isStreaming={session.isStreaming}
+              audioLevel={voiceLoop.recorder.audioLevel}
+              onRecordingStop={voiceLoop.handleRecordingStop}
+              onConfirmTranscript={voiceLoop.confirmTranscript}
+              onRetryRecording={voiceLoop.retryRecording}
+              error={voiceLoop.error}
+            />
+          ) : (
+            <>
+              {/* Chat */}
+              <ChatContainer messages={session.messages} isLoading={session.isLoading} isStreaming={session.isStreaming} isCompacting={session.isCompacting} />
 
-          {/* Input */}
-          <ChatInput
-            ref={chatInputRef}
-            onSend={(msg) => {
-              if (session.sessionMode === "voice" && voiceLoop.status !== "idle") {
-                voiceLoop.pauseLoop();
-              }
-              handleSendMessage(msg);
-            }}
-            disabled={session.isLoading || session.isStreaming || session.isCompacting}
-            recordingState={recorder.state}
-            audioLevel={recorder.audioLevel}
-            onMicClick={handleMicClick}
-            onMicStop={handleMicStop}
-          />
-          {recorder.error && (
-            <div className="px-4 -mt-3 pb-2">
-              <p className="text-xs text-red-400 text-center">{recorder.error}</p>
-            </div>
+              {/* Input */}
+              <ChatInput
+                ref={chatInputRef}
+                onSend={(msg) => {
+                  if (session.sessionMode === "voice" && voiceLoop.status !== "idle") {
+                    voiceLoop.pauseLoop();
+                  }
+                  handleSendMessage(msg);
+                }}
+                disabled={session.isLoading || session.isStreaming || session.isCompacting}
+                recordingState={recorder.state}
+                audioLevel={recorder.audioLevel}
+                onMicClick={handleMicClick}
+                onMicStop={handleMicStop}
+              />
+              {recorder.error && (
+                <div className="px-4 -mt-3 pb-2">
+                  <p className="text-xs text-red-400 text-center">{recorder.error}</p>
+                </div>
+              )}
+            </>
           )}
-        </>
-      )}
+        </div>
+        {session.insightsPanelOpen && (
+          <SessionInsightsPanel onClose={() => session.setInsightsPanelOpen(false)} />
+        )}
+      </div>
 
       {/* Transcript API key modal */}
       <TranscriptApiKeyModal

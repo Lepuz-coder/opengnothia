@@ -160,6 +160,15 @@ export interface Translations {
     newGroupName: string;
     selectGroupForInsight: string;
     createNewGroup: string;
+    myInsights: string;
+    insightsPanelTitle: string;
+    noSessionInsights: string;
+    yourSessionInsights: string;
+    aiSuggestedInsights: string;
+    aiCreatedBadge: string;
+    acceptInsight: string;
+    rejectInsight: string;
+    selectGroupFirst: string;
   };
   journal: {
     title: string;

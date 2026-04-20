@@ -24,7 +24,7 @@ import type { PastSessionsListHandle, WeekSummaryInfo } from "@/components/sessi
 import { PastSessionDetail } from "@/components/session/PastSessionDetail";
 import { sendMessage, streamMessage, testApiKey } from "@/services/ai/aiService";
 import { AIError } from "@/services/ai/AIError";
-import { getErrorDisplayInfo, type ErrorDisplayInfo } from "@/services/ai/errorMessages";
+import { getErrorDisplayInfo, buildErrorDetails, type ErrorDisplayInfo } from "@/services/ai/errorMessages";
 import { calculateCost } from "@/services/ai/costCalculator";
 import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildPatientNotesUpdatePrompt, buildCompactionPrompt, buildInsightExtractionPrompt, GREETING_TRIGGER, BACKGROUND_NOTES_SYSTEM_PROMPT, SESSION_SUMMARY_SYSTEM_PROMPT, INSIGHT_EXTRACTION_SYSTEM_PROMPT } from "@/services/ai/promptBuilder";
 import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
@@ -230,7 +230,7 @@ export default function SessionPage() {
           }
           store.finishStreaming();
           const statusCode = error instanceof AIError ? error.statusCode : undefined;
-          setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider));
+          setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider, error));
         },
       });
 
@@ -242,7 +242,7 @@ export default function SessionPage() {
     } catch (err) {
       session.finishStreaming();
       const statusCode = err instanceof AIError ? err.statusCode : undefined;
-      setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider));
+      setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider, err));
     }
   }, [settings]);
 
@@ -415,7 +415,7 @@ export default function SessionPage() {
           }
           store.finishStreaming();
           const statusCode = error instanceof AIError ? error.statusCode : undefined;
-          setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider));
+          setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider, error));
         },
       });
 
@@ -436,7 +436,7 @@ export default function SessionPage() {
     } catch (err) {
       session.finishStreaming();
       const statusCode = err instanceof AIError ? err.statusCode : undefined;
-      setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider));
+      setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider, err));
     }
   }, [settings, performCompaction]);
 
@@ -698,14 +698,14 @@ export default function SessionPage() {
           session.setSummary({ themes: [], defenses: [], insights: [], homework: [] });
           useSessionStore.getState().finishSummaryStream();
           const statusCode = error instanceof AIError ? error.statusCode : undefined;
-          setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider));
+          setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider, error));
         },
       });
     } catch (err) {
       session.setSummary({ themes: [], defenses: [], insights: [], homework: [] });
       useSessionStore.getState().finishSummaryStream();
       const statusCode = err instanceof AIError ? err.statusCode : undefined;
-      setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider));
+      setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider, err));
     }
   }, [settings, navigate, setSidebarHidden]);
 
@@ -913,7 +913,8 @@ export default function SessionPage() {
                 setStartModalOpen(false);
                 setSchoolPickerOpen(false);
                 setErrorSettingsPath("/settings");
-                setErrorModalInfo(getErrorDisplayInfo(t, result.statusCode, settings.provider));
+                const errForDetails = new AIError(result.error ?? "", result.statusCode, result.rawBody);
+                setErrorModalInfo(getErrorDisplayInfo(t, result.statusCode, settings.provider, errForDetails));
                 return;
               }
               // Validate voice API key if voice mode selected
@@ -938,11 +939,13 @@ export default function SessionPage() {
                   setStartModalOpen(false);
                   setSchoolPickerOpen(false);
                   setErrorSettingsPath("/settings?tab=voice");
+                  const voiceErrForDetails = new AIError("Voice API key test failed", voiceResult.statusCode, voiceResult.rawBody);
                   setErrorModalInfo({
                     title: t.voice.apiKeyErrorTitle,
                     message: t.voice.apiKeyError,
                     showSettingsLink: true,
                     settingsButtonLabel: t.voice.goToVoiceSettings,
+                    details: buildErrorDetails(voiceErrForDetails),
                   });
                   return;
                 }
@@ -1009,6 +1012,7 @@ export default function SessionPage() {
           message={errorModalInfo?.message ?? ""}
           showSettingsLink={errorModalInfo?.showSettingsLink ?? false}
           settingsButtonLabel={errorModalInfo?.settingsButtonLabel}
+          details={errorModalInfo?.details}
           onGoToSettings={() => { setErrorModalInfo(null); navigate(errorSettingsPath); }}
         />
       </div>
@@ -1037,6 +1041,7 @@ export default function SessionPage() {
           title={errorModalInfo?.title ?? ""}
           message={errorModalInfo?.message ?? ""}
           showSettingsLink={errorModalInfo?.showSettingsLink ?? false}
+          details={errorModalInfo?.details}
           onGoToSettings={() => { setErrorModalInfo(null); navigate("/settings"); }}
         />
       </>
@@ -1191,6 +1196,7 @@ export default function SessionPage() {
         title={errorModalInfo?.title ?? ""}
         message={errorModalInfo?.message ?? ""}
         showSettingsLink={errorModalInfo?.showSettingsLink ?? false}
+        details={errorModalInfo?.details}
         onGoToSettings={() => { setErrorModalInfo(null); navigate("/settings"); }}
       />
     </div>

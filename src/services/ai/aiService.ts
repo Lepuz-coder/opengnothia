@@ -34,7 +34,7 @@ export async function testApiKey(params: {
   apiKey: string;
   model: string;
   customBaseUrl?: string;
-}): Promise<{ success: boolean; error?: string; statusCode?: number }> {
+}): Promise<{ success: boolean; error?: string; statusCode?: number; rawBody?: string }> {
   const lang = getCurrentLanguage();
   const t = getTranslation(lang);
   try {
@@ -46,7 +46,8 @@ export async function testApiKey(params: {
     return { success: result.content.length > 0 };
   } catch (err) {
     const statusCode = err instanceof AIError ? err.statusCode : undefined;
-    return { success: false, error: err instanceof Error ? err.message : t.errors.unknown, statusCode };
+    const rawBody = err instanceof AIError ? err.rawBody : undefined;
+    return { success: false, error: err instanceof Error ? err.message : t.errors.unknown, statusCode, rawBody };
   }
 }
 

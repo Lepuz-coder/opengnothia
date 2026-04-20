@@ -369,6 +369,10 @@ export const en: Translations = {
     status529Message: "The Anthropic API is currently overloaded. Please wait a moment and try again.",
     unknownStatusTitle: "API Error",
     unknownStatusMessage: "An unexpected error occurred while communicating with the AI service. Check your balance and api then try again.",
+    showDetails: "Show details",
+    hideDetails: "Hide details",
+    copyDetails: "Copy",
+    copied: "Copied",
   },
   sidebar: {
     noteTaking: "Taking notes...",

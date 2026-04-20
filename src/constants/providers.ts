@@ -10,6 +10,16 @@ export const providers: AIProviderConfig[] = [
     models: [
       // Claude Opus
       {
+        id: "claude-opus-4-7",
+        name: "Claude Opus 4.7",
+        contextWindow: 200000,
+        costPer1kInput: 0.005,
+        costPer1kOutput: 0.025,
+        supportsThinking: true,
+        supportsAdaptiveThinking: true,
+        requiresAdaptiveThinking: true,
+      },
+      {
         id: "claude-opus-4-6",
         name: "Claude Opus 4.6",
         contextWindow: 200000,
@@ -102,6 +112,38 @@ export const providers: AIProviderConfig[] = [
     requiresKey: true,
     models: [
       // GPT-5 Serisi
+      {
+        id: "gpt-5.4",
+        name: "GPT-5.4",
+        contextWindow: 400000,
+        costPer1kInput: 0.0025,
+        costPer1kOutput: 0.015,
+        supportsThinking: true,
+      },
+      {
+        id: "gpt-5.4-mini",
+        name: "GPT-5.4 Mini",
+        contextWindow: 400000,
+        costPer1kInput: 0.00075,
+        costPer1kOutput: 0.0045,
+        supportsThinking: true,
+      },
+      {
+        id: "gpt-5.4-pro",
+        name: "GPT-5.4 Pro",
+        contextWindow: 400000,
+        costPer1kInput: 0.03,
+        costPer1kOutput: 0.18,
+        supportsThinking: true,
+      },
+      {
+        id: "gpt-5.3",
+        name: "GPT-5.3",
+        contextWindow: 400000,
+        costPer1kInput: 0.0015,
+        costPer1kOutput: 0.012,
+        supportsThinking: true,
+      },
       {
         id: "gpt-5.2",
         name: "GPT-5.2",
@@ -208,4 +250,11 @@ export function modelSupportsAdaptiveThinking(providerId: string, modelId: strin
   if (!provider) return false;
   const model = provider.models.find((m) => m.id === modelId);
   return model?.supportsAdaptiveThinking ?? false;
+}
+
+export function modelRequiresAdaptiveThinking(providerId: string, modelId: string): boolean {
+  const provider = getProvider(providerId);
+  if (!provider) return false;
+  const model = provider.models.find((m) => m.id === modelId);
+  return model?.requiresAdaptiveThinking ?? false;
 }

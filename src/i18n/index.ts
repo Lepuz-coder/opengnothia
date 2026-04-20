@@ -371,6 +371,10 @@ export interface Translations {
     status529Message: string;
     unknownStatusTitle: string;
     unknownStatusMessage: string;
+    showDetails: string;
+    hideDetails: string;
+    copyDetails: string;
+    copied: string;
   };
   sidebar: {
     noteTaking: string;

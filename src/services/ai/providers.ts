@@ -1,4 +1,5 @@
 import type { AIProvider, ChatMessage, ThinkingLevel, ThinkingType, TokenUsage } from "@/types";
+import { modelRequiresAdaptiveThinking } from "@/constants/providers";
 
 interface SendMessageParams {
   provider: AIProvider;
@@ -241,7 +242,8 @@ const anthropicAdapter: ProviderAdapter = {
     };
     if (thinkingEnabled) {
       const level = thinkingLevel ?? "medium";
-      if (thinkingType === "adaptive") {
+      const useAdaptive = thinkingType === "adaptive" || modelRequiresAdaptiveThinking("anthropic", model);
+      if (useAdaptive) {
         body.thinking = { type: "adaptive" };
         body.output_config = { effort: ADAPTIVE_EFFORT[level] };
         body.max_tokens = ADAPTIVE_MAX_TOKENS[level];
@@ -287,7 +289,8 @@ const anthropicAdapter: ProviderAdapter = {
     };
     if (thinkingEnabled) {
       const level = thinkingLevel ?? "medium";
-      if (thinkingType === "adaptive") {
+      const useAdaptive = thinkingType === "adaptive" || modelRequiresAdaptiveThinking("anthropic", model);
+      if (useAdaptive) {
         body.thinking = { type: "adaptive" };
         body.output_config = { effort: ADAPTIVE_EFFORT[level] };
         body.max_tokens = ADAPTIVE_MAX_TOKENS[level];

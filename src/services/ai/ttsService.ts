@@ -11,7 +11,7 @@ export interface TTSResult {
   characterCount: number;
 }
 
-export async function testTranscriptApiKey(apiKey: string): Promise<{ success: boolean; statusCode?: number }> {
+export async function testTranscriptApiKey(apiKey: string): Promise<{ success: boolean; statusCode?: number; rawBody?: string }> {
   try {
     const response = await fetch("https://api.openai.com/v1/audio/speech", {
       method: "POST",
@@ -27,11 +27,12 @@ export async function testTranscriptApiKey(apiKey: string): Promise<{ success: b
       }),
     });
     if (!response.ok) {
-      return { success: false, statusCode: response.status };
+      const rawBody = await response.text().catch(() => undefined);
+      return { success: false, statusCode: response.status, rawBody };
     }
     return { success: true };
-  } catch {
-    return { success: false };
+  } catch (err) {
+    return { success: false, rawBody: err instanceof Error ? `${err.name}: ${err.message}` : String(err) };
   }
 }
 

@@ -13,7 +13,7 @@ import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useSchoolsStore } from "@/stores/useSchoolsStore";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslation } from "@/i18n";
-import { providers, getProvider, modelSupportsThinking, modelSupportsAdaptiveThinking } from "@/constants/providers";
+import { providers, getProvider, modelSupportsThinking, modelSupportsAdaptiveThinking, modelRequiresAdaptiveThinking } from "@/constants/providers";
 import { getUserProfile, upsertUserProfile, clearAllData } from "@/services/db/queries";
 import { Modal } from "@/components/ui/Modal";
 import { invoke } from "@tauri-apps/api/core";
@@ -85,7 +85,7 @@ export default function SettingsPage() {
   const providerOptions = providers.map((p) => ({ value: p.id, label: p.name }));
   const modelOptions = currentProvider?.models.map((m) => ({
     value: m.id,
-    label: m.id === "claude-opus-4-6" ? `${m.name} (${t.settings.recommended})` : m.name,
+    label: m.id === "claude-opus-4-7" ? `${m.name} (${t.settings.recommended})` : m.name,
   })) ?? [];
   const memoryModelOptions = currentProvider?.models.map((m) => {
     const baseName = m.name.replace(` (${t.settings.recommended})`, "").replace(" (Recommended)", "").replace(" (Önerilen)", "");
@@ -96,8 +96,10 @@ export default function SettingsPage() {
   }) ?? [];
   const showThinkingToggle = modelSupportsThinking(settings.provider, settings.model);
   const showMemoryThinkingToggle = modelSupportsThinking(settings.provider, settings.memoryModel);
-  const showAdaptiveOption = modelSupportsAdaptiveThinking(settings.provider, settings.model);
-  const showMemoryAdaptiveOption = modelSupportsAdaptiveThinking(settings.provider, settings.memoryModel);
+  const chatRequiresAdaptive = modelRequiresAdaptiveThinking(settings.provider, settings.model);
+  const memoryRequiresAdaptive = modelRequiresAdaptiveThinking(settings.provider, settings.memoryModel);
+  const showAdaptiveOption = modelSupportsAdaptiveThinking(settings.provider, settings.model) && !chatRequiresAdaptive;
+  const showMemoryAdaptiveOption = modelSupportsAdaptiveThinking(settings.provider, settings.memoryModel) && !memoryRequiresAdaptive;
 
   async function handleSave() {
     const store = await loadSettings();
@@ -463,7 +465,9 @@ export default function SettingsPage() {
                 if (!modelSupportsThinking(settings.provider, e.target.value)) {
                   settings.setThinkingEnabled(false);
                 }
-                settings.setThinkingType("budget");
+                settings.setThinkingType(
+                  modelRequiresAdaptiveThinking(settings.provider, e.target.value) ? "adaptive" : "budget",
+                );
               }}
             />
           )}
@@ -531,7 +535,9 @@ export default function SettingsPage() {
                 if (!modelSupportsThinking(settings.provider, e.target.value)) {
                   settings.setMemoryThinkingEnabled(false);
                 }
-                settings.setMemoryThinkingType("budget");
+                settings.setMemoryThinkingType(
+                  modelRequiresAdaptiveThinking(settings.provider, e.target.value) ? "adaptive" : "budget",
+                );
               }}
             />
           )}

@@ -96,6 +96,7 @@ export interface AIModel {
   costPer1kOutput?: number;
   supportsThinking?: boolean;
   supportsAdaptiveThinking?: boolean;
+  requiresAdaptiveThinking?: boolean;
 }
 
 export interface Dream {

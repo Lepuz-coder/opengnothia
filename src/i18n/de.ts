@@ -369,6 +369,10 @@ export const de: Translations = {
     status529Message: "Die Anthropic-API ist derzeit überlastet. Bitte warte einen Moment und versuche es erneut.",
     unknownStatusTitle: "API-Fehler",
     unknownStatusMessage: "Beim Kommunizieren mit dem KI-Dienst ist ein unerwarteter Fehler aufgetreten. Überprüfe dein Guthaben und deinen API-Schlüssel und versuche es erneut.",
+    showDetails: "Details anzeigen",
+    hideDetails: "Details ausblenden",
+    copyDetails: "Kopieren",
+    copied: "Kopiert",
   },
   sidebar: {
     noteTaking: "Notizen werden erstellt...",

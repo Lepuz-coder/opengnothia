@@ -369,6 +369,10 @@ export const ja: Translations = {
     status529Message: "Anthropic APIが現在過負荷状態です。少し待ってから再度お試しください。",
     unknownStatusTitle: "APIエラー",
     unknownStatusMessage: "AIサービスとの通信中に予期しないエラーが発生しました。残高とAPIを確認してから再度お試しください。",
+    showDetails: "詳細を表示",
+    hideDetails: "詳細を隠す",
+    copyDetails: "コピー",
+    copied: "コピーしました",
   },
   sidebar: {
     noteTaking: "ノートを記録中...",

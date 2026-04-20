@@ -369,6 +369,10 @@ export const zh: Translations = {
     status529Message: "Anthropic API 当前处于过载状态。请稍等片刻后重试。",
     unknownStatusTitle: "API 错误",
     unknownStatusMessage: "与 AI 服务通信时发生意外错误。请检查你的余额和 API 后重试。",
+    showDetails: "查看详情",
+    hideDetails: "隐藏详情",
+    copyDetails: "复制",
+    copied: "已复制",
   },
   sidebar: {
     noteTaking: "正在记录笔记...",

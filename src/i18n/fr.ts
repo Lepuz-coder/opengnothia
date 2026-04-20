@@ -369,6 +369,10 @@ export const fr: Translations = {
     status529Message: "L'API Anthropic est actuellement surchargee. Attends un instant et reessaie.",
     unknownStatusTitle: "Erreur API",
     unknownStatusMessage: "Une erreur inattendue est survenue lors de la communication avec le service IA. Verifie ton solde et ta cle API, puis reessaie.",
+    showDetails: "Voir les details",
+    hideDetails: "Masquer les details",
+    copyDetails: "Copier",
+    copied: "Copie",
   },
   sidebar: {
     noteTaking: "Prise de notes...",

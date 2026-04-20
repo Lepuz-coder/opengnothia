@@ -369,6 +369,10 @@ export const tr: Translations = {
     status529Message: "Anthropic API şu anda aşırı yüklenmiş durumda. Lütfen bir süre bekleyip tekrar dene.",
     unknownStatusTitle: "API Hatası",
     unknownStatusMessage: "AI hizmetiyle iletişim sırasında beklenmeyen bir hata oluştu. Api erişim tokenın bozulmuş ya da bakiye kalmamış olabilir. Lütfen tekrar dene veya ayarlarını kontrol et.",
+    showDetails: "Detayları Gör",
+    hideDetails: "Detayları Gizle",
+    copyDetails: "Kopyala",
+    copied: "Kopyalandı",
   },
   sidebar: {
     noteTaking: "Not alınıyor...",

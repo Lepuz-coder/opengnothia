@@ -53,7 +53,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   language: "tr",
   provider: "anthropic",
   apiKey: "",
-  model: "claude-opus-4-6",
+  model: "claude-opus-4-7",
   customBaseUrl: "",
   approach: "balanced",
   preferredSessionTime: "20:00",

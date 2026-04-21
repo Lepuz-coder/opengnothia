@@ -559,16 +559,11 @@ export default function SessionPage() {
     }
   }, [settings, language]);
 
-  // Trigger insight extraction when summary streaming finishes
-  const prevIsSummaryStreaming = useRef(session.isSummaryStreaming);
-  useEffect(() => {
-    if (prevIsSummaryStreaming.current && !session.isSummaryStreaming && session.status === "post" && session.summary) {
-      const endState = useSessionStore.getState();
-      const msgs = getEffectiveMessages(endState.messages, endState.compactedContext, endState.compactedAtIndex);
-      extractInsights(msgs);
-    }
-    prevIsSummaryStreaming.current = session.isSummaryStreaming;
-  }, [session.isSummaryStreaming, session.status, session.summary, extractInsights]);
+  const handleGenerateInsights = useCallback(() => {
+    const state = useSessionStore.getState();
+    const msgs = getEffectiveMessages(state.messages, state.compactedContext, state.compactedAtIndex);
+    extractInsights(msgs);
+  }, [extractInsights]);
 
 
   const handleMicClick = useCallback(async () => {
@@ -645,10 +640,10 @@ export default function SessionPage() {
       return;
     }
 
-    // Switch to post view
-    session.startSummaryStream();
+    // Switch to post view (no auto summary/insight generation — user triggers manually)
+    session.endSession();
 
-    // Fire-and-forget: update patient notes in background
+    // Fire-and-forget: update patient notes in background (independent of summary/insights)
     Promise.all([getPatientNotes(), getPatientNotesUpdatedAt()]).then(([existingNotes, notesUpdatedAt]) => {
       const patientNotesPrompt = buildPatientNotesUpdatePrompt(existingNotes, notesUpdatedAt, language);
       const conversationForNotes: ChatMessage[] = [
@@ -674,8 +669,15 @@ export default function SessionPage() {
         sessionId: useSessionStore.getState().sessionId,
       });
     });
+  }, [settings, navigate, setSidebarHidden, language]);
 
-    // Stream session summary
+  const handleGenerateSummary = useCallback(async () => {
+    const state = useSessionStore.getState();
+    if (state.isSummaryStreaming) return;
+    const messages = getEffectiveMessages(state.messages, state.compactedContext, state.compactedAtIndex);
+
+    session.startSummaryStream();
+
     try {
       const patientNotes = await getPatientNotes();
       const summaryPrompt = buildSummaryPrompt(patientNotes, language);
@@ -728,7 +730,7 @@ export default function SessionPage() {
       const statusCode = err instanceof AIError ? err.statusCode : undefined;
       setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider, err));
     }
-  }, [settings, navigate, setSidebarHidden]);
+  }, [settings, language, t]);
 
   handleEndSessionRef.current = handleEndSession;
 
@@ -737,7 +739,7 @@ export default function SessionPage() {
   const handleSaveAndClose = useCallback(async () => {
     setSaving(true);
     const state = useSessionStore.getState();
-    if (state.sessionId && state.summary) {
+    if (state.sessionId) {
       await completeSession(state.sessionId, {
         mood_after: 5,
         summary: state.summary,
@@ -1056,6 +1058,8 @@ export default function SessionPage() {
           onAddInsight={(insight) => useSessionStore.getState().addExtractedInsight(insight)}
           sessionInsightIds={session.sessionInsightIds}
           onAcceptExtractedInsight={handleAcceptExtractedInsight}
+          onGenerateSummary={handleGenerateSummary}
+          onGenerateInsights={handleGenerateInsights}
         />
         <ErrorModal
           isOpen={errorModalInfo !== null}

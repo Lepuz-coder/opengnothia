@@ -138,6 +138,9 @@ export interface Translations {
     sessionSummary: string;
     saveAndClose: string;
     preparingSummary: string;
+    generateSummary: string;
+    generateInsights: string;
+    summaryNotGeneratedYet: string;
     noSessionsYet: string;
     noSessionsDescription: string;
     noSessionsThisWeek: string;

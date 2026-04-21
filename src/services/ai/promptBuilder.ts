@@ -1,4 +1,4 @@
-import type { UserProfile, CheckIn, SessionSummary, TherapySchool, Language, AIProvider } from "@/types";
+import type { UserProfile, PatientIntakeForm, CheckIn, SessionSummary, TherapySchool, Language, AIProvider } from "@/types";
 import type { TherapySchoolDef } from "@/constants/therapySchools";
 import { getSchoolById } from "@/stores/useSchoolsStore";
 import { getCurrentLanguage, getDateLocale } from "@/i18n";
@@ -53,8 +53,9 @@ export function buildSystemPrompt(params: {
   language?: Language;
   provider?: AIProvider;
   sessionStartedAt?: string | null;
+  intakeForm?: PatientIntakeForm | null;
 }): string {
-  const { profile, todayCheckIn, lastSessionSummary, lastSessionNarrative, therapySchool, patientNotes, lastSessionDate, totalSessionCount, sessionStartedAt } = params;
+  const { profile, todayCheckIn, lastSessionSummary, lastSessionNarrative, therapySchool, patientNotes, lastSessionDate, totalSessionCount, sessionStartedAt, intakeForm } = params;
 
   let prompt = `You are OpenGnothia's AI-powered psychological support assistant.
 
@@ -120,6 +121,29 @@ You are a psychologist in a real therapy session. Your responses MUST be natural
       profile.approach === "depth" ? "In-depth and exploration-oriented" :
       "Balanced"
     }`;
+  }
+
+  if (intakeForm) {
+    const intakeFields: Array<[string, string | null]> = [
+      ["Reason for seeking support", intakeForm.reason_for_seeking],
+      ["Current concerns & symptoms", intakeForm.current_concerns],
+      ["Previous therapy experience", intakeForm.previous_therapy],
+      ["Current medications / medical care", intakeForm.current_medications],
+      ["Family & key relationships", intakeForm.family_relationships],
+      ["Significant life events", intakeForm.significant_life_events],
+      ["Sleep patterns", intakeForm.sleep_patterns],
+      ["Physical health", intakeForm.physical_health],
+      ["Strengths & support systems", intakeForm.strengths_support],
+      ["What the client expects from therapy", intakeForm.therapy_expectations],
+    ];
+    const filled = intakeFields.filter(([, v]) => typeof v === "string" && v.trim().length > 0);
+    if (filled.length > 0) {
+      prompt += `\n\n--- Clinical Intake (self-reported by the client at the start of therapy) ---`;
+      prompt += `\nThe client filled out this intake form. Use it as background to understand their history, current struggles, and expectations. Do not quote it back at them verbatim — let it inform your questions and reflections naturally.`;
+      for (const [label, value] of filled) {
+        prompt += `\n- ${label}: ${value!.trim()}`;
+      }
+    }
   }
 
   if (todayCheckIn) {
@@ -188,6 +212,7 @@ export function buildGreetingPrompt(params: {
   language?: Language;
   provider?: AIProvider;
   sessionStartedAt?: string | null;
+  intakeForm?: PatientIntakeForm | null;
 }): string {
   let prompt = buildSystemPrompt(params);
 

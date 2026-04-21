@@ -26,7 +26,7 @@ import SchoolsPage from "@/pages/SchoolsPage";
 import CoursesPage from "@/pages/CoursesPage";
 
 function AppContent() {
-  const { isOnboarded, setOnboarded, setTheme, setHasSeenNoteTutorial, isLocked, setLocked, lockEnabled, setLockEnabled } = useAppStore();
+  const { isOnboarded, setOnboarded, setTheme, setHasSeenNoteTutorial, setHasSeenIntakeFormPrompt, isLocked, setLocked, lockEnabled, setLockEnabled } = useAppStore();
   const { loadFromStore } = useSettingsStore();
   const [isLoading, setIsLoading] = useState(true);
   useTheme();
@@ -41,6 +41,9 @@ function AppContent() {
 
         const hasSeenNoteTutorial = await store.get<boolean>("hasSeenNoteTutorial");
         if (hasSeenNoteTutorial) setHasSeenNoteTutorial(true);
+
+        const hasSeenIntakeFormPrompt = await store.get<boolean>("hasSeenIntakeFormPrompt");
+        if (hasSeenIntakeFormPrompt) setHasSeenIntakeFormPrompt(true);
 
         const theme = await store.get<"light" | "dark" | "system">("theme");
         if (theme) setTheme(theme);

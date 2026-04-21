@@ -1,5 +1,5 @@
 import { getDatabase } from "./database";
-import type { CheckIn, Dream, Session, UserProfile, ChatMessage, SessionSummary, TokenUsageRecord, JournalEntry, MoodEntry, WeeklySummary, InsightGroup, Insight, CourseStepProgress } from "@/types";
+import type { CheckIn, Dream, Session, UserProfile, PatientIntakeForm, ChatMessage, SessionSummary, TokenUsageRecord, JournalEntry, MoodEntry, WeeklySummary, InsightGroup, Insight, CourseStepProgress } from "@/types";
 
 // User Profile
 export async function getUserProfile(): Promise<UserProfile | null> {
@@ -38,6 +38,70 @@ export async function upsertUserProfile(
     );
   }
 }
+
+// Patient Intake Form
+const INTAKE_FORM_FIELDS = [
+  "reason_for_seeking",
+  "current_concerns",
+  "previous_therapy",
+  "current_medications",
+  "family_relationships",
+  "significant_life_events",
+  "sleep_patterns",
+  "physical_health",
+  "strengths_support",
+  "therapy_expectations",
+] as const;
+
+export async function getPatientIntakeForm(): Promise<PatientIntakeForm | null> {
+  const db = await getDatabase();
+  const rows = await db.select<PatientIntakeForm[]>("SELECT * FROM patient_intake_form WHERE id = 1");
+  return rows[0] ?? null;
+}
+
+export async function upsertPatientIntakeForm(
+  data: Partial<Omit<PatientIntakeForm, "id" | "created_at" | "updated_at">>
+): Promise<void> {
+  const db = await getDatabase();
+  const existing = await getPatientIntakeForm();
+  if (existing) {
+    const sets: string[] = [];
+    const values: unknown[] = [];
+    for (const field of INTAKE_FORM_FIELDS) {
+      if (data[field] !== undefined) {
+        sets.push(`${field} = ?`);
+        values.push(data[field]);
+      }
+    }
+    if (sets.length === 0) return;
+    sets.push("updated_at = CURRENT_TIMESTAMP");
+    await db.execute(`UPDATE patient_intake_form SET ${sets.join(", ")} WHERE id = 1`, values);
+  } else {
+    const values = INTAKE_FORM_FIELDS.map((field) => data[field] ?? null);
+    await db.execute(
+      `INSERT INTO patient_intake_form (id, ${INTAKE_FORM_FIELDS.join(", ")}) VALUES (1, ${INTAKE_FORM_FIELDS.map(() => "?").join(", ")})`,
+      values,
+    );
+  }
+}
+
+export function intakeFormHasContent(form: PatientIntakeForm | null): boolean {
+  if (!form) return false;
+  return INTAKE_FORM_FIELDS.some((field) => {
+    const v = form[field];
+    return typeof v === "string" && v.trim().length > 0;
+  });
+}
+
+export function countFilledIntakeFields(form: PatientIntakeForm | null): number {
+  if (!form) return 0;
+  return INTAKE_FORM_FIELDS.filter((field) => {
+    const v = form[field];
+    return typeof v === "string" && v.trim().length > 0;
+  }).length;
+}
+
+export const INTAKE_FORM_TOTAL_FIELDS = INTAKE_FORM_FIELDS.length;
 
 // Sessions
 export async function createSession(session: {

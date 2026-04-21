@@ -26,7 +26,7 @@ import { sendMessage, streamMessage, testApiKey } from "@/services/ai/aiService"
 import { AIError } from "@/services/ai/AIError";
 import { getErrorDisplayInfo, buildErrorDetails, type ErrorDisplayInfo } from "@/services/ai/errorMessages";
 import { calculateCost } from "@/services/ai/costCalculator";
-import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildPatientNotesUpdatePrompt, buildCompactionPrompt, buildInsightExtractionPrompt, GREETING_TRIGGER, BACKGROUND_NOTES_SYSTEM_PROMPT, SESSION_SUMMARY_SYSTEM_PROMPT, INSIGHT_EXTRACTION_SYSTEM_PROMPT } from "@/services/ai/promptBuilder";
+import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildPatientNotesUpdatePrompt, buildCompactionPrompt, buildInsightExtractionPrompt, GREETING_TRIGGER, BACKGROUND_NOTES_SYSTEM_PROMPT, SESSION_SUMMARY_SYSTEM_PROMPT, INSIGHT_EXTRACTION_SYSTEM_PROMPT, SESSION_END_MARKER } from "@/services/ai/promptBuilder";
 import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
 import { createSession, updateSessionMessages, completeSession, deleteSession, getUserProfile, getTodayCheckIn, getRecentSessions, getPatientNotes, getPatientNotesUpdatedAt, getCompletedSessionCount, saveTokenUsage, getInsightGroups, createInsightGroup, createInsight } from "@/services/db/queries";
 import { getAllSchools, getSchoolById } from "@/stores/useSchoolsStore";
@@ -39,6 +39,7 @@ import { VoiceConversationView } from "@/components/session/VoiceConversationVie
 import { SessionInsightsPanel } from "@/components/session/SessionInsightsPanel";
 import type { AIProvider, ChatMessage, ThinkingLevel, TokenUsage, ExtractedInsight, SessionMode } from "@/types";
 import { createBufferedTextStream } from "@/lib/createBufferedTextStream";
+import { createMarkerStrippedStream } from "@/lib/createMarkerStrippedStream";
 
 async function trackUsage(
   provider: AIProvider,
@@ -122,6 +123,7 @@ export default function SessionPage() {
   const sendMessageRef = useRef<(text: string) => void>(() => {});
   const voiceFeedRef = useRef<(chunk: string) => void>(() => {});
   const voiceFlushRef = useRef<() => void>(() => {});
+  const handleEndSessionRef = useRef<() => void>(() => {});
   const voiceLoop = useVoiceConversation({
     onTranscriptionReady: (text) => sendMessageRef.current(text),
     language,
@@ -180,6 +182,7 @@ export default function SessionPage() {
         totalSessionCount: sessionCount,
         language,
         provider: settings.provider,
+        sessionStartedAt: useSessionStore.getState().startedAt,
       });
 
       const abortController = new AbortController();
@@ -188,8 +191,11 @@ export default function SessionPage() {
       const thinkingStream = createBufferedTextStream((chunk) => {
         useSessionStore.getState().appendStreamThinking(chunk);
       });
-      const contentStream = createBufferedTextStream((chunk) => {
-        useSessionStore.getState().appendStreamContent(chunk);
+      const contentStream = createMarkerStrippedStream(SESSION_END_MARKER, (safeChunk) => {
+        useSessionStore.getState().appendStreamContent(safeChunk);
+        if (useSessionStore.getState().sessionMode === "voice") {
+          voiceFeedRef.current(safeChunk);
+        }
       });
 
       await streamMessage({
@@ -208,9 +214,6 @@ export default function SessionPage() {
         },
         onContent: (chunk) => {
           contentStream.push(chunk);
-          if (useSessionStore.getState().sessionMode === "voice") {
-            voiceFeedRef.current(chunk);
-          }
         },
         onDone: () => {
           thinkingStream.flush();
@@ -280,6 +283,7 @@ export default function SessionPage() {
         totalSessionCount: sessionCount,
         language,
         provider: settings.provider,
+        sessionStartedAt: useSessionStore.getState().startedAt,
       });
 
       const compactionPrompt = buildCompactionPrompt(language);
@@ -359,6 +363,7 @@ export default function SessionPage() {
         totalSessionCount: sessionCount,
         language,
         provider: settings.provider,
+        sessionStartedAt: useSessionStore.getState().startedAt,
       });
 
       const state = useSessionStore.getState();
@@ -373,8 +378,11 @@ export default function SessionPage() {
       const thinkingStream = createBufferedTextStream((chunk) => {
         useSessionStore.getState().appendStreamThinking(chunk);
       });
-      const contentStream = createBufferedTextStream((chunk) => {
-        useSessionStore.getState().appendStreamContent(chunk);
+      const contentStream = createMarkerStrippedStream(SESSION_END_MARKER, (safeChunk) => {
+        useSessionStore.getState().appendStreamContent(safeChunk);
+        if (useSessionStore.getState().sessionMode === "voice") {
+          voiceFeedRef.current(safeChunk);
+        }
       });
 
       await streamMessage({
@@ -393,9 +401,6 @@ export default function SessionPage() {
         },
         onContent: (chunk) => {
           contentStream.push(chunk);
-          if (useSessionStore.getState().sessionMode === "voice") {
-            voiceFeedRef.current(chunk);
-          }
         },
         onDone: () => {
           thinkingStream.flush();
@@ -407,6 +412,14 @@ export default function SessionPage() {
           }
           if (useSessionStore.getState().sessionMode === "voice") {
             voiceFlushRef.current();
+          }
+          if (contentStream.hasMarker()) {
+            if (useSessionStore.getState().sessionMode === "voice") {
+              voiceLoop.pauseLoop();
+            }
+            setTimeout(() => {
+              handleEndSessionRef.current();
+            }, 2500);
           }
         },
         onUsage: (usage) => {
@@ -716,6 +729,8 @@ export default function SessionPage() {
       setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider, err));
     }
   }, [settings, navigate, setSidebarHidden]);
+
+  handleEndSessionRef.current = handleEndSession;
 
   const acceptedGroupIdMap = useRef<Map<string, string>>(new Map());
 

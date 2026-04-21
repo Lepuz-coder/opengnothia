@@ -7,7 +7,7 @@
   <br />
 
   [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-  [![Version](https://img.shields.io/badge/version-1.0.5-green.svg)](https://github.com/Lepuz-coder/opengnothia/releases)
+  [![Version](https://img.shields.io/badge/version-1.4.0-green.svg)](https://github.com/Lepuz-coder/opengnothia/releases)
   [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg)](#getting-started)
   [![Made with Tauri](https://img.shields.io/badge/Made%20with-Tauri%202-FFC131?logo=tauri&logoColor=white)](https://v2.tauri.app)
   [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev)
@@ -80,8 +80,17 @@ Mental health support should be accessible, private, and personalized. OpenGnoth
 
 ## Features
 
+### Redesigned Dashboard
+A hero session card surfaces your current or next session, ritual cards track your journal and dream streaks, and an icon-based mood slider lets you log a daily check-in without leaving the home screen.
+
 ### AI Therapy Sessions
-Engage in meaningful conversations with an AI therapist that adapts to your chosen therapeutic approach. Each session includes real-time streaming responses, session timers, and automatic summaries with identified themes, defense mechanisms, insights, and homework suggestions.
+Engage in meaningful conversations with an AI therapist that adapts to your chosen therapeutic approach. Sessions include real-time streaming responses, session timers, opt-in AI summaries, and session-closure proposals where the AI signals a natural stopping point.
+
+### Clinical Intake Form
+Complete an optional 10-question wizard that captures your background, goals, and current stressors — with auto-save as you go. The intake is injected as context into every AI session so therapy feels continuous from the first message.
+
+### In-Session Insights Panel
+Capture observations mid-session without breaking flow. Your own notes and AI-proposed insights appear in a side panel; accept the ones that resonate and they're saved to your insights library.
 
 ### Journal
 Write and reflect on your daily thoughts. Each entry supports mood tagging and optional AI analysis to help you identify patterns and gain deeper understanding of your experiences.
@@ -103,8 +112,8 @@ Follow structured therapy programs that guide your self-discovery journey with p
 
 ### Multi-Provider AI Support
 Bring your own API key and choose from a wide range of models:
-- **Anthropic Claude** — Opus, Sonnet, and Haiku families (with extended thinking support)
-- **OpenAI** — GPT-5 series, GPT-4.1, GPT-4o families
+- **Anthropic Claude** — Opus 4.7, Sonnet 4.6, Haiku 4.5 (with extended thinking / adaptive budget)
+- **OpenAI** — GPT-5.4 (+ Mini, Pro), GPT-5.3, GPT-4.1, GPT-4o families
 - **Custom endpoints** — Connect any OpenAI-compatible API
 
 ### Privacy & Security

@@ -131,15 +131,6 @@ export const providers: AIProviderConfig[] = [
         supportsXHighThinking: true,
       },
       {
-        id: "gpt-5.4-pro",
-        name: "GPT-5.4 Pro",
-        contextWindow: 400000,
-        costPer1kInput: 0.03,
-        costPer1kOutput: 0.18,
-        supportsThinking: true,
-        supportsXHighThinking: true,
-      },
-      {
         id: "gpt-5.3",
         name: "GPT-5.3",
         contextWindow: 400000,

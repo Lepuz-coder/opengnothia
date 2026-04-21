@@ -24,6 +24,34 @@ export interface UserProfile {
   updated_at: string;
 }
 
+export interface PatientIntakeForm {
+  id: number;
+  reason_for_seeking: string | null;
+  current_concerns: string | null;
+  previous_therapy: string | null;
+  current_medications: string | null;
+  family_relationships: string | null;
+  significant_life_events: string | null;
+  sleep_patterns: string | null;
+  physical_health: string | null;
+  strengths_support: string | null;
+  therapy_expectations: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type PatientIntakeFormField =
+  | "reason_for_seeking"
+  | "current_concerns"
+  | "previous_therapy"
+  | "current_medications"
+  | "family_relationships"
+  | "significant_life_events"
+  | "sleep_patterns"
+  | "physical_health"
+  | "strengths_support"
+  | "therapy_expectations";
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "system";

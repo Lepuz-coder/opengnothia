@@ -114,39 +114,42 @@ export async function streamMessage(params: {
 
         if (trimmed.startsWith("data: ")) {
           const data = trimmed.slice(6);
-          const chunk = adapter.parseSSEEvent(currentEventType, data);
-          if (!chunk) continue;
+          const parsed = adapter.parseSSEEvent(currentEventType, data);
+          if (!parsed) continue;
+          const chunks = Array.isArray(parsed) ? parsed : [parsed];
 
-          switch (chunk.type) {
-            case "thinking":
-              params.onThinking(chunk.content);
-              break;
-            case "text":
-              params.onContent(chunk.content);
-              break;
-            case "done":
-              if (hasUsage) {
-                params.onUsage?.(usageAccumulator);
-              }
-              params.onDone();
-              return;
-            case "done_with_usage":
-              params.onUsage?.(chunk.usage);
-              params.onDone();
-              return;
-            case "usage_delta":
-              if (chunk.inputTokens !== undefined) {
-                usageAccumulator.inputTokens = chunk.inputTokens;
-                hasUsage = true;
-              }
-              if (chunk.outputTokens !== undefined) {
-                usageAccumulator.outputTokens = chunk.outputTokens;
-                hasUsage = true;
-              }
-              break;
-            case "error":
-              params.onError(new AIError(chunk.message));
-              return;
+          for (const chunk of chunks) {
+            switch (chunk.type) {
+              case "thinking":
+                params.onThinking(chunk.content);
+                break;
+              case "text":
+                params.onContent(chunk.content);
+                break;
+              case "done":
+                if (hasUsage) {
+                  params.onUsage?.(usageAccumulator);
+                }
+                params.onDone();
+                return;
+              case "done_with_usage":
+                params.onUsage?.(chunk.usage);
+                params.onDone();
+                return;
+              case "usage_delta":
+                if (chunk.inputTokens !== undefined) {
+                  usageAccumulator.inputTokens = chunk.inputTokens;
+                  hasUsage = true;
+                }
+                if (chunk.outputTokens !== undefined) {
+                  usageAccumulator.outputTokens = chunk.outputTokens;
+                  hasUsage = true;
+                }
+                break;
+              case "error":
+                params.onError(new AIError(chunk.message));
+                return;
+            }
           }
         }
       }

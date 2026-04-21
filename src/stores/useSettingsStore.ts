@@ -93,18 +93,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
     // Restore new provider's chat thinking settings (or defaults)
     const restored = updatedThinking[provider] ?? { enabled: false, level: "medium" as ThinkingLevel, type: "budget" as ThinkingType };
-    let restoredLevel = restored.level;
-    if (provider === "openai" && restoredLevel === "max") {
-      restoredLevel = "high";
-    }
+    const restoredLevel = restored.level;
     const restoredType = provider === "openai" ? "budget" as ThinkingType : (restored.type ?? "budget" as ThinkingType);
 
     // Restore new provider's memory thinking settings (or defaults)
     const restoredMemory = updatedMemoryThinking[provider] ?? { enabled: false, level: "medium" as ThinkingLevel, type: "budget" as ThinkingType };
-    let restoredMemoryLevel = restoredMemory.level;
-    if (provider === "openai" && restoredMemoryLevel === "max") {
-      restoredMemoryLevel = "high";
-    }
+    const restoredMemoryLevel = restoredMemory.level;
     const restoredMemoryType = provider === "openai" ? "budget" as ThinkingType : (restoredMemory.type ?? "budget" as ThinkingType);
 
     // Reset models to new provider's first model

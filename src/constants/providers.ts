@@ -119,6 +119,7 @@ export const providers: AIProviderConfig[] = [
         costPer1kInput: 0.0025,
         costPer1kOutput: 0.015,
         supportsThinking: true,
+        supportsXHighThinking: true,
       },
       {
         id: "gpt-5.4-mini",
@@ -127,6 +128,7 @@ export const providers: AIProviderConfig[] = [
         costPer1kInput: 0.00075,
         costPer1kOutput: 0.0045,
         supportsThinking: true,
+        supportsXHighThinking: true,
       },
       {
         id: "gpt-5.4-pro",
@@ -135,6 +137,7 @@ export const providers: AIProviderConfig[] = [
         costPer1kInput: 0.03,
         costPer1kOutput: 0.18,
         supportsThinking: true,
+        supportsXHighThinking: true,
       },
       {
         id: "gpt-5.3",
@@ -257,4 +260,16 @@ export function modelRequiresAdaptiveThinking(providerId: string, modelId: strin
   if (!provider) return false;
   const model = provider.models.find((m) => m.id === modelId);
   return model?.requiresAdaptiveThinking ?? false;
+}
+
+export function modelSupportsXHighThinking(providerId: string, modelId: string): boolean {
+  const provider = getProvider(providerId);
+  if (!provider) return false;
+  const model = provider.models.find((m) => m.id === modelId);
+  return model?.supportsXHighThinking ?? false;
+}
+
+export function modelSupportsMaxThinking(providerId: string, modelId: string): boolean {
+  if (providerId === "anthropic") return modelSupportsThinking(providerId, modelId);
+  return modelSupportsXHighThinking(providerId, modelId);
 }

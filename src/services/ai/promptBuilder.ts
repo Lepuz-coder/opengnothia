@@ -26,6 +26,7 @@ export const GREETING_TRIGGER = "Hello, let's start the session.";
 export const WEEKLY_SUMMARY_TRIGGER = "Generate weekly summary.";
 export const JOURNAL_ANALYSIS_TRIGGER = "Analyze my journal entry.";
 export const DREAM_ANALYSIS_TRIGGER = "Analyze my dream.";
+export const SESSION_END_MARKER = "<<<SESSION_END>>>";
 export const BACKGROUND_NOTES_SYSTEM_PROMPT = "You are an experienced clinical psychologist. Update the patient notes.";
 export const SESSION_SUMMARY_SYSTEM_PROMPT = "You are an experienced clinical psychologist and you are this client's therapist. You are talking with the client at the end of the session.";
 export const INSIGHT_EXTRACTION_SYSTEM_PROMPT = "You are an experienced clinical psychologist. Help the client discover personal insights and recurring patterns from their session.";
@@ -51,8 +52,9 @@ export function buildSystemPrompt(params: {
   totalSessionCount?: number;
   language?: Language;
   provider?: AIProvider;
+  sessionStartedAt?: string | null;
 }): string {
-  const { profile, todayCheckIn, lastSessionSummary, lastSessionNarrative, therapySchool, patientNotes, lastSessionDate, totalSessionCount } = params;
+  const { profile, todayCheckIn, lastSessionSummary, lastSessionNarrative, therapySchool, patientNotes, lastSessionDate, totalSessionCount, sessionStartedAt } = params;
 
   let prompt = `You are OpenGnothia's AI-powered psychological support assistant.
 
@@ -91,6 +93,12 @@ You are a psychologist in a real therapy session. Your responses MUST be natural
   }
   if (totalSessionCount !== undefined) {
     prompt += `\n- Total completed sessions: ${totalSessionCount}`;
+  }
+  if (sessionStartedAt) {
+    const startedDate = new Date(sessionStartedAt);
+    const minutesElapsed = Math.max(0, Math.floor((today.getTime() - startedDate.getTime()) / 60000));
+    const startedStr = startedDate.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
+    prompt += `\n- Current session duration: ${minutesElapsed} minute${minutesElapsed === 1 ? "" : "s"} (started at ${startedStr})`;
   }
 
   if (therapySchool) {
@@ -143,6 +151,28 @@ You are a psychologist in a real therapy session. Your responses MUST be natural
     prompt += `\n${patientNotes}`;
   }
 
+  prompt += `\n\n--- Session Closure ---
+You are running this like a real therapy session. You may propose ending the session when:
+- A meaningful amount of the current topic has been worked through — the client has reached some insight, relief, or a landing point, and nothing is left mid-exploration
+- The conversation has reached a natural reflective pause
+- The session has been going for a reasonable duration (typically at least 15–20 minutes of real back-and-forth)
+- OR the client explicitly signals they want to stop
+
+Never cut a topic off prematurely. If the client just opened a new thread or is still in the middle of working something through, stay with it — do not propose closing.
+
+When you judge it is time, FIRST ask the client in natural conversation whether they would like to wrap up or if there is anything else they want to bring up before ending. Do NOT output any marker at this point — this is just a normal, gentle closing question inside a regular message.
+
+ONLY after the client confirms in their reply that they want to end, write one final warm closing message: briefly reflect what was worked through in this session, offer a supportive send-off, and on a NEW LINE as the very last thing in the message output EXACTLY:
+${SESSION_END_MARKER}
+
+CRITICAL rules for the ${SESSION_END_MARKER} marker:
+- It is invisible to the client — never reference it, explain it, or acknowledge it exists.
+- Output it ONLY in the message that directly follows the client's confirmation to end.
+- If the client says they want to keep talking, do NOT output the marker; continue the session normally.
+- The marker must be the very last characters in the message, on its own line, with no text after it.
+- Never output the marker during the opening or early exchanges of a session.
+- Never output the marker in the same message where you are still asking the closing question.`;
+
   return prompt;
 }
 
@@ -157,6 +187,7 @@ export function buildGreetingPrompt(params: {
   totalSessionCount?: number;
   language?: Language;
   provider?: AIProvider;
+  sessionStartedAt?: string | null;
 }): string {
   let prompt = buildSystemPrompt(params);
 

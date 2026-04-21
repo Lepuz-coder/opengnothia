@@ -41,23 +41,27 @@ Mental health support should be accessible, private, and personalized. OpenGnoth
 <div align="center">
   <table>
     <tr>
-      <td colspan="2" align="center"><img src="assets/screenshots/session_on.png" alt="Live Therapy Session" width="600" /><br /><sub><b>Live Therapy Session</b></sub></td>
+      <td colspan="2" align="center"><img src="assets/screenshots/sessions_on.png" alt="Live Therapy Session" width="600" /><br /><sub><b>Live Therapy Session</b></sub></td>
     </tr>
     <tr>
-      <td align="center"><img src="assets/screenshots/session_page_v2.png" alt="AI Therapy Session" width="400" /><br /><sub><b>AI Therapy Session</b></sub></td>
-      <td align="center"><img src="assets/screenshots/mood_tracking_v2.png" alt="Mood Tracking" width="400" /><br /><sub><b>Mood Tracking</b></sub></td>
-    </tr>
-    <tr>
-      <td align="center"><img src="assets/screenshots/journal_page_v2.png" alt="Journal" width="400" /><br /><sub><b>Journal</b></sub></td>
-      <td align="center"><img src="assets/screenshots/dreams_page.png" alt="Dream Analysis" width="400" /><br /><sub><b>Dream Analysis</b></sub></td>
-    </tr>
-    <tr>
-      <td align="center"><img src="assets/screenshots/insights_page.png" alt="AI Insights" width="400" /><br /><sub><b>AI-Generated Insights</b></sub></td>
-      <td align="center"><img src="assets/screenshots/school_page_v2.png" alt="Therapy Schools" width="400" /><br /><sub><b>Therapy Schools</b></sub></td>
-    </tr>
-    <tr>
-      <td align="center"><img src="assets/screenshots/breating_page_v2.png" alt="Breathing Exercises" width="400" /><br /><sub><b>Breathing Exercises</b></sub></td>
       <td align="center"><img src="assets/screenshots/dashboard.png" alt="Dashboard" width="400" /><br /><sub><b>Dashboard</b></sub></td>
+      <td align="center"><img src="assets/screenshots/sessions_page.png" alt="AI Therapy Session" width="400" /><br /><sub><b>AI Therapy Sessions</b></sub></td>
+    </tr>
+    <tr>
+      <td align="center"><img src="assets/screenshots/analyses_page.png" alt="Analyses" width="400" /><br /><sub><b>Analyses</b></sub></td>
+      <td align="center"><img src="assets/screenshots/insights_page.png" alt="AI Insights" width="400" /><br /><sub><b>AI-Generated Insights</b></sub></td>
+    </tr>
+    <tr>
+      <td align="center"><img src="assets/screenshots/dreams_page.png" alt="Dream Analysis" width="400" /><br /><sub><b>Dream Analysis</b></sub></td>
+      <td align="center"><img src="assets/screenshots/schools_page.png" alt="Therapy Schools" width="400" /><br /><sub><b>Therapy Schools</b></sub></td>
+    </tr>
+    <tr>
+      <td align="center"><img src="assets/screenshots/courses_page.png" alt="Therapy Programs" width="400" /><br /><sub><b>Therapy Programs</b></sub></td>
+      <td align="center"><img src="assets/screenshots/breathing_page.png" alt="Breathing Exercises" width="400" /><br /><sub><b>Breathing Exercises</b></sub></td>
+    </tr>
+    <tr>
+      <td align="center"><img src="assets/screenshots/expenses_page.png" alt="Expenses" width="400" /><br /><sub><b>Expenses</b></sub></td>
+      <td align="center"><img src="assets/screenshots/settings_page.png" alt="Settings" width="400" /><br /><sub><b>Settings</b></sub></td>
     </tr>
   </table>
 </div>

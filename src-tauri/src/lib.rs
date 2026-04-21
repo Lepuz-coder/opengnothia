@@ -388,6 +388,12 @@ pub fn run() {
             sql: include_str!("../migrations/016_add_course_notes.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 17,
+            description: "add patient_intake_form table",
+            sql: include_str!("../migrations/017_add_patient_intake_form.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

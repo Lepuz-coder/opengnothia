@@ -24,6 +24,8 @@ interface SessionEndSummaryProps {
   onAddInsight: (insight: ExtractedInsight) => void;
   sessionInsightIds: string[];
   onAcceptExtractedInsight: (insight: ExtractedInsight) => Promise<void>;
+  onGenerateSummary: () => void;
+  onGenerateInsights: () => void;
 }
 
 function groupInsightsForDisplay(insights: ExtractedInsight[]) {
@@ -78,6 +80,8 @@ export function SessionEndSummary({
   onAddInsight,
   sessionInsightIds,
   onAcceptExtractedInsight,
+  onGenerateSummary,
+  onGenerateInsights,
 }: SessionEndSummaryProps) {
   const { t } = useTranslation();
 
@@ -292,11 +296,18 @@ export function SessionEndSummary({
               <span className="inline-block w-1.5 h-3.5 bg-[var(--text-primary)] ml-0.5 animate-pulse" />
             )}
           </div>
-        ) : (
+        ) : isSummaryStreaming ? (
           <div className="space-y-3 animate-pulse">
             <div className="h-3 bg-[var(--bg-tertiary)] rounded w-full" />
             <div className="h-3 bg-[var(--bg-tertiary)] rounded w-5/6" />
             <div className="h-3 bg-[var(--bg-tertiary)] rounded w-4/6" />
+          </div>
+        ) : (
+          <div className="flex justify-center py-2">
+            <Button onClick={onGenerateSummary} variant="secondary">
+              <Sparkles className="w-4 h-4" />
+              {t.session.generateSummary}
+            </Button>
           </div>
         )}
       </Card>
@@ -351,33 +362,39 @@ export function SessionEndSummary({
       )}
 
       {/* AI-suggested insights */}
-      {(isExtractingInsights || extractedInsights.length > 0 || insightExtractionError || showAddForm) && (
-        <Card>
-          <h3 className="font-semibold mb-3 flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-purple-400" />
-            {t.session.aiSuggestedInsights}
-          </h3>
+      <Card>
+        <h3 className="font-semibold mb-3 flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-purple-400" />
+          {t.session.aiSuggestedInsights}
+        </h3>
 
-          {isExtractingInsights ? (
-            <div className="space-y-3">
-              <p className="text-sm text-[var(--text-muted)] animate-pulse">
-                {t.session.insightSteps[Math.min(stepIndex, t.session.insightSteps.length - 1)]}
-              </p>
-              <div className="w-full h-2 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-primary-500 transition-all duration-500 ease-out"
-                  style={{ width: `${Math.min(progress, 100)}%` }}
-                />
-              </div>
-              <p className="text-xs text-[var(--text-muted)] text-right tabular-nums">
-                {Math.round(Math.min(progress, 99))}%
-              </p>
-            </div>
-          ) : insightExtractionError ? (
-            <p className="text-sm text-[var(--text-muted)]">
-              {t.session.insightExtractionError}
+        {isExtractingInsights ? (
+          <div className="space-y-3">
+            <p className="text-sm text-[var(--text-muted)] animate-pulse">
+              {t.session.insightSteps[Math.min(stepIndex, t.session.insightSteps.length - 1)]}
             </p>
-          ) : (
+            <div className="w-full h-2 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
+              <div
+                className="h-full rounded-full bg-primary-500 transition-all duration-500 ease-out"
+                style={{ width: `${Math.min(progress, 100)}%` }}
+              />
+            </div>
+            <p className="text-xs text-[var(--text-muted)] text-right tabular-nums">
+              {Math.round(Math.min(progress, 99))}%
+            </p>
+          </div>
+        ) : insightExtractionError ? (
+          <p className="text-sm text-[var(--text-muted)]">
+            {t.session.insightExtractionError}
+          </p>
+        ) : extractedInsights.length === 0 && !showAddForm ? (
+          <div className="flex justify-center py-2">
+            <Button onClick={onGenerateInsights} variant="secondary">
+              <Sparkles className="w-4 h-4" />
+              {t.session.generateInsights}
+            </Button>
+          </div>
+        ) : (
             <>
               <div className="space-y-4">
                 {groupInsightsForDisplay(extractedInsights).map((group) => (
@@ -589,8 +606,7 @@ export function SessionEndSummary({
               )}
             </>
           )}
-        </Card>
-      )}
+      </Card>
 
       {/* Save button */}
       <Button

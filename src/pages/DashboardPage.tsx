@@ -12,6 +12,7 @@ import {
   getTodaySession, getJournalEntryByDate, getDreamsByDateRange,
   getUserProfile,
 } from "@/services/db/queries";
+import { useSessionStore } from "@/stores/useSessionStore";
 import { useTranslation, getDayNames, getDateLocale, type Translations } from "@/i18n";
 import type { MoodEntry, Session, UserProfile, JournalEntry, Dream } from "@/types";
 import { MoodChart } from "@/components/dashboard/MoodChart";
@@ -91,6 +92,15 @@ export default function DashboardPage() {
   const [todaySession, setTodaySession] = useState<Session | null>(null);
   const [todayJournal, setTodayJournal] = useState<JournalEntry | null>(null);
   const [todayDreams, setTodayDreams] = useState<Dream[]>([]);
+  const sessionStoreStatus = useSessionStore((s) => s.status);
+
+  // DB'deki "active" satır ancak in-memory store da aktifse canlı seans sayılır.
+  // Store "idle" ise seans yokmuş gibi davran.
+  const heroSession = useMemo<Session | null>(() => {
+    if (!todaySession) return null;
+    if (todaySession.status === "active" && sessionStoreStatus !== "active") return null;
+    return todaySession;
+  }, [todaySession, sessionStoreStatus]);
 
   const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth());
@@ -222,7 +232,7 @@ export default function DashboardPage() {
 
       {/* Hero: Today's Session */}
       <TodaySessionHero
-        todaySession={todaySession}
+        todaySession={heroSession}
         profile={profile}
         t={t}
         onStart={() => navigate("/session", { state: { openStartModal: true } })}

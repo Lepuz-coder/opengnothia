@@ -26,9 +26,9 @@ import { sendMessage, streamMessage, testApiKey } from "@/services/ai/aiService"
 import { AIError } from "@/services/ai/AIError";
 import { getErrorDisplayInfo, buildErrorDetails, type ErrorDisplayInfo } from "@/services/ai/errorMessages";
 import { calculateCost } from "@/services/ai/costCalculator";
-import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildPatientNotesUpdatePrompt, buildCompactionPrompt, buildInsightExtractionPrompt, GREETING_TRIGGER, BACKGROUND_NOTES_SYSTEM_PROMPT, SESSION_SUMMARY_SYSTEM_PROMPT, INSIGHT_EXTRACTION_SYSTEM_PROMPT } from "@/services/ai/promptBuilder";
+import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildPatientNotesUpdatePrompt, buildCompactionPrompt, buildInsightExtractionPrompt, GREETING_TRIGGER, BACKGROUND_NOTES_SYSTEM_PROMPT, SESSION_SUMMARY_SYSTEM_PROMPT, INSIGHT_EXTRACTION_SYSTEM_PROMPT, SESSION_END_MARKER } from "@/services/ai/promptBuilder";
 import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
-import { createSession, updateSessionMessages, completeSession, deleteSession, getUserProfile, getTodayCheckIn, getRecentSessions, getPatientNotes, getPatientNotesUpdatedAt, getCompletedSessionCount, saveTokenUsage, getInsightGroups, createInsightGroup, createInsight } from "@/services/db/queries";
+import { createSession, updateSessionMessages, completeSession, deleteSession, getUserProfile, getTodayCheckIn, getRecentSessions, getPatientNotes, getPatientNotesUpdatedAt, getCompletedSessionCount, saveTokenUsage, getInsightGroups, createInsightGroup, createInsight, getPatientIntakeForm, intakeFormHasContent } from "@/services/db/queries";
 import { getAllSchools, getSchoolById } from "@/stores/useSchoolsStore";
 import { providers, getProvider, modelSupportsThinking } from "@/constants/providers";
 import { ErrorModal } from "@/components/ui/ErrorModal";
@@ -37,8 +37,12 @@ import { Square, Loader2, FileText, Sparkles, Mic, MessageSquare, Pause, Play, L
 import { useVoiceConversation, type VoiceLoopStatus } from "@/hooks/useVoiceConversation";
 import { VoiceConversationView } from "@/components/session/VoiceConversationView";
 import { SessionInsightsPanel } from "@/components/session/SessionInsightsPanel";
-import type { AIProvider, ChatMessage, ThinkingLevel, TokenUsage, ExtractedInsight, SessionMode } from "@/types";
+import { IntakeFormModal } from "@/components/session/IntakeFormModal";
+import { IntakeFormCTA } from "@/components/session/IntakeFormCTA";
+import { IntakeFormSummaryCard } from "@/components/session/IntakeFormSummaryCard";
+import type { AIProvider, ChatMessage, ThinkingLevel, TokenUsage, ExtractedInsight, SessionMode, PatientIntakeForm } from "@/types";
 import { createBufferedTextStream } from "@/lib/createBufferedTextStream";
+import { createMarkerStrippedStream } from "@/lib/createMarkerStrippedStream";
 
 async function trackUsage(
   provider: AIProvider,
@@ -122,11 +126,23 @@ export default function SessionPage() {
   const sendMessageRef = useRef<(text: string) => void>(() => {});
   const voiceFeedRef = useRef<(chunk: string) => void>(() => {});
   const voiceFlushRef = useRef<() => void>(() => {});
+  const handleEndSessionRef = useRef<() => void>(() => {});
   const voiceLoop = useVoiceConversation({
     onTranscriptionReady: (text) => sendMessageRef.current(text),
     language,
   });
   const isSunday = new Date().getDay() === 0;
+
+  // Intake form state
+  const [intakeForm, setIntakeForm] = useState<PatientIntakeForm | null>(null);
+  const [intakeModalOpen, setIntakeModalOpen] = useState(false);
+  const [intakeModalAllowSkip, setIntakeModalAllowSkip] = useState(false);
+  const [intakeModalIsFirstSessionPrompt, setIntakeModalIsFirstSessionPrompt] = useState(false);
+  const pendingSessionStartRef = useRef(false);
+
+  useEffect(() => {
+    getPatientIntakeForm().then(setIntakeForm).catch(() => {});
+  }, []);
 
   // Restore sidebar when leaving session page
   useEffect(() => {
@@ -158,12 +174,13 @@ export default function SessionPage() {
 
   const handleGreeting = useCallback(async () => {
     try {
-      const [profile, checkIn, recentSessions, patientNotes, sessionCount] = await Promise.all([
+      const [profile, checkIn, recentSessions, patientNotes, sessionCount, latestIntake] = await Promise.all([
         getUserProfile(),
         getTodayCheckIn(),
         getRecentSessions(1),
         getPatientNotes(),
         getCompletedSessionCount(),
+        getPatientIntakeForm(),
       ]);
       const lastSummary = recentSessions[0]?.summary ?? null;
       const lastNarrative = recentSessions[0]?.summary_narrative ?? null;
@@ -180,6 +197,8 @@ export default function SessionPage() {
         totalSessionCount: sessionCount,
         language,
         provider: settings.provider,
+        sessionStartedAt: useSessionStore.getState().startedAt,
+        intakeForm: latestIntake,
       });
 
       const abortController = new AbortController();
@@ -188,8 +207,11 @@ export default function SessionPage() {
       const thinkingStream = createBufferedTextStream((chunk) => {
         useSessionStore.getState().appendStreamThinking(chunk);
       });
-      const contentStream = createBufferedTextStream((chunk) => {
-        useSessionStore.getState().appendStreamContent(chunk);
+      const contentStream = createMarkerStrippedStream(SESSION_END_MARKER, (safeChunk) => {
+        useSessionStore.getState().appendStreamContent(safeChunk);
+        if (useSessionStore.getState().sessionMode === "voice") {
+          voiceFeedRef.current(safeChunk);
+        }
       });
 
       await streamMessage({
@@ -208,9 +230,6 @@ export default function SessionPage() {
         },
         onContent: (chunk) => {
           contentStream.push(chunk);
-          if (useSessionStore.getState().sessionMode === "voice") {
-            voiceFeedRef.current(chunk);
-          }
         },
         onDone: () => {
           thinkingStream.flush();
@@ -254,6 +273,41 @@ export default function SessionPage() {
     }
   }, [settings]);
 
+  const performSessionStart = useCallback(async () => {
+    setStartModalOpen(false);
+    setSchoolPickerOpen(false);
+    useSessionStore.getState().setSessionMode(selectedMode);
+    settings.setPreferredSessionMode(selectedMode);
+    loadSettings().then((store) => {
+      store.set("preferredSessionMode", selectedMode);
+      store.save();
+    });
+    await handleStartSession();
+    handleGreeting();
+    if (selectedMode === "voice") {
+      voiceLoop.startLoop();
+    }
+  }, [selectedMode, settings, handleStartSession, handleGreeting, voiceLoop]);
+
+  const beginSessionStartFlow = useCallback(async () => {
+    const latestIntake = await getPatientIntakeForm();
+    const hasSeenPrompt = useAppStore.getState().hasSeenIntakeFormPrompt;
+    if (!intakeFormHasContent(latestIntake) && !hasSeenPrompt) {
+      useAppStore.getState().setHasSeenIntakeFormPrompt(true);
+      const store = await loadSettings();
+      await store.set("hasSeenIntakeFormPrompt", true);
+      await store.save();
+      setStartModalOpen(false);
+      setSchoolPickerOpen(false);
+      pendingSessionStartRef.current = true;
+      setIntakeModalIsFirstSessionPrompt(true);
+      setIntakeModalAllowSkip(true);
+      setIntakeModalOpen(true);
+      return;
+    }
+    await performSessionStart();
+  }, [performSessionStart]);
+
   const performCompaction = useCallback(async () => {
     const store = useSessionStore.getState();
     if (store.isCompacting || store.isStreaming) return;
@@ -261,12 +315,13 @@ export default function SessionPage() {
     store.startCompaction();
 
     try {
-      const [profile, checkIn, recentSessions, patientNotes, sessionCount] = await Promise.all([
+      const [profile, checkIn, recentSessions, patientNotes, sessionCount, latestIntake] = await Promise.all([
         getUserProfile(),
         getTodayCheckIn(),
         getRecentSessions(1),
         getPatientNotes(),
         getCompletedSessionCount(),
+        getPatientIntakeForm(),
       ]);
 
       const systemPrompt = buildSystemPrompt({
@@ -280,6 +335,8 @@ export default function SessionPage() {
         totalSessionCount: sessionCount,
         language,
         provider: settings.provider,
+        sessionStartedAt: useSessionStore.getState().startedAt,
+        intakeForm: latestIntake,
       });
 
       const compactionPrompt = buildCompactionPrompt(language);
@@ -337,12 +394,13 @@ export default function SessionPage() {
     session.addMessage(userMsg);
 
     try {
-      const [profile, checkIn, recentSessions, patientNotes, sessionCount] = await Promise.all([
+      const [profile, checkIn, recentSessions, patientNotes, sessionCount, latestIntake] = await Promise.all([
         getUserProfile(),
         getTodayCheckIn(),
         getRecentSessions(1),
         getPatientNotes(),
         getCompletedSessionCount(),
+        getPatientIntakeForm(),
       ]);
       const lastSummary = recentSessions[0]?.summary ?? null;
       const lastNarrative = recentSessions[0]?.summary_narrative ?? null;
@@ -359,6 +417,8 @@ export default function SessionPage() {
         totalSessionCount: sessionCount,
         language,
         provider: settings.provider,
+        sessionStartedAt: useSessionStore.getState().startedAt,
+        intakeForm: latestIntake,
       });
 
       const state = useSessionStore.getState();
@@ -373,8 +433,11 @@ export default function SessionPage() {
       const thinkingStream = createBufferedTextStream((chunk) => {
         useSessionStore.getState().appendStreamThinking(chunk);
       });
-      const contentStream = createBufferedTextStream((chunk) => {
-        useSessionStore.getState().appendStreamContent(chunk);
+      const contentStream = createMarkerStrippedStream(SESSION_END_MARKER, (safeChunk) => {
+        useSessionStore.getState().appendStreamContent(safeChunk);
+        if (useSessionStore.getState().sessionMode === "voice") {
+          voiceFeedRef.current(safeChunk);
+        }
       });
 
       await streamMessage({
@@ -393,9 +456,6 @@ export default function SessionPage() {
         },
         onContent: (chunk) => {
           contentStream.push(chunk);
-          if (useSessionStore.getState().sessionMode === "voice") {
-            voiceFeedRef.current(chunk);
-          }
         },
         onDone: () => {
           thinkingStream.flush();
@@ -407,6 +467,14 @@ export default function SessionPage() {
           }
           if (useSessionStore.getState().sessionMode === "voice") {
             voiceFlushRef.current();
+          }
+          if (contentStream.hasMarker()) {
+            if (useSessionStore.getState().sessionMode === "voice") {
+              voiceLoop.pauseLoop();
+            }
+            setTimeout(() => {
+              handleEndSessionRef.current();
+            }, 2500);
           }
         },
         onUsage: (usage) => {
@@ -546,16 +614,11 @@ export default function SessionPage() {
     }
   }, [settings, language]);
 
-  // Trigger insight extraction when summary streaming finishes
-  const prevIsSummaryStreaming = useRef(session.isSummaryStreaming);
-  useEffect(() => {
-    if (prevIsSummaryStreaming.current && !session.isSummaryStreaming && session.status === "post" && session.summary) {
-      const endState = useSessionStore.getState();
-      const msgs = getEffectiveMessages(endState.messages, endState.compactedContext, endState.compactedAtIndex);
-      extractInsights(msgs);
-    }
-    prevIsSummaryStreaming.current = session.isSummaryStreaming;
-  }, [session.isSummaryStreaming, session.status, session.summary, extractInsights]);
+  const handleGenerateInsights = useCallback(() => {
+    const state = useSessionStore.getState();
+    const msgs = getEffectiveMessages(state.messages, state.compactedContext, state.compactedAtIndex);
+    extractInsights(msgs);
+  }, [extractInsights]);
 
 
   const handleMicClick = useCallback(async () => {
@@ -632,10 +695,10 @@ export default function SessionPage() {
       return;
     }
 
-    // Switch to post view
-    session.startSummaryStream();
+    // Switch to post view (no auto summary/insight generation — user triggers manually)
+    session.endSession();
 
-    // Fire-and-forget: update patient notes in background
+    // Fire-and-forget: update patient notes in background (independent of summary/insights)
     Promise.all([getPatientNotes(), getPatientNotesUpdatedAt()]).then(([existingNotes, notesUpdatedAt]) => {
       const patientNotesPrompt = buildPatientNotesUpdatePrompt(existingNotes, notesUpdatedAt, language);
       const conversationForNotes: ChatMessage[] = [
@@ -661,8 +724,15 @@ export default function SessionPage() {
         sessionId: useSessionStore.getState().sessionId,
       });
     });
+  }, [settings, navigate, setSidebarHidden, language]);
 
-    // Stream session summary
+  const handleGenerateSummary = useCallback(async () => {
+    const state = useSessionStore.getState();
+    if (state.isSummaryStreaming) return;
+    const messages = getEffectiveMessages(state.messages, state.compactedContext, state.compactedAtIndex);
+
+    session.startSummaryStream();
+
     try {
       const patientNotes = await getPatientNotes();
       const summaryPrompt = buildSummaryPrompt(patientNotes, language);
@@ -715,14 +785,16 @@ export default function SessionPage() {
       const statusCode = err instanceof AIError ? err.statusCode : undefined;
       setErrorModalInfo(getErrorDisplayInfo(t, statusCode, settings.provider, err));
     }
-  }, [settings, navigate, setSidebarHidden]);
+  }, [settings, language, t]);
+
+  handleEndSessionRef.current = handleEndSession;
 
   const acceptedGroupIdMap = useRef<Map<string, string>>(new Map());
 
   const handleSaveAndClose = useCallback(async () => {
     setSaving(true);
     const state = useSessionStore.getState();
-    if (state.sessionId && state.summary) {
+    if (state.sessionId) {
       await completeSession(state.sessionId, {
         mood_after: 5,
         summary: state.summary,
@@ -816,8 +888,50 @@ export default function SessionPage() {
           </div>
         </div>
 
+        {/* Intake form hero section */}
+        <div className="mb-6">
+          {intakeFormHasContent(intakeForm) && intakeForm ? (
+            <IntakeFormSummaryCard
+              intakeForm={intakeForm}
+              onEdit={() => {
+                setIntakeModalIsFirstSessionPrompt(false);
+                setIntakeModalAllowSkip(false);
+                setIntakeModalOpen(true);
+              }}
+            />
+          ) : (
+            <IntakeFormCTA
+              onClick={() => {
+                setIntakeModalIsFirstSessionPrompt(false);
+                setIntakeModalAllowSkip(true);
+                setIntakeModalOpen(true);
+              }}
+            />
+          )}
+        </div>
+
         {/* Past sessions */}
         <PastSessionsList ref={pastSessionsRef} onViewSession={setViewingSessionId} onWeekSummaryInfoChange={setWeekSummaryInfo} />
+
+        {/* Intake form modal */}
+        <IntakeFormModal
+          isOpen={intakeModalOpen}
+          onClose={() => setIntakeModalOpen(false)}
+          onSaved={(updated) => {
+            if (updated) {
+              setIntakeForm(updated);
+            }
+            if (pendingSessionStartRef.current) {
+              pendingSessionStartRef.current = false;
+              setIntakeModalIsFirstSessionPrompt(false);
+              performSessionStart();
+            }
+          }}
+          allowSkip={intakeModalAllowSkip}
+          initialData={intakeForm}
+          titleOverride={intakeModalIsFirstSessionPrompt ? t.session.intakeFirstSessionTitle : undefined}
+          descriptionOverride={intakeModalIsFirstSessionPrompt ? t.session.intakeFirstSessionDescription : undefined}
+        />
 
         {/* Start session modal */}
         <Modal isOpen={startModalOpen} onClose={() => { setStartModalOpen(false); setSchoolPickerOpen(false); }} title={t.session.startSessionModal}>
@@ -955,19 +1069,7 @@ export default function SessionPage() {
                   return;
                 }
               }
-              setStartModalOpen(false);
-              setSchoolPickerOpen(false);
-              useSessionStore.getState().setSessionMode(selectedMode);
-              settings.setPreferredSessionMode(selectedMode);
-              loadSettings().then((store) => {
-                store.set("preferredSessionMode", selectedMode);
-                store.save();
-              });
-              await handleStartSession();
-              handleGreeting();
-              if (selectedMode === "voice") {
-                voiceLoop.startLoop();
-              }
+              await beginSessionStartFlow();
             }}
             size="lg"
             className="w-full mt-6"
@@ -1041,6 +1143,8 @@ export default function SessionPage() {
           onAddInsight={(insight) => useSessionStore.getState().addExtractedInsight(insight)}
           sessionInsightIds={session.sessionInsightIds}
           onAcceptExtractedInsight={handleAcceptExtractedInsight}
+          onGenerateSummary={handleGenerateSummary}
+          onGenerateInsights={handleGenerateInsights}
         />
         <ErrorModal
           isOpen={errorModalInfo !== null}

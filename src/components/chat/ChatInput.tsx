@@ -190,7 +190,7 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
                   placeholder={t.chat.placeholder}
                   disabled={disabled}
                   rows={1}
-                  className="flex-1 resize-none bg-transparent px-4 py-3 pr-20 text-base text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none disabled:opacity-50"
+                  className="scrollbar-thin flex-1 resize-none bg-transparent px-4 py-3 pr-20 text-base text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none disabled:opacity-50"
                 />
                 <div className="absolute right-2 bottom-2 flex items-center gap-1">
                   {/* Mic button */}

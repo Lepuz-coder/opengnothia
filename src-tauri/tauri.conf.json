@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "OpenGnothia",
-  "version": "1.2.0",
+  "version": "1.4.0",
   "identifier": "com.opengnothia.desktop",
   "build": {
     "frontendDist": "../dist",

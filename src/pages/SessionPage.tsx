@@ -28,7 +28,7 @@ import { getErrorDisplayInfo, buildErrorDetails, type ErrorDisplayInfo } from "@
 import { calculateCost } from "@/services/ai/costCalculator";
 import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildPatientNotesUpdatePrompt, buildCompactionPrompt, buildInsightExtractionPrompt, GREETING_TRIGGER, BACKGROUND_NOTES_SYSTEM_PROMPT, SESSION_SUMMARY_SYSTEM_PROMPT, INSIGHT_EXTRACTION_SYSTEM_PROMPT, SESSION_END_MARKER } from "@/services/ai/promptBuilder";
 import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
-import { createSession, updateSessionMessages, completeSession, deleteSession, getUserProfile, getTodayCheckIn, getRecentSessions, getPatientNotes, getPatientNotesUpdatedAt, getCompletedSessionCount, saveTokenUsage, getInsightGroups, createInsightGroup, createInsight } from "@/services/db/queries";
+import { createSession, updateSessionMessages, completeSession, deleteSession, getUserProfile, getTodayCheckIn, getRecentSessions, getPatientNotes, getPatientNotesUpdatedAt, getCompletedSessionCount, saveTokenUsage, getInsightGroups, createInsightGroup, createInsight, getPatientIntakeForm, intakeFormHasContent } from "@/services/db/queries";
 import { getAllSchools, getSchoolById } from "@/stores/useSchoolsStore";
 import { providers, getProvider, modelSupportsThinking } from "@/constants/providers";
 import { ErrorModal } from "@/components/ui/ErrorModal";
@@ -37,7 +37,10 @@ import { Square, Loader2, FileText, Sparkles, Mic, MessageSquare, Pause, Play, L
 import { useVoiceConversation, type VoiceLoopStatus } from "@/hooks/useVoiceConversation";
 import { VoiceConversationView } from "@/components/session/VoiceConversationView";
 import { SessionInsightsPanel } from "@/components/session/SessionInsightsPanel";
-import type { AIProvider, ChatMessage, ThinkingLevel, TokenUsage, ExtractedInsight, SessionMode } from "@/types";
+import { IntakeFormModal } from "@/components/session/IntakeFormModal";
+import { IntakeFormCTA } from "@/components/session/IntakeFormCTA";
+import { IntakeFormSummaryCard } from "@/components/session/IntakeFormSummaryCard";
+import type { AIProvider, ChatMessage, ThinkingLevel, TokenUsage, ExtractedInsight, SessionMode, PatientIntakeForm } from "@/types";
 import { createBufferedTextStream } from "@/lib/createBufferedTextStream";
 import { createMarkerStrippedStream } from "@/lib/createMarkerStrippedStream";
 
@@ -130,6 +133,17 @@ export default function SessionPage() {
   });
   const isSunday = new Date().getDay() === 0;
 
+  // Intake form state
+  const [intakeForm, setIntakeForm] = useState<PatientIntakeForm | null>(null);
+  const [intakeModalOpen, setIntakeModalOpen] = useState(false);
+  const [intakeModalAllowSkip, setIntakeModalAllowSkip] = useState(false);
+  const [intakeModalIsFirstSessionPrompt, setIntakeModalIsFirstSessionPrompt] = useState(false);
+  const pendingSessionStartRef = useRef(false);
+
+  useEffect(() => {
+    getPatientIntakeForm().then(setIntakeForm).catch(() => {});
+  }, []);
+
   // Restore sidebar when leaving session page
   useEffect(() => {
     return () => {
@@ -160,12 +174,13 @@ export default function SessionPage() {
 
   const handleGreeting = useCallback(async () => {
     try {
-      const [profile, checkIn, recentSessions, patientNotes, sessionCount] = await Promise.all([
+      const [profile, checkIn, recentSessions, patientNotes, sessionCount, latestIntake] = await Promise.all([
         getUserProfile(),
         getTodayCheckIn(),
         getRecentSessions(1),
         getPatientNotes(),
         getCompletedSessionCount(),
+        getPatientIntakeForm(),
       ]);
       const lastSummary = recentSessions[0]?.summary ?? null;
       const lastNarrative = recentSessions[0]?.summary_narrative ?? null;
@@ -183,6 +198,7 @@ export default function SessionPage() {
         language,
         provider: settings.provider,
         sessionStartedAt: useSessionStore.getState().startedAt,
+        intakeForm: latestIntake,
       });
 
       const abortController = new AbortController();
@@ -257,6 +273,41 @@ export default function SessionPage() {
     }
   }, [settings]);
 
+  const performSessionStart = useCallback(async () => {
+    setStartModalOpen(false);
+    setSchoolPickerOpen(false);
+    useSessionStore.getState().setSessionMode(selectedMode);
+    settings.setPreferredSessionMode(selectedMode);
+    loadSettings().then((store) => {
+      store.set("preferredSessionMode", selectedMode);
+      store.save();
+    });
+    await handleStartSession();
+    handleGreeting();
+    if (selectedMode === "voice") {
+      voiceLoop.startLoop();
+    }
+  }, [selectedMode, settings, handleStartSession, handleGreeting, voiceLoop]);
+
+  const beginSessionStartFlow = useCallback(async () => {
+    const latestIntake = await getPatientIntakeForm();
+    const hasSeenPrompt = useAppStore.getState().hasSeenIntakeFormPrompt;
+    if (!intakeFormHasContent(latestIntake) && !hasSeenPrompt) {
+      useAppStore.getState().setHasSeenIntakeFormPrompt(true);
+      const store = await loadSettings();
+      await store.set("hasSeenIntakeFormPrompt", true);
+      await store.save();
+      setStartModalOpen(false);
+      setSchoolPickerOpen(false);
+      pendingSessionStartRef.current = true;
+      setIntakeModalIsFirstSessionPrompt(true);
+      setIntakeModalAllowSkip(true);
+      setIntakeModalOpen(true);
+      return;
+    }
+    await performSessionStart();
+  }, [performSessionStart]);
+
   const performCompaction = useCallback(async () => {
     const store = useSessionStore.getState();
     if (store.isCompacting || store.isStreaming) return;
@@ -264,12 +315,13 @@ export default function SessionPage() {
     store.startCompaction();
 
     try {
-      const [profile, checkIn, recentSessions, patientNotes, sessionCount] = await Promise.all([
+      const [profile, checkIn, recentSessions, patientNotes, sessionCount, latestIntake] = await Promise.all([
         getUserProfile(),
         getTodayCheckIn(),
         getRecentSessions(1),
         getPatientNotes(),
         getCompletedSessionCount(),
+        getPatientIntakeForm(),
       ]);
 
       const systemPrompt = buildSystemPrompt({
@@ -284,6 +336,7 @@ export default function SessionPage() {
         language,
         provider: settings.provider,
         sessionStartedAt: useSessionStore.getState().startedAt,
+        intakeForm: latestIntake,
       });
 
       const compactionPrompt = buildCompactionPrompt(language);
@@ -341,12 +394,13 @@ export default function SessionPage() {
     session.addMessage(userMsg);
 
     try {
-      const [profile, checkIn, recentSessions, patientNotes, sessionCount] = await Promise.all([
+      const [profile, checkIn, recentSessions, patientNotes, sessionCount, latestIntake] = await Promise.all([
         getUserProfile(),
         getTodayCheckIn(),
         getRecentSessions(1),
         getPatientNotes(),
         getCompletedSessionCount(),
+        getPatientIntakeForm(),
       ]);
       const lastSummary = recentSessions[0]?.summary ?? null;
       const lastNarrative = recentSessions[0]?.summary_narrative ?? null;
@@ -364,6 +418,7 @@ export default function SessionPage() {
         language,
         provider: settings.provider,
         sessionStartedAt: useSessionStore.getState().startedAt,
+        intakeForm: latestIntake,
       });
 
       const state = useSessionStore.getState();
@@ -833,8 +888,50 @@ export default function SessionPage() {
           </div>
         </div>
 
+        {/* Intake form hero section */}
+        <div className="mb-6">
+          {intakeFormHasContent(intakeForm) && intakeForm ? (
+            <IntakeFormSummaryCard
+              intakeForm={intakeForm}
+              onEdit={() => {
+                setIntakeModalIsFirstSessionPrompt(false);
+                setIntakeModalAllowSkip(false);
+                setIntakeModalOpen(true);
+              }}
+            />
+          ) : (
+            <IntakeFormCTA
+              onClick={() => {
+                setIntakeModalIsFirstSessionPrompt(false);
+                setIntakeModalAllowSkip(true);
+                setIntakeModalOpen(true);
+              }}
+            />
+          )}
+        </div>
+
         {/* Past sessions */}
         <PastSessionsList ref={pastSessionsRef} onViewSession={setViewingSessionId} onWeekSummaryInfoChange={setWeekSummaryInfo} />
+
+        {/* Intake form modal */}
+        <IntakeFormModal
+          isOpen={intakeModalOpen}
+          onClose={() => setIntakeModalOpen(false)}
+          onSaved={(updated) => {
+            if (updated) {
+              setIntakeForm(updated);
+            }
+            if (pendingSessionStartRef.current) {
+              pendingSessionStartRef.current = false;
+              setIntakeModalIsFirstSessionPrompt(false);
+              performSessionStart();
+            }
+          }}
+          allowSkip={intakeModalAllowSkip}
+          initialData={intakeForm}
+          titleOverride={intakeModalIsFirstSessionPrompt ? t.session.intakeFirstSessionTitle : undefined}
+          descriptionOverride={intakeModalIsFirstSessionPrompt ? t.session.intakeFirstSessionDescription : undefined}
+        />
 
         {/* Start session modal */}
         <Modal isOpen={startModalOpen} onClose={() => { setStartModalOpen(false); setSchoolPickerOpen(false); }} title={t.session.startSessionModal}>
@@ -972,19 +1069,7 @@ export default function SessionPage() {
                   return;
                 }
               }
-              setStartModalOpen(false);
-              setSchoolPickerOpen(false);
-              useSessionStore.getState().setSessionMode(selectedMode);
-              settings.setPreferredSessionMode(selectedMode);
-              loadSettings().then((store) => {
-                store.set("preferredSessionMode", selectedMode);
-                store.save();
-              });
-              await handleStartSession();
-              handleGreeting();
-              if (selectedMode === "voice") {
-                voiceLoop.startLoop();
-              }
+              await beginSessionStartFlow();
             }}
             size="lg"
             className="w-full mt-6"

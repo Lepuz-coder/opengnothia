@@ -3,6 +3,8 @@ import { load } from "@tauri-apps/plugin-store";
 const STORE_DEFAULTS = {
   isOnboarded: false,
   hasSeenNoteTutorial: false,
+  hasSeenIntakeFormPrompt: false,
+  intakeFormLastStep: 0,
   language: "tr",
   provider: "anthropic",
   apiKey: "",

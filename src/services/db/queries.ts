@@ -59,13 +59,18 @@ export async function updateSessionMessages(id: string, messages: ChatMessage[])
 
 export async function completeSession(
   id: string,
-  data: { mood_after: number; summary: SessionSummary; summary_narrative?: string }
+  data: { mood_after: number; summary: SessionSummary | null; summary_narrative?: string }
 ): Promise<void> {
   const db = await getDatabase();
   await db.execute(
     "UPDATE sessions SET ended_at = ?, mood_after = ?, summary = ?, summary_narrative = ?, status = 'completed' WHERE id = ?",
-    [new Date().toISOString(), data.mood_after, JSON.stringify(data.summary), data.summary_narrative ?? null, id]
+    [new Date().toISOString(), data.mood_after, data.summary ? JSON.stringify(data.summary) : null, data.summary_narrative ?? null, id]
   );
+}
+
+export async function updateSessionNarrative(id: string, narrative: string): Promise<void> {
+  const db = await getDatabase();
+  await db.execute("UPDATE sessions SET summary_narrative = ? WHERE id = ?", [narrative, id]);
 }
 
 function parseSession(r: Session): Session {

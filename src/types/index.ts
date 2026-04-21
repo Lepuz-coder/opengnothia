@@ -125,6 +125,7 @@ export interface AIModel {
   supportsThinking?: boolean;
   supportsAdaptiveThinking?: boolean;
   requiresAdaptiveThinking?: boolean;
+  supportsXHighThinking?: boolean;
 }
 
 export interface Dream {

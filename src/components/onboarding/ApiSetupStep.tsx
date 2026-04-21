@@ -6,7 +6,7 @@ import { Select } from "@/components/ui/Select";
 import { Toggle } from "@/components/ui/Toggle";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useTranslation } from "@/i18n";
-import { providers, getProvider, modelSupportsThinking, modelSupportsAdaptiveThinking, modelRequiresAdaptiveThinking } from "@/constants/providers";
+import { providers, getProvider, modelSupportsThinking, modelSupportsAdaptiveThinking, modelRequiresAdaptiveThinking, modelSupportsMaxThinking } from "@/constants/providers";
 import { testApiKey } from "@/services/ai/aiService";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import type { ThinkingLevel, ThinkingType } from "@/types";
@@ -126,6 +126,9 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
             if (!modelSupportsThinking(provider, e.target.value)) {
               setThinkingEnabled(false);
             }
+            if (!modelSupportsMaxThinking(provider, e.target.value) && thinkingLevel === "max") {
+              setThinkingLevel("high");
+            }
             setThinkingType(modelRequiresAdaptiveThinking(provider, e.target.value) ? "adaptive" : "budget");
           }}
         />
@@ -168,7 +171,7 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
             { value: "low", label: t.settings.thinkingLow },
             { value: "medium", label: t.settings.thinkingMedium },
             { value: "high", label: t.settings.thinkingHigh },
-            ...(provider !== "openai" ? [{ value: "max", label: t.settings.thinkingMax }] : []),
+            ...(modelSupportsMaxThinking(provider, model) ? [{ value: "max", label: t.settings.thinkingMax }] : []),
           ]}
           value={thinkingLevel}
           onChange={(e) => setThinkingLevel(e.target.value as ThinkingLevel)}
@@ -192,6 +195,9 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
             setMemoryModel(e.target.value);
             if (!modelSupportsThinking(provider, e.target.value)) {
               setMemoryThinkingEnabled(false);
+            }
+            if (!modelSupportsMaxThinking(provider, e.target.value) && memoryThinkingLevel === "max") {
+              setMemoryThinkingLevel("high");
             }
             setMemoryThinkingType(modelRequiresAdaptiveThinking(provider, e.target.value) ? "adaptive" : "budget");
           }}
@@ -235,7 +241,7 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
             { value: "low", label: t.settings.thinkingLow },
             { value: "medium", label: t.settings.thinkingMedium },
             { value: "high", label: t.settings.thinkingHigh },
-            ...(provider !== "openai" ? [{ value: "max", label: t.settings.thinkingMax }] : []),
+            ...(modelSupportsMaxThinking(provider, memoryModel) ? [{ value: "max", label: t.settings.thinkingMax }] : []),
           ]}
           value={memoryThinkingLevel}
           onChange={(e) => setMemoryThinkingLevel(e.target.value as ThinkingLevel)}

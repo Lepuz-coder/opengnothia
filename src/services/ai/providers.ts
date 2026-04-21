@@ -45,14 +45,14 @@ const OPENAI_REASONING_EFFORT: Record<ThinkingLevel, string> = {
   low: "low",
   medium: "medium",
   high: "high",
-  max: "high",
+  max: "xhigh",
 };
 
 const OPENAI_THINKING_TOKENS: Record<ThinkingLevel, number> = {
   low: 16000,
   medium: 25000,
   high: 50000,
-  max: 50000,
+  max: 100000,
 };
 
 export type StreamChunk =
@@ -67,7 +67,7 @@ interface ProviderAdapter {
   formatRequest(params: SendMessageParams): { url: string; init: RequestInit };
   parseResponse(data: unknown): { content: string; usage: TokenUsage | null };
   formatStreamRequest(params: StreamRequestParams): { url: string; init: RequestInit };
-  parseSSEEvent(eventType: string, data: string): StreamChunk | null;
+  parseSSEEvent(eventType: string, data: string): StreamChunk | StreamChunk[] | null;
 }
 
 function isReasoningModel(model: string): boolean {
@@ -129,7 +129,7 @@ const openaiAdapter: ProviderAdapter = {
         input: messages.map((m) => ({ role: m.role, content: m.content })),
         reasoning: {
           effort: OPENAI_REASONING_EFFORT[thinkingLevel ?? "medium"],
-          summary: "concise",
+          summary: "detailed",
         },
         max_output_tokens: OPENAI_THINKING_TOKENS[thinkingLevel ?? "medium"],
       };
@@ -171,65 +171,104 @@ const openaiAdapter: ProviderAdapter = {
       },
     };
   },
-  parseSSEEvent(eventType: string, data: string): StreamChunk | null {
-    // Responses API events
-    if (eventType === "response.reasoning_summary_text.delta") {
+  parseSSEEvent(eventType: string, data: string): StreamChunk | StreamChunk[] | null {
+    // Responses API: fall back to `type` field in JSON when `event:` header is absent.
+    let effectiveType = eventType;
+    let parsedData: any = null;
+    if (data && data !== "[DONE]") {
       try {
-        const parsed = JSON.parse(data);
-        return parsed.delta ? { type: "thinking", content: parsed.delta } : null;
-      } catch { return null; }
-    }
-    if (eventType === "response.output_text.delta") {
-      try {
-        const parsed = JSON.parse(data);
-        return parsed.delta ? { type: "text", content: parsed.delta } : null;
-      } catch { return null; }
-    }
-    if (eventType === "response.completed") {
-      try {
-        const parsed = JSON.parse(data);
-        if (parsed.response?.usage) {
-          return {
-            type: "done_with_usage",
-            usage: {
-              inputTokens: parsed.response.usage.input_tokens,
-              outputTokens: parsed.response.usage.output_tokens,
-            },
-          };
+        parsedData = JSON.parse(data);
+        if (!effectiveType && typeof parsedData?.type === "string") {
+          effectiveType = parsedData.type;
         }
-      } catch { /* fall through */ }
-      return { type: "done" };
+      } catch { /* not JSON — leave parsedData null */ }
     }
-    if (eventType === "error" || eventType === "response.failed") {
-      try {
-        const parsed = JSON.parse(data);
-        return { type: "error", message: parsed.error?.message ?? "Stream error" };
-      } catch { return { type: "error", message: "Stream error" }; }
+
+    if (effectiveType === "response.reasoning_summary_part.added") {
+      // New reasoning summary part — insert a blank line so consecutive parts don't run together
+      return { type: "thinking", content: "\n\n" };
+    }
+
+    // If the reasoning output item completes, pull its summary text(s) into the thinking stream.
+    // This fires before `response.completed`, so the user sees reasoning as soon as it's ready
+    // — even when the API doesn't stream per-delta events for the summary.
+    if (effectiveType === "response.output_item.done") {
+      const item = parsedData?.item;
+      if (item?.type === "reasoning" && Array.isArray(item.summary) && item.summary.length > 0) {
+        const chunks: StreamChunk[] = [];
+        for (const s of item.summary) {
+          if (s?.type === "summary_text" && typeof s.text === "string" && s.text.length > 0) {
+            chunks.push({ type: "thinking", content: s.text });
+          }
+        }
+        if (chunks.length > 0) return chunks;
+      }
+    }
+
+    // Generic reasoning/thinking delta capture: any Responses API event whose name contains
+    // "reasoning" or "summary" and that carries a string `delta` field is treated as thinking.
+    if (effectiveType && effectiveType.startsWith("response.") && typeof parsedData?.delta === "string") {
+      const lower = effectiveType.toLowerCase();
+      if (lower.includes("reasoning") || lower.includes("summary")) {
+        return { type: "thinking", content: parsedData.delta };
+      }
+      if (lower.includes("output_text") || lower.endsWith(".text.delta")) {
+        return { type: "text", content: parsedData.delta };
+      }
+    }
+
+    if (effectiveType === "response.completed") {
+      const chunks: StreamChunk[] = [];
+      // Post-hoc fallback: if the API didn't stream a reasoning summary (no delta events fired),
+      // pull the final summary text from the completed output so the user can still see it.
+      const output = parsedData?.response?.output;
+      if (Array.isArray(output)) {
+        for (const item of output) {
+          if (item?.type === "reasoning" && Array.isArray(item.summary)) {
+            for (const s of item.summary) {
+              if (s?.type === "summary_text" && typeof s.text === "string" && s.text.length > 0) {
+                chunks.push({ type: "thinking", content: s.text });
+              }
+            }
+          }
+        }
+      }
+      if (parsedData?.response?.usage) {
+        chunks.push({
+          type: "done_with_usage",
+          usage: {
+            inputTokens: parsedData.response.usage.input_tokens,
+            outputTokens: parsedData.response.usage.output_tokens,
+          },
+        });
+      } else {
+        chunks.push({ type: "done" });
+      }
+      return chunks;
+    }
+    if (effectiveType === "error" || effectiveType === "response.failed") {
+      return { type: "error", message: parsedData?.error?.message ?? "Stream error" };
     }
 
     // Chat Completions API events
     if (data === "[DONE]") return { type: "done" };
-    try {
-      const parsed = JSON.parse(data);
-      // Usage chunk (sent before [DONE] when stream_options.include_usage is true)
-      if (parsed.usage && (!parsed.choices || parsed.choices.length === 0 || !parsed.choices[0]?.delta?.content)) {
-        return {
-          type: "done_with_usage",
-          usage: {
-            inputTokens: parsed.usage.prompt_tokens,
-            outputTokens: parsed.usage.completion_tokens,
-          },
-        };
-      }
-      const delta = parsed.choices?.[0]?.delta;
-      if (!delta) return null;
-      if (delta.content) {
-        return { type: "text", content: delta.content };
-      }
-      return null;
-    } catch {
-      return null;
+    if (!parsedData) return null;
+    // Usage chunk (sent before [DONE] when stream_options.include_usage is true)
+    if (parsedData.usage && (!parsedData.choices || parsedData.choices.length === 0 || !parsedData.choices[0]?.delta?.content)) {
+      return {
+        type: "done_with_usage",
+        usage: {
+          inputTokens: parsedData.usage.prompt_tokens,
+          outputTokens: parsedData.usage.completion_tokens,
+        },
+      };
     }
+    const delta = parsedData.choices?.[0]?.delta;
+    if (!delta) return null;
+    if (delta.content) {
+      return { type: "text", content: delta.content };
+    }
+    return null;
   },
 };
 

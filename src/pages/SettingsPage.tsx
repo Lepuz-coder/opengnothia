@@ -13,7 +13,7 @@ import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useSchoolsStore } from "@/stores/useSchoolsStore";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslation } from "@/i18n";
-import { providers, getProvider, modelSupportsThinking, modelSupportsAdaptiveThinking, modelRequiresAdaptiveThinking } from "@/constants/providers";
+import { providers, getProvider, modelSupportsThinking, modelSupportsAdaptiveThinking, modelRequiresAdaptiveThinking, modelSupportsMaxThinking } from "@/constants/providers";
 import { getUserProfile, upsertUserProfile, clearAllData } from "@/services/db/queries";
 import { Modal } from "@/components/ui/Modal";
 import { invoke } from "@tauri-apps/api/core";
@@ -465,6 +465,9 @@ export default function SettingsPage() {
                 if (!modelSupportsThinking(settings.provider, e.target.value)) {
                   settings.setThinkingEnabled(false);
                 }
+                if (!modelSupportsMaxThinking(settings.provider, e.target.value) && settings.thinkingLevel === "max") {
+                  settings.setThinkingLevel("high");
+                }
                 settings.setThinkingType(
                   modelRequiresAdaptiveThinking(settings.provider, e.target.value) ? "adaptive" : "budget",
                 );
@@ -509,7 +512,7 @@ export default function SettingsPage() {
                 { value: "low", label: t.settings.thinkingLow },
                 { value: "medium", label: t.settings.thinkingMedium },
                 { value: "high", label: t.settings.thinkingHigh },
-                ...(settings.provider !== "openai" ? [{ value: "max", label: t.settings.thinkingMax }] : []),
+                ...(modelSupportsMaxThinking(settings.provider, settings.model) ? [{ value: "max", label: t.settings.thinkingMax }] : []),
               ]}
               value={settings.thinkingLevel}
               onChange={(e) => settings.setThinkingLevel(e.target.value as ThinkingLevel)}
@@ -534,6 +537,9 @@ export default function SettingsPage() {
                 settings.setMemoryModel(e.target.value);
                 if (!modelSupportsThinking(settings.provider, e.target.value)) {
                   settings.setMemoryThinkingEnabled(false);
+                }
+                if (!modelSupportsMaxThinking(settings.provider, e.target.value) && settings.memoryThinkingLevel === "max") {
+                  settings.setMemoryThinkingLevel("high");
                 }
                 settings.setMemoryThinkingType(
                   modelRequiresAdaptiveThinking(settings.provider, e.target.value) ? "adaptive" : "budget",
@@ -579,7 +585,7 @@ export default function SettingsPage() {
                 { value: "low", label: t.settings.thinkingLow },
                 { value: "medium", label: t.settings.thinkingMedium },
                 { value: "high", label: t.settings.thinkingHigh },
-                ...(settings.provider !== "openai" ? [{ value: "max", label: t.settings.thinkingMax }] : []),
+                ...(modelSupportsMaxThinking(settings.provider, settings.memoryModel) ? [{ value: "max", label: t.settings.thinkingMax }] : []),
               ]}
               value={settings.memoryThinkingLevel}
               onChange={(e) => settings.setMemoryThinkingLevel(e.target.value as ThinkingLevel)}

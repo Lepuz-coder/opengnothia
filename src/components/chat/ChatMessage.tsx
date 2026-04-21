@@ -77,12 +77,13 @@ export function ChatMessage({ message }: ChatMessageProps) {
           />
         )}
 
-        {/* Streaming indicator when no content yet and no thinking */}
+        {/* Streaming indicator when no content yet and no thinking.
+            For reasoning models that don't stream a visible summary (e.g. gpt-5.4),
+            show a pulsing sparkle + "Düşünüyor..." so the user sees reasoning is in progress. */}
         {message.isStreaming && !message.content && !hasThinking && (
-          <div className="flex gap-1">
-            <div className="w-2 h-2 rounded-full bg-[var(--text-muted)] animate-bounce [animation-delay:0ms]" />
-            <div className="w-2 h-2 rounded-full bg-[var(--text-muted)] animate-bounce [animation-delay:150ms]" />
-            <div className="w-2 h-2 rounded-full bg-[var(--text-muted)] animate-bounce [animation-delay:300ms]" />
+          <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+            <Sparkles className="w-3.5 h-3.5 text-accent-400 animate-pulse drop-shadow-[0_0_6px_rgba(232,168,56,0.6)]" />
+            <span>{t.chat.thinking}</span>
           </div>
         )}
 

@@ -5,6 +5,8 @@ import remarkGfm from "remark-gfm";
 interface AssistantMessageContentProps {
   content: string;
   isStreaming: boolean;
+  onRevealProgress?: () => void;
+  onRevealStateChange?: (active: boolean) => void;
 }
 
 const REVEAL_INTERVAL_MS = 12;
@@ -13,6 +15,8 @@ const STREAM_SETTLE_DELAY_MS = 140;
 export function AssistantMessageContent({
   content,
   isStreaming,
+  onRevealProgress,
+  onRevealStateChange,
 }: AssistantMessageContentProps) {
   const [displayedContent, setDisplayedContent] = useState(content);
   const [streamViewActive, setStreamViewActive] = useState(isStreaming);
@@ -22,6 +26,13 @@ export function AssistantMessageContent({
   const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isStreamingRef = useRef(isStreaming);
+  const onRevealProgressRef = useRef(onRevealProgress);
+  const onRevealStateChangeRef = useRef(onRevealStateChange);
+
+  useEffect(() => {
+    onRevealProgressRef.current = onRevealProgress;
+    onRevealStateChangeRef.current = onRevealStateChange;
+  });
 
   const clearRevealTimer = () => {
     if (revealTimerRef.current !== null) {
@@ -59,6 +70,7 @@ export function AssistantMessageContent({
     clearSettleTimer();
     visibleContentRef.current += nextChar;
     setDisplayedContent(visibleContentRef.current);
+    onRevealProgressRef.current?.();
     revealTimerRef.current = setTimeout(revealNextChar, REVEAL_INTERVAL_MS);
   };
 
@@ -122,9 +134,14 @@ export function AssistantMessageContent({
   }, [content, isStreaming, streamViewActive]);
 
   useEffect(() => {
+    onRevealStateChangeRef.current?.(streamViewActive);
+  }, [streamViewActive]);
+
+  useEffect(() => {
     return () => {
       clearRevealTimer();
       clearSettleTimer();
+      onRevealStateChangeRef.current?.(false);
     };
   }, []);
 

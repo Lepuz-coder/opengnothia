@@ -135,6 +135,7 @@ export default function SessionPage() {
   const isSunday = new Date().getDay() === 0;
 
   const [pendingSessionEnd, setPendingSessionEnd] = useState(false);
+  const [isRevealing, setIsRevealing] = useState(false);
 
   // Intake form state
   const [intakeForm, setIntakeForm] = useState<PatientIntakeForm | null>(null);
@@ -1242,7 +1243,7 @@ export default function SessionPage() {
         <div className="flex flex-col flex-1 min-w-0">
           {pendingSessionEnd ? (
             <>
-              <ChatContainer messages={session.messages} isLoading={session.isLoading} isStreaming={session.isStreaming} isCompacting={session.isCompacting} />
+              <ChatContainer messages={session.messages} isLoading={session.isLoading} isStreaming={session.isStreaming} isCompacting={session.isCompacting} onRevealStateChange={setIsRevealing} />
               <SessionEndPrompt
                 onClose={handleConfirmCloseFromMarker}
                 onContinue={handleContinueAfterMarker}
@@ -1263,7 +1264,7 @@ export default function SessionPage() {
           ) : (
             <>
               {/* Chat */}
-              <ChatContainer messages={session.messages} isLoading={session.isLoading} isStreaming={session.isStreaming} isCompacting={session.isCompacting} />
+              <ChatContainer messages={session.messages} isLoading={session.isLoading} isStreaming={session.isStreaming} isCompacting={session.isCompacting} onRevealStateChange={setIsRevealing} />
 
               {/* Input */}
               <ChatInput
@@ -1274,7 +1275,7 @@ export default function SessionPage() {
                   }
                   handleSendMessage(msg);
                 }}
-                disabled={session.isLoading || session.isStreaming || session.isCompacting}
+                disabled={session.isLoading || session.isStreaming || session.isCompacting || isRevealing}
                 recordingState={recorder.state}
                 audioLevel={recorder.audioLevel}
                 onMicClick={handleMicClick}

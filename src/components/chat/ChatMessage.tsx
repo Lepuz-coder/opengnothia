@@ -7,9 +7,11 @@ import { AssistantMessageContent } from "./AssistantMessageContent";
 
 interface ChatMessageProps {
   message: ChatMessageType;
+  onRevealProgress?: () => void;
+  onRevealStateChange?: (active: boolean) => void;
 }
 
-export function ChatMessage({ message }: ChatMessageProps) {
+export function ChatMessage({ message, onRevealProgress, onRevealStateChange }: ChatMessageProps) {
   const isUser = message.role === "user";
   const hasThinking = Boolean(message.thinking && message.thinking.length > 0);
   const isThinkingPhase = message.isStreaming && (message.isThinkingActive === true || (hasThinking && !message.content));
@@ -74,6 +76,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
           <AssistantMessageContent
             content={message.content}
             isStreaming={Boolean(message.isStreaming)}
+            onRevealProgress={onRevealProgress}
+            onRevealStateChange={onRevealStateChange}
           />
         )}
 

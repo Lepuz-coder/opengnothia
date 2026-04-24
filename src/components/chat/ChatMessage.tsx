@@ -19,7 +19,13 @@ export function ChatMessage({ message, onRevealProgress, onRevealStateChange }: 
   const locale = getDateLocale(language);
 
   const [thinkingOpen, setThinkingOpen] = useState(false);
+  const [isRevealing, setIsRevealing] = useState(false);
   const showThinkingExpanded = thinkingOpen;
+
+  const handleRevealStateChange = (active: boolean) => {
+    setIsRevealing(active);
+    onRevealStateChange?.(active);
+  };
 
   return (
     <div className={cn("w-full", isUser && "flex justify-end")}>
@@ -77,7 +83,7 @@ export function ChatMessage({ message, onRevealProgress, onRevealStateChange }: 
             content={message.content}
             isStreaming={Boolean(message.isStreaming)}
             onRevealProgress={onRevealProgress}
-            onRevealStateChange={onRevealStateChange}
+            onRevealStateChange={handleRevealStateChange}
           />
         )}
 
@@ -91,7 +97,7 @@ export function ChatMessage({ message, onRevealProgress, onRevealStateChange }: 
           </div>
         )}
 
-        {!message.isStreaming && (
+        {!message.isStreaming && !isRevealing && (
           <p
             className="text-[10px] mt-1 text-[var(--text-muted)]"
           >

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { Loader2 } from "lucide-react";
 import { useTranslation } from "@/i18n";
@@ -12,23 +12,73 @@ interface ChatContainerProps {
   onRevealStateChange?: (active: boolean) => void;
 }
 
+const ANCHOR_TOP_PADDING_PX = 16;
+const MIN_BOTTOM_BUFFER_PX = 64;
+
 export function ChatContainer({ messages, isLoading, isStreaming, isCompacting, onRevealStateChange }: ChatContainerProps) {
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const contentWrapperRef = useRef<HTMLDivElement>(null);
+  const spacerRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslation();
   const revealingIdsRef = useRef<Set<string>>(new Set());
   const [anyRevealing, setAnyRevealing] = useState(false);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  const lastUserId = [...messages].reverse().find((m) => m.role === "user")?.id;
+  const prevLastUserIdRef = useRef<string | undefined>(lastUserId);
+
+  const recalcRef = useRef<() => void>(() => {});
+  recalcRef.current = () => {
+    const container = scrollContainerRef.current;
+    const wrapper = contentWrapperRef.current;
+    const spacer = spacerRef.current;
+    if (!container || !wrapper || !spacer) return;
+    const userEl = lastUserId ? document.getElementById(`msg-${lastUserId}`) : null;
+    if (!userEl) {
+      spacer.style.minHeight = `${MIN_BOTTOM_BUFFER_PX}px`;
+      return;
+    }
+    const wrapperHeight = wrapper.offsetHeight;
+    const spacerHeight = spacer.offsetHeight;
+    const contentExcludingSpacer = wrapperHeight - spacerHeight;
+    const userRect = userEl.getBoundingClientRect();
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const userTopInWrapper = userRect.top - wrapperRect.top;
+    const belowUser = contentExcludingSpacer - userTopInWrapper;
+    const desired = Math.max(MIN_BOTTOM_BUFFER_PX, container.clientHeight - belowUser - ANCHOR_TOP_PADDING_PX);
+    spacer.style.minHeight = `${desired}px`;
+  };
+
+  useLayoutEffect(() => {
+    recalcRef.current();
   }, [messages, isLoading, isCompacting]);
+
+  useLayoutEffect(() => {
+    const container = scrollContainerRef.current;
+    const wrapper = contentWrapperRef.current;
+    if (!container || !wrapper) return;
+    const ro = new ResizeObserver(() => recalcRef.current());
+    ro.observe(wrapper);
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, []);
+
+  useLayoutEffect(() => {
+    if (lastUserId === prevLastUserIdRef.current) return;
+    prevLastUserIdRef.current = lastUserId;
+    if (!lastUserId) return;
+    const container = scrollContainerRef.current;
+    const el = document.getElementById(`msg-${lastUserId}`);
+    if (!container || !el) return;
+    recalcRef.current();
+    const containerRect = container.getBoundingClientRect();
+    const elementRect = el.getBoundingClientRect();
+    const targetTop = container.scrollTop + (elementRect.top - containerRect.top) - ANCHOR_TOP_PADDING_PX;
+    container.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
+  }, [lastUserId]);
 
   useEffect(() => {
     onRevealStateChange?.(anyRevealing);
   }, [anyRevealing, onRevealStateChange]);
-
-  const handleRevealProgress = useCallback(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
 
   const handleRevealStateChange = useCallback((id: string, active: boolean) => {
     const set = revealingIdsRef.current;
@@ -45,8 +95,8 @@ export function ChatContainer({ messages, isLoading, isStreaming, isCompacting, 
   const showLoadingDots = isLoading && !isStreaming;
 
   return (
-    <div className="flex-1 overflow-y-auto scrollbar-thin">
-      <div className="max-w-3xl mx-auto px-4 py-6 min-h-full flex flex-col gap-6">
+    <div ref={scrollContainerRef} className="flex-1 overflow-y-auto scrollbar-thin">
+      <div ref={contentWrapperRef} className="max-w-3xl mx-auto px-4 py-6 min-h-full flex flex-col gap-6">
         {messages.length === 0 && !isLoading && !isStreaming && (
           <div className="flex items-center justify-center flex-1">
             <p className="text-[var(--text-muted)] text-sm">{t.chat.preparing}</p>
@@ -56,7 +106,6 @@ export function ChatContainer({ messages, isLoading, isStreaming, isCompacting, 
           <div key={msg.id} id={`msg-${msg.id}`}>
             <ChatMessage
               message={msg}
-              onRevealProgress={handleRevealProgress}
               onRevealStateChange={(active) => handleRevealStateChange(msg.id, active)}
             />
           </div>
@@ -81,7 +130,7 @@ export function ChatContainer({ messages, isLoading, isStreaming, isCompacting, 
             </p>
           </div>
         )}
-        <div ref={bottomRef} />
+        <div ref={spacerRef} aria-hidden className="shrink-0" />
       </div>
     </div>
   );

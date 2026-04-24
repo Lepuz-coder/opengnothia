@@ -144,8 +144,8 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
     const isRecording = recordingState === "recording";
 
     return (
-      <div className="px-4 pb-4 pt-2">
-        <div className="max-w-3xl mx-auto">
+      <div className="px-4 pb-4 pt-2 h-[11rem] flex flex-col justify-end">
+        <div className="max-w-3xl mx-auto w-full">
           <div
             className={cn(
               "relative flex items-end rounded-2xl border bg-[var(--bg-secondary)] shadow-lg shadow-black/20 transition-all duration-300",

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { Loader2 } from "lucide-react";
 import { useTranslation } from "@/i18n";
@@ -9,15 +9,38 @@ interface ChatContainerProps {
   isLoading: boolean;
   isStreaming?: boolean;
   isCompacting?: boolean;
+  onRevealStateChange?: (active: boolean) => void;
 }
 
-export function ChatContainer({ messages, isLoading, isStreaming, isCompacting }: ChatContainerProps) {
+export function ChatContainer({ messages, isLoading, isStreaming, isCompacting, onRevealStateChange }: ChatContainerProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslation();
+  const revealingIdsRef = useRef<Set<string>>(new Set());
+  const [anyRevealing, setAnyRevealing] = useState(false);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading, isCompacting]);
+
+  useEffect(() => {
+    onRevealStateChange?.(anyRevealing);
+  }, [anyRevealing, onRevealStateChange]);
+
+  const handleRevealProgress = useCallback(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, []);
+
+  const handleRevealStateChange = useCallback((id: string, active: boolean) => {
+    const set = revealingIdsRef.current;
+    const had = set.has(id);
+    if (active) {
+      if (!had) set.add(id);
+    } else {
+      if (!had) return;
+      set.delete(id);
+    }
+    setAnyRevealing(set.size > 0);
+  }, []);
 
   const showLoadingDots = isLoading && !isStreaming;
 
@@ -31,7 +54,11 @@ export function ChatContainer({ messages, isLoading, isStreaming, isCompacting }
         )}
         {messages.map((msg) => (
           <div key={msg.id} id={`msg-${msg.id}`}>
-            <ChatMessage message={msg} />
+            <ChatMessage
+              message={msg}
+              onRevealProgress={handleRevealProgress}
+              onRevealStateChange={(active) => handleRevealStateChange(msg.id, active)}
+            />
           </div>
         ))}
         {showLoadingDots && (

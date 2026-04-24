@@ -40,6 +40,7 @@ import { SessionInsightsPanel } from "@/components/session/SessionInsightsPanel"
 import { IntakeFormModal } from "@/components/session/IntakeFormModal";
 import { IntakeFormCTA } from "@/components/session/IntakeFormCTA";
 import { IntakeFormSummaryCard } from "@/components/session/IntakeFormSummaryCard";
+import { SessionEndPrompt } from "@/components/session/SessionEndPrompt";
 import type { AIProvider, ChatMessage, ThinkingLevel, TokenUsage, ExtractedInsight, SessionMode, PatientIntakeForm } from "@/types";
 import { createBufferedTextStream } from "@/lib/createBufferedTextStream";
 import { createMarkerStrippedStream } from "@/lib/createMarkerStrippedStream";
@@ -132,6 +133,8 @@ export default function SessionPage() {
     language,
   });
   const isSunday = new Date().getDay() === 0;
+
+  const [pendingSessionEnd, setPendingSessionEnd] = useState(false);
 
   // Intake form state
   const [intakeForm, setIntakeForm] = useState<PatientIntakeForm | null>(null);
@@ -472,9 +475,7 @@ export default function SessionPage() {
             if (useSessionStore.getState().sessionMode === "voice") {
               voiceLoop.pauseLoop();
             }
-            setTimeout(() => {
-              handleEndSessionRef.current();
-            }, 2500);
+            setPendingSessionEnd(true);
           }
         },
         onUsage: (usage) => {
@@ -725,6 +726,18 @@ export default function SessionPage() {
       });
     });
   }, [settings, navigate, setSidebarHidden, language]);
+
+  const handleConfirmCloseFromMarker = useCallback(() => {
+    setPendingSessionEnd(false);
+    handleEndSession();
+  }, [handleEndSession]);
+
+  const handleContinueAfterMarker = useCallback(() => {
+    setPendingSessionEnd(false);
+    if (useSessionStore.getState().sessionMode === "voice") {
+      voiceLoop.resumeLoop();
+    }
+  }, [voiceLoop]);
 
   const handleGenerateSummary = useCallback(async () => {
     const state = useSessionStore.getState();
@@ -1227,7 +1240,15 @@ export default function SessionPage() {
       {/* Content area with optional right insights panel */}
       <div className="flex flex-1 min-h-0">
         <div className="flex flex-col flex-1 min-w-0">
-          {session.sessionMode === "voice" && voiceLoop.status !== "idle" ? (
+          {pendingSessionEnd ? (
+            <>
+              <ChatContainer messages={session.messages} isLoading={session.isLoading} isStreaming={session.isStreaming} isCompacting={session.isCompacting} />
+              <SessionEndPrompt
+                onClose={handleConfirmCloseFromMarker}
+                onContinue={handleContinueAfterMarker}
+              />
+            </>
+          ) : session.sessionMode === "voice" && voiceLoop.status !== "idle" ? (
             <VoiceConversationView
               voiceStatus={voiceLoop.status}
               currentAIText={voiceLoop.currentAIText}

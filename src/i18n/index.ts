@@ -128,6 +128,10 @@ export interface Translations {
     endSession: string;
     endSessionConfirm: string;
     yesEnd: string;
+    sessionEndedTitle: string;
+    sessionEndedDescription: string;
+    closeSession: string;
+    continueSession: string;
     therapySchool: string;
     selectTherapySchool: string;
     goToSettings: string;

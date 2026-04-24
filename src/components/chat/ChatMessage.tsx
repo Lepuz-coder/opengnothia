@@ -7,11 +7,10 @@ import { AssistantMessageContent } from "./AssistantMessageContent";
 
 interface ChatMessageProps {
   message: ChatMessageType;
-  onRevealProgress?: () => void;
   onRevealStateChange?: (active: boolean) => void;
 }
 
-export function ChatMessage({ message, onRevealProgress, onRevealStateChange }: ChatMessageProps) {
+export function ChatMessage({ message, onRevealStateChange }: ChatMessageProps) {
   const isUser = message.role === "user";
   const hasThinking = Boolean(message.thinking && message.thinking.length > 0);
   const isThinkingPhase = message.isStreaming && (message.isThinkingActive === true || (hasThinking && !message.content));
@@ -34,7 +33,8 @@ export function ChatMessage({ message, onRevealProgress, onRevealStateChange }: 
           "text-base leading-relaxed",
           isUser
             ? "max-w-[70%] rounded-2xl rounded-br-md px-4 py-3 bg-[var(--bg-secondary)] text-[var(--text-primary)]"
-            : "w-full text-[var(--text-primary)]"
+            : "w-full text-[var(--text-primary)]",
+          !isUser && (message.isStreaming || isRevealing) && "min-h-[3.5rem]"
         )}
       >
         {/* Thinking section */}
@@ -82,7 +82,6 @@ export function ChatMessage({ message, onRevealProgress, onRevealStateChange }: 
           <AssistantMessageContent
             content={message.content}
             isStreaming={Boolean(message.isStreaming)}
-            onRevealProgress={onRevealProgress}
             onRevealStateChange={handleRevealStateChange}
           />
         )}

@@ -113,6 +113,15 @@ export const providers: AIProviderConfig[] = [
     models: [
       // GPT-5 Serisi
       {
+        id: "gpt-5.5",
+        name: "GPT-5.5",
+        contextWindow: 400000,
+        costPer1kInput: 0.0025,
+        costPer1kOutput: 0.015,
+        supportsThinking: true,
+        supportsXHighThinking: true,
+      },
+      {
         id: "gpt-5.4",
         name: "GPT-5.4",
         contextWindow: 400000,

@@ -428,6 +428,11 @@ export const fr: Translations = {
     input: "Entree",
     output: "Sortie",
     cost: "Cout",
+    spendingTrend: "Tendance des depenses",
+    daily: "Quotidien",
+    weekly: "Hebdomadaire",
+    monthly: "Mensuel",
+    noChartData: "Aucune donnee de depenses pour cette periode.",
     callTypes: {
       greeting: "Accueil",
       chat: "Message",

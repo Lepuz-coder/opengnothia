@@ -428,6 +428,11 @@ export const ja: Translations = {
     input: "入力",
     output: "出力",
     cost: "コスト",
+    spendingTrend: "支出トレンド",
+    daily: "日次",
+    weekly: "週次",
+    monthly: "月次",
+    noChartData: "この期間の支出データはまだありません。",
     callTypes: {
       greeting: "あいさつ",
       chat: "メッセージ",

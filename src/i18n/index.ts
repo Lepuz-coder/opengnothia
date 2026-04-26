@@ -430,6 +430,11 @@ export interface Translations {
     input: string;
     output: string;
     cost: string;
+    spendingTrend: string;
+    daily: string;
+    weekly: string;
+    monthly: string;
+    noChartData: string;
     callTypes: {
       greeting: string;
       chat: string;

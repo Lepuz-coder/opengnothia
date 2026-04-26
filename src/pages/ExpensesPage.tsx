@@ -7,6 +7,7 @@ import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslation, getDateLocale } from "@/i18n";
 import type { TokenUsageRecord } from "@/types";
 import { SpendingStrip } from "@/components/dashboard/SpendingStrip";
+import { SpendingChart } from "@/components/dashboard/SpendingChart";
 
 interface ProviderSummary {
   provider: string;
@@ -152,6 +153,11 @@ export default function ExpensesPage() {
           );
         })}
       </div>
+
+      {/* Spending Trend Chart */}
+      {records.length > 0 && (
+        <SpendingChart records={records} t={t} language={language} />
+      )}
 
       {/* Empty state */}
       {records.length === 0 && (

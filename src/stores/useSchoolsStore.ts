@@ -41,7 +41,18 @@ export const useSchoolsStore = create<SchoolsState>((set) => ({
   loadFromStore: (data) => set(data),
 }));
 
-const BUILTIN_IDS = new Set(["psychodynamic", "cbt", "logotherapy", "act", "schema", "stoic", "spiritual"]);
+export const RECOMMENDED_SCHOOL_ID = "integrative";
+
+const BUILTIN_IDS = new Set([
+  "integrative",
+  "psychodynamic",
+  "cbt",
+  "logotherapy",
+  "act",
+  "schema",
+  "stoic",
+  "spiritual",
+]);
 
 export function isBuiltInSchool(id: string): boolean {
   return BUILTIN_IDS.has(id);
@@ -55,7 +66,12 @@ export function getAllSchools(lang?: Language): TherapySchoolDef[] {
     }
     return s;
   });
-  return [...builtIn, ...customSchools];
+  const sorted = [...builtIn].sort((a, b) => {
+    if (a.id === RECOMMENDED_SCHOOL_ID) return -1;
+    if (b.id === RECOMMENDED_SCHOOL_ID) return 1;
+    return 0;
+  });
+  return [...sorted, ...customSchools];
 }
 
 export function getSchoolById(id: string, lang?: Language): TherapySchoolDef | undefined {

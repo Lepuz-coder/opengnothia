@@ -534,6 +534,7 @@ export const tr: Translations = {
     deleteSchoolConfirm: "Bu ekolü silmek istediğine emin misin? Bu işlem geri alınamaz.",
     builtIn: "Sabit",
     custom: "Özel",
+    recommended: "Önerilen",
     resetPrompt: "Promptu Sıfırla",
     resetPromptConfirm: "Promptu varsayılana sıfırlamak istediğine emin misin?",
     promptOverridden: "Prompt düzenlendi",

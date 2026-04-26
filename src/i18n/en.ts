@@ -534,6 +534,7 @@ export const en: Translations = {
     deleteSchoolConfirm: "Are you sure you want to delete this school? This action cannot be undone.",
     builtIn: "Built-in",
     custom: "Custom",
+    recommended: "Recommended",
     resetPrompt: "Reset Prompt",
     resetPromptConfirm: "Are you sure you want to reset the prompt to default?",
     promptOverridden: "Prompt edited",

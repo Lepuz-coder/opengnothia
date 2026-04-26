@@ -536,6 +536,7 @@ export interface Translations {
     deleteSchoolConfirm: string;
     builtIn: string;
     custom: string;
+    recommended: string;
     resetPrompt: string;
     resetPromptConfirm: string;
     promptOverridden: string;

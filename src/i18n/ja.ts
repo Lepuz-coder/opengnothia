@@ -534,6 +534,7 @@ export const ja: Translations = {
     deleteSchoolConfirm: "この学派を削除しますか？この操作は取り消せません。",
     builtIn: "組み込み",
     custom: "カスタム",
+    recommended: "おすすめ",
     resetPrompt: "プロンプトをリセット",
     resetPromptConfirm: "プロンプトをデフォルトに戻しますか？",
     promptOverridden: "プロンプトを編集済み",

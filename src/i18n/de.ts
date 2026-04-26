@@ -534,6 +534,7 @@ export const de: Translations = {
     deleteSchoolConfirm: "Bist du sicher, dass du diese Schule löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.",
     builtIn: "Integriert",
     custom: "Benutzerdefiniert",
+    recommended: "Empfohlen",
     resetPrompt: "Prompt zurücksetzen",
     resetPromptConfirm: "Bist du sicher, dass du den Prompt auf die Standardeinstellung zurücksetzen möchtest?",
     promptOverridden: "Prompt bearbeitet",

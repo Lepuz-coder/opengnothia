@@ -10,7 +10,7 @@ import { Select } from "@/components/ui/Select";
 import { Toggle } from "@/components/ui/Toggle";
 import { useAppStore } from "@/stores/useAppStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
-import { useSchoolsStore } from "@/stores/useSchoolsStore";
+import { useSchoolsStore, RECOMMENDED_SCHOOL_ID } from "@/stores/useSchoolsStore";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslation } from "@/i18n";
 import { providers, getProvider, modelSupportsThinking, modelSupportsAdaptiveThinking, modelRequiresAdaptiveThinking, modelSupportsMaxThinking } from "@/constants/providers";
@@ -282,7 +282,7 @@ export default function SettingsPage() {
     await store.set("model", "claude-opus-4-6");
     await store.set("customBaseUrl", "");
     await store.set("language", "tr");
-    await store.set("therapySchool", "psychodynamic");
+    await store.set("therapySchool", RECOMMENDED_SCHOOL_ID);
     await store.set("thinkingEnabled", true);
     await store.set("thinkingLevel", "medium");
     await store.set("thinkingType", "budget");
@@ -313,7 +313,7 @@ export default function SettingsPage() {
       providerApiKeys: {},
       model: "claude-opus-4-6",
       customBaseUrl: "",
-      therapySchool: "psychodynamic" as TherapySchool,
+      therapySchool: RECOMMENDED_SCHOOL_ID as TherapySchool,
       thinkingEnabled: true,
       thinkingLevel: "medium" as ThinkingLevel,
       thinkingType: "budget" as ThinkingType,

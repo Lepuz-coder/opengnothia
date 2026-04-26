@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, ArrowLeft, Check, Trash2, RotateCcw, Pencil, Save, CheckCircle, Search, X, Compass } from "lucide-react";
+import { Plus, ArrowLeft, Check, Trash2, RotateCcw, Pencil, Save, CheckCircle, Search, X, Compass, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -10,7 +10,7 @@ import { ChatInput } from "@/components/chat/ChatInput";
 import { useTranslation } from "@/i18n";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useAppStore } from "@/stores/useAppStore";
-import { useSchoolsStore, getAllSchools, isBuiltInSchool, getSchoolById } from "@/stores/useSchoolsStore";
+import { useSchoolsStore, getAllSchools, isBuiltInSchool, getSchoolById, RECOMMENDED_SCHOOL_ID } from "@/stores/useSchoolsStore";
 import { getLocalizedTherapySchool } from "@/i18n/therapySchools";
 import { loadSettings } from "@/lib/store";
 import { cn } from "@/lib/cn";
@@ -123,7 +123,7 @@ export default function SchoolsPage() {
     const idToDelete = pendingDeleteId ?? editingSchoolId;
     if (!idToDelete) return;
     if (therapySchool === idToDelete) {
-      await persistSelectedSchool("psychodynamic");
+      await persistSelectedSchool(RECOMMENDED_SCHOOL_ID);
     }
     deleteSchool(idToDelete);
     setShowDeleteModal(false);
@@ -490,15 +490,23 @@ export default function SchoolsPage() {
             const builtIn = isBuiltInSchool(school.id);
             const hasOverride = builtIn && !!promptOverrides[school.id];
 
+            const isRecommended = school.id === RECOMMENDED_SCHOOL_ID;
+
             return (
               <Card
                 key={school.id}
                 className={cn(
-                  "cursor-pointer transition-all hover:border-primary-500/30",
+                  "relative cursor-pointer transition-all hover:border-primary-500/30",
                   isSelected && "border-primary-500 ring-1 ring-primary-500/20"
                 )}
                 onClick={() => openSchoolDetail(school)}
               >
+                {isRecommended && (
+                  <span className="absolute top-3 right-3 z-10 flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full bg-primary-500/15 text-primary-300 border border-primary-500/30 pointer-events-none">
+                    <Sparkles className="w-3 h-3" />
+                    {t.schools.recommended}
+                  </span>
+                )}
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">

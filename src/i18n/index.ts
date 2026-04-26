@@ -337,11 +337,34 @@ export interface Translations {
     permanentlyDelete: string;
     connectionSuccess: string;
     connectionFailed: string;
+    exportData: string;
+    exportDataDescription: string;
+    exportDataWarning: string;
+    exportStatsSessions: string;
+    exportStatsJournals: string;
+    exportStatsDreams: string;
+    exportButton: string;
+    exporting: string;
+    exportSuccess: string;
+    exportFailed: string;
+    importData: string;
+    importDataDescription: string;
+    importDataWarning: string;
+    importButton: string;
+    importing: string;
+    importInvalidFile: string;
+    importFailed: string;
+    importConfirmTitle: string;
+    importConfirmDescription: string;
+    importConfirmInstruction: string;
+    importConfirmText: string;
+    importConfirmButton: string;
     tabs: {
       general: string;
       ai: string;
       voice: string;
       security: string;
+      data: string;
     };
   };
   onboarding: {
@@ -354,6 +377,7 @@ export interface Translations {
     openSource: string;
     openSourceDescription: string;
     letsStart: string;
+    importExistingData: string;
     aiConnection: string;
     aiConnectionDescription: string;
     apiKeyPlaceholder: string;

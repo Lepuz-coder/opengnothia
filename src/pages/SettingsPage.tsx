@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router";
-import { Save, CheckCircle, Shield, Lock, Loader2, Volume2 } from "lucide-react";
+import { Save, CheckCircle, Shield, Lock, Loader2, Volume2, Download, Upload, AlertTriangle } from "lucide-react";
 import { Tabs } from "@/components/ui/Tabs";
 import { loadSettings } from "@/lib/store";
 import { Card } from "@/components/ui/Card";
@@ -19,6 +19,15 @@ import { Modal } from "@/components/ui/Modal";
 import { invoke } from "@tauri-apps/api/core";
 import { generateSalt, hashPassword, verifyPassword } from "@/lib/security";
 import { synthesizeSpeech, playAudioBlob } from "@/services/ai/ttsService";
+import {
+  exportAllData,
+  saveExportToFile,
+  readImportFile,
+  importAllData,
+  getDataStats,
+  type ExportFile,
+  type DataStats,
+} from "@/services/data/dataPortService";
 import type { AIProvider, Language, SessionMode, TherapySchool, ThinkingLevel, ThinkingType, TTSModel, TTSVoice } from "@/types";
 
 export default function SettingsPage() {
@@ -38,11 +47,22 @@ export default function SettingsPage() {
   const [previewPlaying, setPreviewPlaying] = useState<string | null>(null);
   const previewStopRef = useRef<(() => void) | null>(null);
   const [searchParams] = useSearchParams();
-  const validTabs = ["general", "ai", "voice", "security"] as const;
+  const validTabs = ["general", "ai", "voice", "data", "security"] as const;
   const initialTab = searchParams.get("tab");
   const [activeTab, setActiveTab] = useState<(typeof validTabs)[number]>(
     validTabs.includes(initialTab as any) ? (initialTab as (typeof validTabs)[number]) : "general"
   );
+
+  // Data tab state
+  const [dataStats, setDataStats] = useState<DataStats | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportSuccess, setExportSuccess] = useState(false);
+  const [exportError, setExportError] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState("");
+  const [pendingImport, setPendingImport] = useState<ExportFile | null>(null);
+  const [importConfirmText, setImportConfirmText] = useState("");
+  const importFileInputRef = useRef<HTMLInputElement>(null);
 
   // Security state
   const [biometricEnabled, setBiometricEnabledState] = useState(false);
@@ -78,6 +98,12 @@ export default function SettingsPage() {
       previewStopRef.current?.();
       previewStopRef.current = null;
       setPreviewPlaying(null);
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === "data") {
+      getDataStats().then(setDataStats).catch(() => setDataStats(null));
     }
   }, [activeTab]);
 
@@ -333,6 +359,54 @@ export default function SettingsPage() {
     setOnboarded(false);
   }
 
+  async function handleExport() {
+    setExportError("");
+    setExportSuccess(false);
+    setExporting(true);
+    try {
+      const data = await exportAllData();
+      const path = await saveExportToFile(data);
+      if (path !== null) {
+        setExportSuccess(true);
+        setTimeout(() => setExportSuccess(false), 3000);
+      }
+    } catch (err) {
+      console.error("Export failed:", err);
+      setExportError(t.settings.exportFailed);
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function handleImportFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setImportError("");
+    try {
+      const data = await readImportFile(file);
+      setPendingImport(data);
+      setImportConfirmText("");
+    } catch (err) {
+      console.error("Import file invalid:", err);
+      setImportError(t.settings.importInvalidFile);
+    }
+  }
+
+  async function confirmImport() {
+    if (!pendingImport) return;
+    if (importConfirmText !== t.settings.importConfirmText) return;
+    setImporting(true);
+    try {
+      await importAllData(pendingImport);
+      window.location.reload();
+    } catch (err) {
+      console.error("Import failed:", err);
+      setImportError(t.settings.importFailed);
+      setImporting(false);
+    }
+  }
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold">{t.settings.title}</h1>
@@ -342,6 +416,7 @@ export default function SettingsPage() {
           { id: "general", label: t.settings.tabs.general },
           { id: "ai", label: t.settings.tabs.ai },
           { id: "voice", label: t.settings.tabs.voice },
+          { id: "data", label: t.settings.tabs.data },
           { id: "security", label: t.settings.tabs.security },
         ]}
         activeTab={activeTab}
@@ -702,6 +777,78 @@ export default function SettingsPage() {
       </div>
       )}
 
+      {/* Tab: Data */}
+      {activeTab === "data" && (
+      <div className="space-y-6">
+      {/* Export */}
+      <Card>
+        <h2 className="font-semibold mb-2">{t.settings.exportData}</h2>
+        <p className="text-xs text-[var(--text-muted)] mb-3">
+          {t.settings.exportDataDescription}
+        </p>
+        {dataStats && (
+          <p className="text-xs text-[var(--text-muted)] mb-4">
+            {dataStats.sessions} {t.settings.exportStatsSessions} · {dataStats.journals} {t.settings.exportStatsJournals} · {dataStats.dreams} {t.settings.exportStatsDreams}
+          </p>
+        )}
+        <div className="flex items-start gap-2 mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+          <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-amber-700 dark:text-amber-400">
+            {t.settings.exportDataWarning}
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button onClick={handleExport} disabled={exporting}>
+            {exporting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            {exporting ? t.settings.exporting : t.settings.exportButton}
+          </Button>
+          {exportSuccess && (
+            <span className="flex items-center gap-1.5 text-sm text-green-600">
+              <CheckCircle className="w-4 h-4" /> {t.settings.exportSuccess}
+            </span>
+          )}
+          {exportError && (
+            <span className="text-sm text-red-500">{exportError}</span>
+          )}
+        </div>
+      </Card>
+
+      {/* Import */}
+      <Card>
+        <h2 className="font-semibold mb-2">{t.settings.importData}</h2>
+        <p className="text-xs text-[var(--text-muted)] mb-3">
+          {t.settings.importDataDescription}
+        </p>
+        <div className="flex items-start gap-2 mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+          <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-red-700 dark:text-red-400">
+            {t.settings.importDataWarning}
+          </p>
+        </div>
+        <input
+          ref={importFileInputRef}
+          type="file"
+          accept="application/json,.json"
+          onChange={handleImportFileSelect}
+          className="hidden"
+        />
+        <div className="flex items-center gap-3">
+          <Button variant="secondary" onClick={() => importFileInputRef.current?.click()}>
+            <Upload className="w-4 h-4" />
+            {t.settings.importButton}
+          </Button>
+          {importError && (
+            <span className="text-sm text-red-500">{importError}</span>
+          )}
+        </div>
+      </Card>
+      </div>
+      )}
+
       {/* Tab: Security */}
       {activeTab === "security" && (
       <div className="space-y-6">
@@ -928,6 +1075,50 @@ export default function SettingsPage() {
               {t.common.continue}
             </Button>
           </div>
+        </div>
+      </Modal>
+
+      {/* Import Data Confirm Modal */}
+      <Modal
+        isOpen={pendingImport !== null}
+        onClose={() => { if (!importing) { setPendingImport(null); setImportConfirmText(""); setImportError(""); } }}
+        title={t.settings.importConfirmTitle}
+      >
+        <p className="text-sm text-[var(--text-secondary)] mb-4">
+          {t.settings.importConfirmDescription}
+        </p>
+        <p className="text-sm mb-2">
+          {t.settings.importConfirmInstruction} <strong>"{t.settings.importConfirmText}"</strong>
+        </p>
+        <Input
+          value={importConfirmText}
+          onChange={(e) => setImportConfirmText(e.target.value)}
+          placeholder={t.settings.importConfirmText}
+          disabled={importing}
+        />
+        {importError && <p className="text-sm text-red-500 mt-2">{importError}</p>}
+        <div className="flex justify-end gap-3 mt-4">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={importing}
+            onClick={() => { setPendingImport(null); setImportConfirmText(""); setImportError(""); }}
+          >
+            {t.common.cancel}
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            disabled={importConfirmText !== t.settings.importConfirmText || importing}
+            onClick={confirmImport}
+          >
+            {importing ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Upload className="w-4 h-4" />
+            )}
+            {importing ? t.settings.importing : t.settings.importConfirmButton}
+          </Button>
         </div>
       </Modal>
     </div>

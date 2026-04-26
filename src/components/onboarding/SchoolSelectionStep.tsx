@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { GraduationCap, Hand, Compass, ArrowLeft, Check, CheckCircle, X } from "lucide-react";
+import { GraduationCap, Hand, Compass, ArrowLeft, Check, CheckCircle, X, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ErrorModal } from "@/components/ui/ErrorModal";
@@ -7,7 +7,7 @@ import { ChatContainer } from "@/components/chat/ChatContainer";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { useTranslation } from "@/i18n";
 import { useSettingsStore } from "@/stores/useSettingsStore";
-import { getAllSchools } from "@/stores/useSchoolsStore";
+import { getAllSchools, RECOMMENDED_SCHOOL_ID } from "@/stores/useSchoolsStore";
 import { loadSettings } from "@/lib/store";
 import { useSchoolRecommendation } from "@/hooks/useSchoolRecommendation";
 import { cn } from "@/lib/cn";
@@ -157,17 +157,24 @@ export function SchoolSelectionStep({ onNext, onBack }: SchoolSelectionStepProps
         <div className="space-y-2 max-h-64 overflow-y-auto">
           {allSchools.map((school) => {
             const isSelected = selectedSchoolId === school.id;
+            const isRecommended = school.id === RECOMMENDED_SCHOOL_ID;
             return (
               <button
                 key={school.id}
                 onClick={() => setSelectedSchoolId(school.id)}
                 className={cn(
-                  "w-full text-left p-3 rounded-xl border transition-all",
+                  "relative w-full text-left p-3 rounded-xl border transition-all",
                   isSelected
                     ? "border-primary-500 bg-primary-500/10 ring-1 ring-primary-500/20"
                     : "border-[var(--border-color)] hover:border-primary-500/30"
                 )}
               >
+                {isRecommended && (
+                  <span className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full bg-primary-500/15 text-primary-300 border border-primary-500/30 pointer-events-none">
+                    <Sparkles className="w-3 h-3" />
+                    {t.schools.recommended}
+                  </span>
+                )}
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
                     <h3 className="font-medium text-sm truncate">{school.name}</h3>

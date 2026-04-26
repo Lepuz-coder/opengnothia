@@ -534,6 +534,7 @@ export const zh: Translations = {
     deleteSchoolConfirm: "确定要删除这个流派吗？此操作无法撤销。",
     builtIn: "内置",
     custom: "自定义",
+    recommended: "推荐",
     resetPrompt: "重置提示词",
     resetPromptConfirm: "确定要将提示词重置为默认值吗？",
     promptOverridden: "提示词已修改",

@@ -11,7 +11,7 @@ const STORE_DEFAULTS = {
   model: "claude-opus-4-7",
   customBaseUrl: "",
   theme: "system",
-  therapySchool: "psychodynamic",
+  therapySchool: "integrative",
   thinkingEnabled: false,
   thinkingLevel: "medium",
   thinkingType: "budget",

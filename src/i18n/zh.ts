@@ -428,6 +428,11 @@ export const zh: Translations = {
     input: "输入",
     output: "输出",
     cost: "费用",
+    spendingTrend: "支出趋势",
+    daily: "每日",
+    weekly: "每周",
+    monthly: "每月",
+    noChartData: "此期间还没有支出数据。",
     callTypes: {
       greeting: "问候",
       chat: "消息",

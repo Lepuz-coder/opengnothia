@@ -428,6 +428,11 @@ export const tr: Translations = {
     input: "Girdi",
     output: "Çıktı",
     cost: "Maliyet",
+    spendingTrend: "Harcama Trendi",
+    daily: "Günlük",
+    weekly: "Haftalık",
+    monthly: "Aylık",
+    noChartData: "Bu dönem için henüz harcama verisi yok.",
     callTypes: {
       greeting: "Karşılama",
       chat: "Mesaj",

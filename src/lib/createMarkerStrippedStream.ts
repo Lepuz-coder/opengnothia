@@ -10,8 +10,7 @@ export function createMarkerStrippedStream(
   onSafeChunk: (chunk: string) => void,
   flushDelayMs = 48,
 ): MarkerStrippedStream {
-  let raw = "";
-  let safeLen = 0;
+  let rawTail = "";
   let pending = "";
   let timer: ReturnType<typeof setTimeout> | null = null;
   let markerSeen = false;
@@ -32,49 +31,61 @@ export function createMarkerStrippedStream(
   };
 
   const scheduleFlush = () => {
+    if (flushDelayMs <= 0) {
+      flushPending();
+      return;
+    }
     if (timer !== null) return;
     timer = setTimeout(flushPending, flushDelayMs);
   };
 
-  const computeSafePrefix = (text: string): string => {
-    let cleaned = text;
-    if (cleaned.includes(marker)) {
+  const stripCompleteMarkers = () => {
+    let markerIndex = rawTail.indexOf(marker);
+    while (markerIndex !== -1) {
       markerSeen = true;
-      cleaned = cleaned.split(marker).join("");
+      pending += rawTail.slice(0, markerIndex);
+      rawTail = rawTail.slice(markerIndex + marker.length);
+      markerIndex = rawTail.indexOf(marker);
     }
-    for (let i = Math.min(marker.length - 1, cleaned.length); i > 0; i--) {
-      if (marker.startsWith(cleaned.slice(-i))) {
-        return cleaned.slice(0, -i);
+  };
+
+  const getMarkerPrefixSuffixLength = (text: string) => {
+    for (let i = Math.min(marker.length - 1, text.length); i > 0; i--) {
+      if (marker.startsWith(text.slice(-i))) {
+        return i;
       }
     }
-    return cleaned;
+    return 0;
+  };
+
+  const moveSafeTailToPending = () => {
+    stripCompleteMarkers();
+    const unsafeTailLength = getMarkerPrefixSuffixLength(rawTail);
+    const safeLength = rawTail.length - unsafeTailLength;
+    if (safeLength <= 0) return;
+    pending += rawTail.slice(0, safeLength);
+    rawTail = rawTail.slice(safeLength);
   };
 
   return {
     push(chunk) {
       if (!chunk) return;
-      raw += chunk;
-      const safePrefix = computeSafePrefix(raw);
-      if (safePrefix.length > safeLen) {
-        pending += safePrefix.slice(safeLen);
-        safeLen = safePrefix.length;
+      rawTail += chunk;
+      const previousPendingLength = pending.length;
+      moveSafeTailToPending();
+      if (pending.length > previousPendingLength) {
         scheduleFlush();
       }
     },
     flush() {
-      let cleaned = raw;
-      if (cleaned.includes(marker)) {
-        markerSeen = true;
-        cleaned = cleaned.split(marker).join("");
-      }
-      if (cleaned.length > safeLen) {
-        pending += cleaned.slice(safeLen);
-        safeLen = cleaned.length;
-      }
+      stripCompleteMarkers();
+      pending += rawTail;
+      rawTail = "";
       flushPending();
     },
     cancel() {
       clearTimer();
+      rawTail = "";
       pending = "";
     },
     hasMarker() {

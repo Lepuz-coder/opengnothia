@@ -6,6 +6,7 @@ interface AssistantMessageContentProps {
   content: string;
   isStreaming: boolean;
   onRevealStateChange?: (active: boolean) => void;
+  revealStreamingText?: boolean;
 }
 
 const REVEAL_INTERVAL_MS = 12;
@@ -15,9 +16,10 @@ export function AssistantMessageContent({
   content,
   isStreaming,
   onRevealStateChange,
+  revealStreamingText = true,
 }: AssistantMessageContentProps) {
   const [displayedContent, setDisplayedContent] = useState(content);
-  const [streamViewActive, setStreamViewActive] = useState(isStreaming);
+  const [streamViewActive, setStreamViewActive] = useState(revealStreamingText && isStreaming);
   const sourceContentRef = useRef(content);
   const visibleContentRef = useRef(content);
   const pendingCharsRef = useRef<string[]>([]);
@@ -87,6 +89,16 @@ export function AssistantMessageContent({
   useEffect(() => {
     isStreamingRef.current = isStreaming;
 
+    if (!revealStreamingText) {
+      clearRevealTimer();
+      clearSettleTimer();
+      pendingCharsRef.current = [];
+      if (streamViewActive) {
+        setStreamViewActive(false);
+      }
+      return;
+    }
+
     if (isStreaming) {
       clearSettleTimer();
       if (!streamViewActive) {
@@ -98,9 +110,21 @@ export function AssistantMessageContent({
     if (pendingCharsRef.current.length === 0 && visibleContentRef.current === sourceContentRef.current) {
       scheduleMarkdownRestore();
     }
-  }, [isStreaming, streamViewActive]);
+  }, [isStreaming, streamViewActive, revealStreamingText]);
 
   useEffect(() => {
+    if (!revealStreamingText) {
+      clearRevealTimer();
+      clearSettleTimer();
+      pendingCharsRef.current = [];
+      sourceContentRef.current = content;
+      visibleContentRef.current = content;
+      if (streamViewActive) {
+        setStreamViewActive(false);
+      }
+      return;
+    }
+
     const previousSourceContent = sourceContentRef.current;
     if (content === previousSourceContent) return;
 
@@ -126,11 +150,11 @@ export function AssistantMessageContent({
 
     pendingCharsRef.current.push(...nextChars);
     ensureRevealLoop();
-  }, [content, isStreaming, streamViewActive]);
+  }, [content, isStreaming, streamViewActive, revealStreamingText]);
 
   useEffect(() => {
-    onRevealStateChangeRef.current?.(streamViewActive);
-  }, [streamViewActive]);
+    onRevealStateChangeRef.current?.(revealStreamingText && streamViewActive);
+  }, [streamViewActive, revealStreamingText]);
 
   useEffect(() => {
     return () => {
@@ -139,6 +163,16 @@ export function AssistantMessageContent({
       onRevealStateChangeRef.current?.(false);
     };
   }, []);
+
+  if (!revealStreamingText) {
+    return (
+      <div className={`markdown-content${isStreaming ? " streaming-text-content" : ""}`}>
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          {content}
+        </ReactMarkdown>
+      </div>
+    );
+  }
 
   if (!streamViewActive) {
     return (

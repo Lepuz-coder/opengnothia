@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { Sparkles, ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useTranslation, getDateLocale } from "@/i18n";
@@ -7,10 +7,11 @@ import { AssistantMessageContent } from "./AssistantMessageContent";
 
 interface ChatMessageProps {
   message: ChatMessageType;
-  onRevealStateChange?: (active: boolean) => void;
+  onRevealStateChange?: (messageId: string, active: boolean) => void;
+  revealStreamingText?: boolean;
 }
 
-export function ChatMessage({ message, onRevealStateChange }: ChatMessageProps) {
+function ChatMessageComponent({ message, onRevealStateChange, revealStreamingText = true }: ChatMessageProps) {
   const isUser = message.role === "user";
   const hasThinking = Boolean(message.thinking && message.thinking.length > 0);
   const isThinkingPhase = message.isStreaming && (message.isThinkingActive === true || (hasThinking && !message.content));
@@ -21,10 +22,10 @@ export function ChatMessage({ message, onRevealStateChange }: ChatMessageProps) 
   const [isRevealing, setIsRevealing] = useState(false);
   const showThinkingExpanded = thinkingOpen;
 
-  const handleRevealStateChange = (active: boolean) => {
+  const handleRevealStateChange = useCallback((active: boolean) => {
     setIsRevealing(active);
-    onRevealStateChange?.(active);
-  };
+    onRevealStateChange?.(message.id, active);
+  }, [message.id, onRevealStateChange]);
 
   return (
     <div className={cn("w-full", isUser && "flex justify-end")}>
@@ -83,6 +84,7 @@ export function ChatMessage({ message, onRevealStateChange }: ChatMessageProps) 
             content={message.content}
             isStreaming={Boolean(message.isStreaming)}
             onRevealStateChange={handleRevealStateChange}
+            revealStreamingText={revealStreamingText}
           />
         )}
 
@@ -107,3 +109,5 @@ export function ChatMessage({ message, onRevealStateChange }: ChatMessageProps) 
     </div>
   );
 }
+
+export const ChatMessage = memo(ChatMessageComponent);

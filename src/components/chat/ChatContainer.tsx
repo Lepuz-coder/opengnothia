@@ -10,12 +10,13 @@ interface ChatContainerProps {
   isStreaming?: boolean;
   isCompacting?: boolean;
   onRevealStateChange?: (active: boolean) => void;
+  revealStreamingText?: boolean;
 }
 
 const ANCHOR_TOP_PADDING_PX = 16;
 const MIN_BOTTOM_BUFFER_PX = 64;
 
-export function ChatContainer({ messages, isLoading, isStreaming, isCompacting, onRevealStateChange }: ChatContainerProps) {
+export function ChatContainer({ messages, isLoading, isStreaming, isCompacting, onRevealStateChange, revealStreamingText = true }: ChatContainerProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const contentWrapperRef = useRef<HTMLDivElement>(null);
   const spacerRef = useRef<HTMLDivElement>(null);
@@ -106,7 +107,8 @@ export function ChatContainer({ messages, isLoading, isStreaming, isCompacting, 
           <div key={msg.id} id={`msg-${msg.id}`}>
             <ChatMessage
               message={msg}
-              onRevealStateChange={(active) => handleRevealStateChange(msg.id, active)}
+              onRevealStateChange={handleRevealStateChange}
+              revealStreamingText={revealStreamingText}
             />
           </div>
         ))}

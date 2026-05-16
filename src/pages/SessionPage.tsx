@@ -45,6 +45,8 @@ import type { AIProvider, ChatMessage, ThinkingLevel, TokenUsage, ExtractedInsig
 import { createBufferedTextStream } from "@/lib/createBufferedTextStream";
 import { createMarkerStrippedStream } from "@/lib/createMarkerStrippedStream";
 
+const CHAT_STREAM_FLUSH_DELAY_MS = 16;
+
 async function trackUsage(
   provider: AIProvider,
   model: string,
@@ -210,13 +212,13 @@ export default function SessionPage() {
       session.startStreaming();
       const thinkingStream = createBufferedTextStream((chunk) => {
         useSessionStore.getState().appendStreamThinking(chunk);
-      });
+      }, CHAT_STREAM_FLUSH_DELAY_MS);
       const contentStream = createMarkerStrippedStream(SESSION_END_MARKER, (safeChunk) => {
         useSessionStore.getState().appendStreamContent(safeChunk);
         if (useSessionStore.getState().sessionMode === "voice") {
           voiceFeedRef.current(safeChunk);
         }
-      });
+      }, CHAT_STREAM_FLUSH_DELAY_MS);
 
       await streamMessage({
         provider: settings.provider,
@@ -436,13 +438,13 @@ export default function SessionPage() {
       session.startStreaming();
       const thinkingStream = createBufferedTextStream((chunk) => {
         useSessionStore.getState().appendStreamThinking(chunk);
-      });
+      }, CHAT_STREAM_FLUSH_DELAY_MS);
       const contentStream = createMarkerStrippedStream(SESSION_END_MARKER, (safeChunk) => {
         useSessionStore.getState().appendStreamContent(safeChunk);
         if (useSessionStore.getState().sessionMode === "voice") {
           voiceFeedRef.current(safeChunk);
         }
-      });
+      }, CHAT_STREAM_FLUSH_DELAY_MS);
 
       await streamMessage({
         provider: settings.provider,
@@ -1243,7 +1245,14 @@ export default function SessionPage() {
         <div className="flex flex-col flex-1 min-w-0">
           {pendingSessionEnd ? (
             <>
-              <ChatContainer messages={session.messages} isLoading={session.isLoading} isStreaming={session.isStreaming} isCompacting={session.isCompacting} onRevealStateChange={setIsRevealing} />
+              <ChatContainer
+                messages={session.messages}
+                isLoading={session.isLoading}
+                isStreaming={session.isStreaming}
+                isCompacting={session.isCompacting}
+                onRevealStateChange={setIsRevealing}
+                revealStreamingText={false}
+              />
               <SessionEndPrompt
                 onClose={handleConfirmCloseFromMarker}
                 onContinue={handleContinueAfterMarker}
@@ -1264,7 +1273,14 @@ export default function SessionPage() {
           ) : (
             <>
               {/* Chat */}
-              <ChatContainer messages={session.messages} isLoading={session.isLoading} isStreaming={session.isStreaming} isCompacting={session.isCompacting} onRevealStateChange={setIsRevealing} />
+              <ChatContainer
+                messages={session.messages}
+                isLoading={session.isLoading}
+                isStreaming={session.isStreaming}
+                isCompacting={session.isCompacting}
+                onRevealStateChange={setIsRevealing}
+                revealStreamingText={false}
+              />
 
               {/* Input */}
               <ChatInput

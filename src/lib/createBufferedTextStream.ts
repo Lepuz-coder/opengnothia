@@ -31,6 +31,10 @@ export function createBufferedTextStream(
     push: (chunk) => {
       if (!chunk) return;
       pendingChunk += chunk;
+      if (flushDelayMs <= 0) {
+        flush();
+        return;
+      }
       if (timer !== null) return;
       timer = setTimeout(flush, flushDelayMs);
     },

@@ -45,7 +45,7 @@ import type { AIProvider, ChatMessage, ThinkingLevel, TokenUsage, ExtractedInsig
 import { createBufferedTextStream } from "@/lib/createBufferedTextStream";
 import { createMarkerStrippedStream } from "@/lib/createMarkerStrippedStream";
 
-const CHAT_STREAM_FLUSH_DELAY_MS = 16;
+const CHAT_STREAM_FLUSH_DELAY_MS = 48;
 const NOTE_TAKING_PROGRESS_DURATION_MS = 60_000;
 const NOTE_TAKING_PROGRESS_INTERVAL_MS = 250;
 
@@ -1365,7 +1365,6 @@ export default function SessionPage() {
                 isStreaming={session.isStreaming}
                 isCompacting={session.isCompacting}
                 onRevealStateChange={setIsRevealing}
-                revealStreamingText={false}
               />
 
               {/* Input */}

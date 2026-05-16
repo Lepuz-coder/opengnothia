@@ -17,9 +17,10 @@ interface BackgroundNotesParams {
   thinkingType?: ThinkingType;
   callType: string;
   sessionId?: string | null;
+  manageNoteTaking?: boolean;
 }
 
-function trackUsage(
+async function trackUsage(
   provider: AIProvider,
   model: string,
   sessionId: string | null,
@@ -28,7 +29,7 @@ function trackUsage(
 ) {
   if (!usage) return;
   const cost = calculateCost(provider, model, usage.inputTokens, usage.outputTokens);
-  saveTokenUsage({
+  await saveTokenUsage({
     session_id: sessionId,
     provider,
     model,
@@ -39,39 +40,40 @@ function trackUsage(
   });
 }
 
-export function takeBackgroundNotes(params: BackgroundNotesParams) {
-  const { setNoteTaking } = useAppStore.getState();
-  setNoteTaking(true);
+export async function takeBackgroundNotes(params: BackgroundNotesParams): Promise<void> {
+  const setNoteTaking = params.manageNoteTaking === false
+    ? null
+    : useAppStore.getState().setNoteTaking;
+  setNoteTaking?.(true);
 
-  sendMessage({
-    provider: params.provider,
-    apiKey: params.apiKey,
-    model: params.model,
-    messages: params.messages,
-    systemPrompt: params.systemPrompt,
-    customBaseUrl: params.customBaseUrl,
-    thinkingEnabled: params.thinkingEnabled,
-    thinkingLevel: params.thinkingLevel,
-    thinkingType: params.thinkingType,
-    maxTokens: 20000,
-  })
-    .then(async (result) => {
-      if (result.content && result.content.trim().length > 0) {
-        const notes = result.content.trim();
-        await upsertPatientNotes(notes);
-      }
-      trackUsage(
-        params.provider,
-        params.model,
-        params.sessionId ?? null,
-        params.callType,
-        result.usage,
-      );
-    })
-    .catch(() => {
-      // Silent failure for background notes
-    })
-    .finally(() => {
-      setNoteTaking(false);
+  try {
+    const result = await sendMessage({
+      provider: params.provider,
+      apiKey: params.apiKey,
+      model: params.model,
+      messages: params.messages,
+      systemPrompt: params.systemPrompt,
+      customBaseUrl: params.customBaseUrl,
+      thinkingEnabled: params.thinkingEnabled,
+      thinkingLevel: params.thinkingLevel,
+      thinkingType: params.thinkingType,
+      maxTokens: 20000,
     });
+
+    if (result.content && result.content.trim().length > 0) {
+      const notes = result.content.trim();
+      await upsertPatientNotes(notes);
+    }
+    await trackUsage(
+      params.provider,
+      params.model,
+      params.sessionId ?? null,
+      params.callType,
+      result.usage,
+    );
+  } catch {
+    // Silent failure for background notes
+  } finally {
+    setNoteTaking?.(false);
+  }
 }

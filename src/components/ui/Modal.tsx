@@ -8,9 +8,10 @@ interface ModalProps {
   title?: string;
   children: ReactNode;
   className?: string;
+  dismissible?: boolean;
 }
 
-export function Modal({ isOpen, onClose, title, children, className }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, className, dismissible = true }: ModalProps) {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -22,8 +23,10 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={dismissible ? onClose : undefined} />
       <div
+        role="dialog"
+        aria-modal="true"
         className={cn(
           "relative bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-color)] shadow-xl max-w-lg w-full mx-4 p-6",
           className
@@ -32,9 +35,11 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
         {title && (
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold">{title}</h2>
-            <button onClick={onClose} className="p-1 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors">
-              <X className="w-5 h-5 text-[var(--text-muted)]" />
-            </button>
+            {dismissible && (
+              <button onClick={onClose} className="p-1 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors">
+                <X className="w-5 h-5 text-[var(--text-muted)]" />
+              </button>
+            )}
           </div>
         )}
         {children}

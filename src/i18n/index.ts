@@ -142,6 +142,10 @@ export interface Translations {
     sessionSummary: string;
     saveAndClose: string;
     preparingSummary: string;
+    noteTakingModalTitle: string;
+    noteTakingModalDescription: string;
+    noteTakingModalProgress: string;
+    noteTakingModalWarning: string;
     generateSummary: string;
     generateInsights: string;
     summaryNotGeneratedYet: string;

@@ -13,7 +13,18 @@ import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useSchoolsStore, RECOMMENDED_SCHOOL_ID } from "@/stores/useSchoolsStore";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslation } from "@/i18n";
-import { providers, getProvider, modelSupportsThinking, modelSupportsAdaptiveThinking, modelRequiresAdaptiveThinking, modelSupportsMaxThinking } from "@/constants/providers";
+import {
+  DEFAULT_MEMORY_MODEL_ID,
+  DEFAULT_MODEL_ID,
+  DEFAULT_PROVIDER_ID,
+  RECOMMENDED_MODEL_ID,
+  providers,
+  getProvider,
+  modelSupportsThinking,
+  modelSupportsAdaptiveThinking,
+  modelRequiresAdaptiveThinking,
+  modelSupportsMaxThinking,
+} from "@/constants/providers";
 import { getUserProfile, upsertUserProfile, clearAllData } from "@/services/db/queries";
 import { Modal } from "@/components/ui/Modal";
 import { invoke } from "@tauri-apps/api/core";
@@ -111,15 +122,12 @@ export default function SettingsPage() {
   const providerOptions = providers.map((p) => ({ value: p.id, label: p.name }));
   const modelOptions = currentProvider?.models.map((m) => ({
     value: m.id,
-    label: m.id === "claude-opus-4-7" ? `${m.name} (${t.settings.recommended})` : m.name,
+    label: m.id === RECOMMENDED_MODEL_ID ? `${m.name} (${t.settings.recommended})` : m.name,
   })) ?? [];
-  const memoryModelOptions = currentProvider?.models.map((m) => {
-    const baseName = m.name.replace(` (${t.settings.recommended})`, "").replace(" (Recommended)", "").replace(" (Önerilen)", "");
-    return {
-      value: m.id,
-      label: m.id === "claude-sonnet-4-6" ? `${baseName} (${t.settings.recommended})` : baseName,
-    };
-  }) ?? [];
+  const memoryModelOptions = currentProvider?.models.map((m) => ({
+    value: m.id,
+    label: m.id === RECOMMENDED_MODEL_ID ? `${m.name} (${t.settings.recommended})` : m.name,
+  })) ?? [];
   const showThinkingToggle = modelSupportsThinking(settings.provider, settings.model);
   const showMemoryThinkingToggle = modelSupportsThinking(settings.provider, settings.memoryModel);
   const chatRequiresAdaptive = modelRequiresAdaptiveThinking(settings.provider, settings.model);
@@ -302,10 +310,10 @@ export default function SettingsPage() {
     const store = await loadSettings();
     await store.set("isOnboarded", false);
     await store.set("hasSeenNoteTutorial", false);
-    await store.set("provider", "anthropic");
+    await store.set("provider", DEFAULT_PROVIDER_ID);
     await store.set("apiKey", "");
     await store.set("providerApiKeys", {});
-    await store.set("model", "claude-opus-4-6");
+    await store.set("model", DEFAULT_MODEL_ID);
     await store.set("customBaseUrl", "");
     await store.set("language", "tr");
     await store.set("therapySchool", RECOMMENDED_SCHOOL_ID);
@@ -313,7 +321,7 @@ export default function SettingsPage() {
     await store.set("thinkingLevel", "medium");
     await store.set("thinkingType", "budget");
     await store.set("providerThinkingSettings", {});
-    await store.set("memoryModel", "claude-sonnet-4-6");
+    await store.set("memoryModel", DEFAULT_MEMORY_MODEL_ID);
     await store.set("memoryThinkingEnabled", true);
     await store.set("memoryThinkingLevel", "medium");
     await store.set("memoryThinkingType", "budget");
@@ -334,17 +342,17 @@ export default function SettingsPage() {
     setBiometricEnabledState(false);
     settings.loadFromStore({
       language: "tr" as Language,
-      provider: "anthropic" as AIProvider,
+      provider: DEFAULT_PROVIDER_ID as AIProvider,
       apiKey: "",
       providerApiKeys: {},
-      model: "claude-opus-4-6",
+      model: DEFAULT_MODEL_ID,
       customBaseUrl: "",
       therapySchool: RECOMMENDED_SCHOOL_ID as TherapySchool,
       thinkingEnabled: true,
       thinkingLevel: "medium" as ThinkingLevel,
       thinkingType: "budget" as ThinkingType,
       providerThinkingSettings: {},
-      memoryModel: "claude-sonnet-4-6",
+      memoryModel: DEFAULT_MEMORY_MODEL_ID,
       memoryThinkingEnabled: true,
       memoryThinkingLevel: "medium" as ThinkingLevel,
       memoryThinkingType: "budget" as ThinkingType,

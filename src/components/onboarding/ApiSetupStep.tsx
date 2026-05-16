@@ -6,7 +6,15 @@ import { Select } from "@/components/ui/Select";
 import { Toggle } from "@/components/ui/Toggle";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useTranslation } from "@/i18n";
-import { providers, getProvider, modelSupportsThinking, modelSupportsAdaptiveThinking, modelRequiresAdaptiveThinking, modelSupportsMaxThinking } from "@/constants/providers";
+import {
+  RECOMMENDED_MODEL_ID,
+  providers,
+  getProvider,
+  modelSupportsThinking,
+  modelSupportsAdaptiveThinking,
+  modelRequiresAdaptiveThinking,
+  modelSupportsMaxThinking,
+} from "@/constants/providers";
 import { testApiKey } from "@/services/ai/aiService";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import type { ThinkingLevel, ThinkingType } from "@/types";
@@ -32,11 +40,11 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
   const providerOptions = providers.map((p) => ({ value: p.id, label: p.name }));
   const modelOptions = currentProvider?.models.map((m) => ({
     value: m.id,
-    label: m.id === "claude-opus-4-7" ? `${m.name} (${t.settings.recommended})` : m.name,
+    label: m.id === RECOMMENDED_MODEL_ID ? `${m.name} (${t.settings.recommended})` : m.name,
   })) ?? [];
   const memoryModelOptions = currentProvider?.models.map((m) => ({
     value: m.id,
-    label: m.id === "claude-sonnet-4-6" ? `${m.name} (${t.settings.recommended})` : m.name,
+    label: m.id === RECOMMENDED_MODEL_ID ? `${m.name} (${t.settings.recommended})` : m.name,
   })) ?? [];
   const showThinkingToggle = modelSupportsThinking(provider, model);
   const showMemoryThinkingToggle = modelSupportsThinking(provider, memoryModel);

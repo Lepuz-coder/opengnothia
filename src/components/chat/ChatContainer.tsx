@@ -23,11 +23,20 @@ export function ChatContainer({ messages, isLoading, isStreaming, isCompacting, 
   const { t } = useTranslation();
   const revealingIdsRef = useRef<Set<string>>(new Set());
   const [anyRevealing, setAnyRevealing] = useState(false);
+  const recalcFrameRef = useRef<number | null>(null);
 
-  const lastUserId = [...messages].reverse().find((m) => m.role === "user")?.id;
+  let lastUserId: string | undefined;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === "user") {
+      lastUserId = messages[i].id;
+      break;
+    }
+  }
+  const messageCount = messages.length;
   const prevLastUserIdRef = useRef<string | undefined>(lastUserId);
 
   const recalcRef = useRef<() => void>(() => {});
+  const scheduleRecalcRef = useRef<() => void>(() => {});
   recalcRef.current = () => {
     const container = scrollContainerRef.current;
     const wrapper = contentWrapperRef.current;
@@ -48,19 +57,30 @@ export function ChatContainer({ messages, isLoading, isStreaming, isCompacting, 
     const desired = Math.max(MIN_BOTTOM_BUFFER_PX, container.clientHeight - belowUser - ANCHOR_TOP_PADDING_PX);
     spacer.style.minHeight = `${desired}px`;
   };
+  scheduleRecalcRef.current = () => {
+    if (recalcFrameRef.current !== null) return;
+    recalcFrameRef.current = requestAnimationFrame(() => {
+      recalcFrameRef.current = null;
+      recalcRef.current();
+    });
+  };
 
   useLayoutEffect(() => {
     recalcRef.current();
-  }, [messages, isLoading, isCompacting]);
+  }, [lastUserId, messageCount, isLoading, isStreaming, isCompacting]);
 
   useLayoutEffect(() => {
     const container = scrollContainerRef.current;
-    const wrapper = contentWrapperRef.current;
-    if (!container || !wrapper) return;
-    const ro = new ResizeObserver(() => recalcRef.current());
-    ro.observe(wrapper);
+    if (!container) return;
+    const ro = new ResizeObserver(() => scheduleRecalcRef.current());
     ro.observe(container);
-    return () => ro.disconnect();
+    return () => {
+      ro.disconnect();
+      if (recalcFrameRef.current !== null) {
+        cancelAnimationFrame(recalcFrameRef.current);
+        recalcFrameRef.current = null;
+      }
+    };
   }, []);
 
   useLayoutEffect(() => {

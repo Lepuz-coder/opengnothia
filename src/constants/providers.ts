@@ -1,5 +1,10 @@
 import type { AIProviderConfig } from "@/types";
 
+export const DEFAULT_PROVIDER_ID = "openai";
+export const DEFAULT_MODEL_ID = "gpt-5.5";
+export const DEFAULT_MEMORY_MODEL_ID = "gpt-5.5";
+export const RECOMMENDED_MODEL_ID = "gpt-5.5";
+
 export const providers: AIProviderConfig[] = [
   {
     id: "anthropic",

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { getProvider } from "@/constants/providers";
+import { DEFAULT_MEMORY_MODEL_ID, DEFAULT_MODEL_ID, DEFAULT_PROVIDER_ID, getProvider } from "@/constants/providers";
 import type { AIProvider, Approach, Language, SessionMode, TherapySchool, ThinkingLevel, ThinkingType, TTSModel, TTSVoice } from "@/types";
 
 interface SettingsState {
@@ -51,9 +51,9 @@ interface SettingsState {
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   language: "tr",
-  provider: "anthropic",
+  provider: DEFAULT_PROVIDER_ID,
   apiKey: "",
-  model: "claude-opus-4-7",
+  model: DEFAULT_MODEL_ID,
   customBaseUrl: "",
   approach: "balanced",
   preferredSessionTime: "20:00",
@@ -64,7 +64,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   thinkingType: "budget",
   providerApiKeys: {},
   providerThinkingSettings: {},
-  memoryModel: "claude-sonnet-4-6",
+  memoryModel: DEFAULT_MEMORY_MODEL_ID,
   memoryThinkingEnabled: true,
   memoryThinkingLevel: "medium",
   memoryThinkingType: "budget",

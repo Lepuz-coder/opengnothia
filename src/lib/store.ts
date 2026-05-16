@@ -1,4 +1,5 @@
 import { load } from "@tauri-apps/plugin-store";
+import { DEFAULT_MEMORY_MODEL_ID, DEFAULT_MODEL_ID, DEFAULT_PROVIDER_ID } from "@/constants/providers";
 
 const STORE_DEFAULTS = {
   isOnboarded: false,
@@ -6,9 +7,9 @@ const STORE_DEFAULTS = {
   hasSeenIntakeFormPrompt: false,
   intakeFormLastStep: 0,
   language: "tr",
-  provider: "anthropic",
+  provider: DEFAULT_PROVIDER_ID,
   apiKey: "",
-  model: "claude-opus-4-7",
+  model: DEFAULT_MODEL_ID,
   customBaseUrl: "",
   theme: "system",
   therapySchool: "integrative",
@@ -17,7 +18,7 @@ const STORE_DEFAULTS = {
   thinkingType: "budget",
   providerApiKeys: {} as Record<string, string>,
   providerThinkingSettings: {} as Record<string, { enabled: boolean; level: string; type?: string }>,
-  memoryModel: "claude-sonnet-4-6",
+  memoryModel: DEFAULT_MEMORY_MODEL_ID,
   memoryThinkingEnabled: false,
   memoryThinkingLevel: "medium",
   memoryThinkingType: "budget",

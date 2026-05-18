@@ -8,7 +8,7 @@ Restructure the existing single-package Tauri desktop app into a pnpm monorepo w
 
 Phase-level overview. Tick a phase when all its steps are done.
 
-- [ ] **Phase 0** — Pre-flight (branch + housekeeping)
+- [x] **Phase 0** — Pre-flight (branch + housekeeping)
 - [ ] **Phase 1** — Move web code into `apps/web/` (atomic)
 - [ ] **Phase 2** — Workspace setup (root files, lockfile reset)
 - [ ] **Phase 3** — `packages/shared` skeleton + wiring test
@@ -218,10 +218,12 @@ The user plans to build a companion Expo mobile app with **full feature parity, 
 
 ### Phase 0 — Pre-flight
 
-- [ ] **Step 1** — Confirm `git status` is clean on `master` and the working tree matches what's at `Lepuz-coder/opengnothia`. If there are uncommitted changes to `src-tauri/tauri.conf.json` (gitStatus indicates this), decide with the user whether to commit, stash, or discard before starting.
-- [ ] **Step 2** — Verify the `v1.6.0` tag exists (`git tag -l v1.6.0`) — this is our rollback baseline.
-- [ ] **Step 3** — Check what's on each stale branch with `git log master..origin/<branch> --oneline` for `claude/*` and `courses`. Show the user the diffs and confirm deletion. Delete confirmed ones with `git push origin --delete <branch>`.
-- [ ] **Step 4** — Create and check out the working branch: `git checkout -b restructure/monorepo`.
+- [x] **Step 1** — Confirm `git status` is clean on `master` and the working tree matches what's at `Lepuz-coder/opengnothia`. If there are uncommitted changes to `src-tauri/tauri.conf.json` (gitStatus indicates this), decide with the user whether to commit, stash, or discard before starting.
+- [x] **Step 2** — Verify the `v1.6.0` tag exists (`git tag -l v1.6.0`) — this is our rollback baseline.
+- [x] **Step 3** — Check what's on each stale branch with `git log master..origin/<branch> --oneline` for `claude/*` and `courses`. Show the user the diffs and confirm deletion. Delete confirmed ones with `git push origin --delete <branch>`.
+- [x] **Step 4** — Create and check out the working branch: `git checkout -b restructure/monorepo`.
+
+**Phase 0 note:** Completed on 2026-05-18. The working tree was clean and `v1.6.0` exists. `restructure/monorepo` already existed and was checked out. Local `master`/`restructure/monorepo` include commit `7666071 phase file done`, which adds this plan and changes the Tauri identifier; this local commit is ahead of `origin/master`. Deleted confirmed remote branches: `claude/add-session-expenses-history-qmJQG`, `claude/implement-dreams-feature-gzlvY`, `claude/implement-journal-feature-Nab0J`, `claude/redesign-chat-interface-KVN01`, and `courses`.
 
 ### Phase 1 — Move web code into `apps/web/` (atomic, single commit)
 

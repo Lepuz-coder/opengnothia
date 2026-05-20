@@ -10,6 +10,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@opengnothia/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@tauri-apps/api':
         specifier: ^2.10.1
         version: 2.10.1
@@ -80,6 +83,8 @@ importers:
       vite:
         specifier: ^7.3.1
         version: 7.3.1(jiti@2.6.1)(lightningcss@1.30.2)
+
+  packages/shared: {}
 
 packages:
 

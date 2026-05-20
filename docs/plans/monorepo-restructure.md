@@ -11,7 +11,7 @@ Phase-level overview. Tick a phase when all its steps are done.
 - [x] **Phase 0** — Pre-flight (branch + housekeeping)
 - [x] **Phase 1** — Move web code into `apps/web/` (atomic)
 - [x] **Phase 2** — Workspace setup (root files, lockfile reset)
-- [ ] **Phase 3** — `packages/shared` skeleton + wiring test
+- [x] **Phase 3** — `packages/shared` skeleton + wiring test
 - [ ] **Phase 4** — Extract pure modules into shared + import codemod
 - [ ] **Phase 5** — `DatabasePort` interface, queries to shared, Tauri adapter
 - [ ] **Phase 6** — Migrations to shared + `runMigrations()` helper
@@ -270,7 +270,7 @@ The user plans to build a companion Expo mobile app with **full feature parity, 
 
 ### Phase 3 — Create `packages/shared` skeleton
 
-- [ ] **Step 18** — Create `packages/shared/package.json`:
+- [x] **Step 18** — Create `packages/shared/package.json`:
     ```json
     {
       "name": "@opengnothia/shared",
@@ -293,13 +293,15 @@ The user plans to build a companion Expo mobile app with **full feature parity, 
     }
     ```
     (Exports map mirrors the directory layout. Subpath wildcards keep imports natural.)
-- [ ] **Step 19** — Create `packages/shared/tsconfig.json` extending the same compiler options as web's tsconfig where relevant; mark `"composite": true`.
-- [ ] **Step 20** — Create a placeholder `packages/shared/src/index.ts` exporting `export const __sharedLoaded = true;` (used for smoke test).
-- [ ] **Step 21** — Add `"@opengnothia/shared": "workspace:*"` to `apps/web/package.json` `dependencies`. Run `pnpm install`.
-- [ ] **Step 22** — Add a temporary import in `apps/web/src/main.tsx`: `import { __sharedLoaded } from "@opengnothia/shared";` (just for verification).
-- [ ] **Step 23** — Update `apps/web/tsconfig.json` to add `"references": [{ "path": "../../packages/shared" }]` and create root `tsconfig.json` with references to both packages.
-- [ ] **Step 24 — 🧪 Verification (smoke).** `pnpm --filter @opengnothia/web dev` builds without error, the temporary import resolves. Open Dashboard, confirm no console errors. Full UI regression not needed yet.
-- [ ] **Step 25** — Remove the temporary import, leaving the placeholder file. Commit: `chore(shared): scaffold @opengnothia/shared package`.
+- [x] **Step 19** — Create `packages/shared/tsconfig.json` extending the same compiler options as web's tsconfig where relevant; mark `"composite": true`.
+- [x] **Step 20** — Create a placeholder `packages/shared/src/index.ts` exporting `export const __sharedLoaded = true;` (used for smoke test).
+- [x] **Step 21** — Add `"@opengnothia/shared": "workspace:*"` to `apps/web/package.json` `dependencies`. Run `pnpm install`.
+- [x] **Step 22** — Add a temporary import in `apps/web/src/main.tsx`: `import { __sharedLoaded } from "@opengnothia/shared";` (just for verification).
+- [x] **Step 23** — Update `apps/web/tsconfig.json` to add `"references": [{ "path": "../../packages/shared" }]` and create root `tsconfig.json` with references to both packages.
+- [x] **Step 24 — 🧪 Verification (smoke).** `pnpm --filter @opengnothia/web dev` builds without error, the temporary import resolves. Open Dashboard, confirm no console errors. Full UI regression not needed yet.
+- [x] **Step 25** — Remove the temporary import, leaving the placeholder file. Commit: `chore(shared): scaffold @opengnothia/shared package`.
+
+**Phase 3 note:** Completed on 2026-05-20. `packages/shared` scaffolded with composite `tsconfig.json` (declaration emit to gitignored `dist/`, never actually emitted during this phase since only `tsc --noEmit` ran), placeholder `src/index.ts` exporting `__sharedLoaded`, and an `exports` map that includes a `"."` root entry (added beyond the original Step 18 spec — Step 22's bare `@opengnothia/shared` import requires it). Root `tsconfig.json` is a solution file referencing only `./packages/shared`. **Deviation from Step 23:** dropped the `apps/web/tsconfig.json` → `packages/shared` project reference after `tsc --noEmit` raised TS6305 ("Output file dist/src/index.d.ts has not been built from source file src/index.ts") — composite project refs require the referenced project's emit, but source-mode shared (D8) never builds. `apps/web` resolves `@opengnothia/shared` purely via `package.json` `exports` + `moduleResolution: "bundler"`, which both TS and Vite handle natively. Verification: `pnpm --filter @opengnothia/web exec tsc --noEmit` clean; `pnpm build:web` (tsc + vite) clean, 2117 modules transformed; user-driven runtime smoke logged `[shared] loaded: true`. Temporary verification import added then removed; `apps/web/src/main.tsx` back to original 11-line state.
 
 ### Phase 4 — Extract pure modules into shared (codemod-heavy phase)
 

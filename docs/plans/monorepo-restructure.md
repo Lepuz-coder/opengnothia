@@ -9,7 +9,7 @@ Restructure the existing single-package Tauri desktop app into a pnpm monorepo w
 Phase-level overview. Tick a phase when all its steps are done.
 
 - [x] **Phase 0** — Pre-flight (branch + housekeeping)
-- [ ] **Phase 1** — Move web code into `apps/web/` (atomic)
+- [x] **Phase 1** — Move web code into `apps/web/` (atomic)
 - [ ] **Phase 2** — Workspace setup (root files, lockfile reset)
 - [ ] **Phase 3** — `packages/shared` skeleton + wiring test
 - [ ] **Phase 4** — Extract pure modules into shared + import codemod
@@ -227,12 +227,14 @@ The user plans to build a companion Expo mobile app with **full feature parity, 
 
 ### Phase 1 — Move web code into `apps/web/` (atomic, single commit)
 
-- [ ] **Step 5** — `mkdir -p apps/web` (and `apps/mobile`, `packages/shared` placeholders if helpful for `.gitkeep`).
-- [ ] **Step 6** — Use `git mv` to move everything web-related: `src/`, `src-tauri/`, `index.html`, `vite.config.ts`, `tsconfig.json`, `tsconfig.node.json`, `package.json`, `assets/` → `apps/web/`. (Note: `node_modules/`, `pnpm-lock.yaml`, `package-lock.json`, `dist/`, `README.md`, `LICENSE`, `.gitignore`, `.github/`, `.claude/` stay at root.)
-- [ ] **Step 7** — Verify `apps/web/src-tauri/tauri.conf.json` paths still resolve. `frontendDist: "../dist"` now resolves to `apps/web/dist` ✓. `$schema: "../node_modules/..."` resolves to `apps/web/node_modules/...` — this will work once Phase 2's pnpm install runs because pnpm creates per-package `node_modules/` with symlinks.
-- [ ] **Step 8** — Verify `apps/web/vite.config.ts` `path.resolve(__dirname, "./src")` still resolves correctly (it does — `__dirname` becomes `apps/web/`).
-- [ ] **Step 9 — 🧪 Verification (skip UI regression at this stage; just smoke).** `cd apps/web && pnpm install && pnpm tauri dev`. Desktop app should boot identically. If it fails, the most likely causes are (a) Tauri `beforeDevCommand` working dir, (b) missing `node_modules` due to leftover root install. Open at least the Dashboard and Settings to confirm app launches; full regression comes after Phase 2's workspace install.
-- [ ] **Step 10** — Commit: `feat(monorepo): move web code into apps/web`.
+- [x] **Step 5** — `mkdir -p apps/web` (and `apps/mobile`, `packages/shared` placeholders if helpful for `.gitkeep`).
+- [x] **Step 6** — Use `git mv` to move everything web-related: `src/`, `src-tauri/`, `index.html`, `vite.config.ts`, `tsconfig.json`, `tsconfig.node.json`, `package.json`, `assets/` → `apps/web/`. (Note: `node_modules/`, `pnpm-lock.yaml`, `package-lock.json`, `dist/`, `README.md`, `LICENSE`, `.gitignore`, `.github/`, `.claude/` stay at root.)
+- [x] **Step 7** — Verify `apps/web/src-tauri/tauri.conf.json` paths still resolve. `frontendDist: "../dist"` now resolves to `apps/web/dist` ✓. `$schema: "../node_modules/..."` resolves to `apps/web/node_modules/...` — this will work once Phase 2's pnpm install runs because pnpm creates per-package `node_modules/` with symlinks.
+- [x] **Step 8** — Verify `apps/web/vite.config.ts` `path.resolve(__dirname, "./src")` still resolves correctly (it does — `__dirname` becomes `apps/web/`).
+- [x] **Step 9 — 🧪 Verification (skip UI regression at this stage; just smoke).** `cd apps/web && pnpm install && pnpm tauri dev`. Desktop app should boot identically. If it fails, the most likely causes are (a) Tauri `beforeDevCommand` working dir, (b) missing `node_modules` due to leftover root install. Open at least the Dashboard and Settings to confirm app launches; full regression comes after Phase 2's workspace install.
+- [x] **Step 10** — Commit: `feat(monorepo): move web code into apps/web`.
+
+**Phase 1 note:** Completed on 2026-05-20. All 8 entries moved via `git mv` (232 path renames, 0 content modifications). `pnpm install` from `apps/web/` produced `apps/web/node_modules/` and a duplicate `apps/web/pnpm-lock.yaml` — left in place for Phase 2's lockfile consolidation per Step 11. `pnpm build` (tsc + vite) succeeded, emitting `apps/web/dist/`. `cargo check` initially failed because the Rust `target/` cache, though physically relocated by `git mv`, contained absolute paths pointing at the old `src-tauri/target/...` location; a one-time `cargo clean` (freed 12 GiB) was required, then `cargo check` finished cleanly with a full rebuild. Interactive smoke test (`pnpm tauri dev`) passed — Dashboard + Settings open without errors. Root `dist/` from the pre-move state is left in place (gitignored, harmless stale artifact); Phase 2 lockfile cleanup will pick it up.
 
 ### Phase 2 — Workspace setup
 

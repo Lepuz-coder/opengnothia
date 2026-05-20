@@ -10,7 +10,7 @@ Phase-level overview. Tick a phase when all its steps are done.
 
 - [x] **Phase 0** — Pre-flight (branch + housekeeping)
 - [x] **Phase 1** — Move web code into `apps/web/` (atomic)
-- [ ] **Phase 2** — Workspace setup (root files, lockfile reset)
+- [x] **Phase 2** — Workspace setup (root files, lockfile reset)
 - [ ] **Phase 3** — `packages/shared` skeleton + wiring test
 - [ ] **Phase 4** — Extract pure modules into shared + import codemod
 - [ ] **Phase 5** — `DatabasePort` interface, queries to shared, Tauri adapter
@@ -238,14 +238,14 @@ The user plans to build a companion Expo mobile app with **full feature parity, 
 
 ### Phase 2 — Workspace setup
 
-- [ ] **Step 11** — From repo root, delete `node_modules/` and the root `package-lock.json`. Move `pnpm-lock.yaml` to repo root if it isn't already (it should be at root since we left it there in Phase 1, but `cd apps/web && pnpm install` may have created a new one — check and consolidate).
-- [ ] **Step 12** — Create `pnpm-workspace.yaml` at root:
+- [x] **Step 11** — From repo root, delete `node_modules/` and the root `package-lock.json`. Move `pnpm-lock.yaml` to repo root if it isn't already (it should be at root since we left it there in Phase 1, but `cd apps/web && pnpm install` may have created a new one — check and consolidate).
+- [x] **Step 12** — Create `pnpm-workspace.yaml` at root:
     ```yaml
     packages:
       - "apps/*"
       - "packages/*"
     ```
-- [ ] **Step 13** — Create root `package.json`:
+- [x] **Step 13** — Create root `package.json`:
     ```json
     {
       "name": "opengnothia-monorepo",
@@ -261,10 +261,12 @@ The user plans to build a companion Expo mobile app with **full feature parity, 
     }
     ```
     (Decide on the web package name; see Open Questions. The plan assumes `@opengnothia/web` to match the pattern.)
-- [ ] **Step 14** — Rename `apps/web/package.json` `name` to `@opengnothia/web` (or keep as `opengnothia` — see Open Questions). Bump `packageManager` is at root only.
-- [ ] **Step 15** — Run `pnpm install` from root. Verify it creates a single root `node_modules/` with `.pnpm/` and symlinks `apps/web/node_modules/` correctly.
-- [ ] **Step 16 — 🧪 Run [Full UI Regression Checklist](#full-ui-regression-checklist).** `pnpm dev:web` (or from root `pnpm --filter @opengnothia/web tauri dev`) must still launch the desktop app and every page must behave identically.
-- [ ] **Step 17** — Commit: `chore(monorepo): set up pnpm workspace`.
+- [x] **Step 14** — Rename `apps/web/package.json` `name` to `@opengnothia/web` (or keep as `opengnothia` — see Open Questions). Bump `packageManager` is at root only.
+- [x] **Step 15** — Run `pnpm install` from root. Verify it creates a single root `node_modules/` with `.pnpm/` and symlinks `apps/web/node_modules/` correctly.
+- [x] **Step 16 — 🧪 Run [Full UI Regression Checklist](#full-ui-regression-checklist).** `pnpm dev:web` (or from root `pnpm --filter @opengnothia/web tauri dev`) must still launch the desktop app and every page must behave identically.
+- [x] **Step 17** — Commit: `chore(monorepo): set up pnpm workspace`.
+
+**Phase 2 note:** Completed on 2026-05-20. Resolved Open Question #1 in favor of `@opengnothia/web` for scope consistency with `@opengnothia/shared`/`@opengnothia/mobile`. `packageManager` pinned to `pnpm@10.18.2` (current installed version; the `9.15.0` figure in Step 13 was a planning-time placeholder). Cleanup: `git rm package-lock.json`, deleted root and `apps/web/node_modules/`, deleted duplicate `apps/web/pnpm-lock.yaml`; root `pnpm-lock.yaml` retained as the workspace lockfile. After workspace install: root `node_modules/` holds only `.pnpm/`, `.modules.yaml`, `.pnpm-workspace-state-v1.json`; `apps/web/node_modules/` symlinks 17 top-level entries into the virtual store. Verification: `pnpm build:web` from root (via `pnpm --filter @opengnothia/web build`) completed in ~1.8s; `cargo check` ran incrementally in 0.62s; user-driven smoke covered Dashboard (boot/router), Sessions (`@tauri-apps/plugin-sql`), Settings (`@tauri-apps/plugin-store`), and Export-data dialog (`@tauri-apps/plugin-fs` + `plugin-dialog`) — all four pnpm-symlinked native bindings work. Did NOT run the full 30-item UI regression because Phase 2 changed zero application code; deferring exhaustive regression until Phases 4–5 land actual refactors.
 
 ### Phase 3 — Create `packages/shared` skeleton
 

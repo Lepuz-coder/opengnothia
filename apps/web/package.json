@@ -1,5 +1,5 @@
 {
-  "name": "opengnothia",
+  "name": "@opengnothia/web",
   "private": false,
   "version": "1.6.0",
   "description": "AI-powered self-therapy desktop application",

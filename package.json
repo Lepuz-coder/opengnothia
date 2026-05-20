@@ -1,0 +1,12 @@
+{
+  "name": "opengnothia-monorepo",
+  "private": true,
+  "packageManager": "pnpm@10.18.2",
+  "scripts": {
+    "dev:web": "pnpm --filter @opengnothia/web tauri dev",
+    "dev:web:vite": "pnpm --filter @opengnothia/web dev",
+    "build:web": "pnpm --filter @opengnothia/web build",
+    "build:web:tauri": "pnpm --filter @opengnothia/web tauri build",
+    "dev:mobile": "pnpm --filter @opengnothia/mobile start"
+  }
+}

@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@opengnothia/shared/i18n";
 
 interface PlaceholderPageProps {
   icon: LucideIcon;

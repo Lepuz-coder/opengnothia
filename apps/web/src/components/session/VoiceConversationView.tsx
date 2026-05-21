@@ -1,7 +1,7 @@
 import { useRef, useEffect } from "react";
 import { Send, Loader2, RotateCcw, Check, Mic, Volume2, MessageCircle, Pause } from "lucide-react";
-import { cn } from "@/lib/cn";
-import { useTranslation } from "@/i18n";
+import { cn } from "@opengnothia/shared/lib/cn";
+import { useTranslation } from "@opengnothia/shared/i18n";
 import { RecordingWave, RecordingTimer } from "@/components/chat/ChatInput";
 import type { VoiceLoopStatus } from "@/hooks/useVoiceConversation";
 

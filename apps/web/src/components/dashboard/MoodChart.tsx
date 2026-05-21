@@ -1,4 +1,4 @@
-import type { MoodEntry } from "@/types";
+import type { MoodEntry } from "@opengnothia/shared/types";
 
 interface MoodChartProps {
   entries: MoodEntry[];

@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
-import { cn } from "@/lib/cn";
-import { useTranslation, getDateLocale } from "@/i18n";
-import type { Translations } from "@/i18n";
+import { cn } from "@opengnothia/shared/lib/cn";
+import { useTranslation, getDateLocale } from "@opengnothia/shared/i18n";
+import type { Translations } from "@opengnothia/shared/i18n";
 import {
   getInsightGroups,
   createInsightGroup,
@@ -32,8 +32,8 @@ import {
   FolderPlus,
   Check,
 } from "lucide-react";
-import type { InsightGroup, Insight } from "@/types";
-import { EMOJI_PRESETS, COLOR_PRESETS } from "@/constants/insightPresets";
+import type { InsightGroup, Insight } from "@opengnothia/shared/types";
+import { EMOJI_PRESETS, COLOR_PRESETS } from "@opengnothia/shared/constants/insightPresets";
 
 function formatRelativeTime(dateStr: string, t: Translations["common"], locale: string): string {
   const date = new Date(dateStr.includes("T") ? dateStr : dateStr + "Z");

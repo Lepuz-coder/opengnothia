@@ -1,15 +1,15 @@
 import { useState, useRef, useCallback } from "react";
 import { useSettingsStore } from "@/stores/useSettingsStore";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@opengnothia/shared/i18n";
 import { getAllSchools, getSchoolById } from "@/stores/useSchoolsStore";
-import { streamMessage } from "@/services/ai/aiService";
-import { AIError } from "@/services/ai/AIError";
-import { getErrorDisplayInfo, type ErrorDisplayInfo } from "@/services/ai/errorMessages";
-import { calculateCost } from "@/services/ai/costCalculator";
+import { streamMessage } from "@opengnothia/shared/ai/aiService";
+import { AIError } from "@opengnothia/shared/ai/AIError";
+import { getErrorDisplayInfo, type ErrorDisplayInfo } from "@opengnothia/shared/ai/errorMessages";
+import { calculateCost } from "@opengnothia/shared/ai/costCalculator";
 import { buildSchoolRecommendationPrompt } from "@/services/ai/promptBuilder";
 import { saveTokenUsage } from "@/services/db/queries";
-import type { TherapySchoolDef } from "@/constants/therapySchools";
-import type { ChatMessage } from "@/types";
+import type { TherapySchoolDef } from "@opengnothia/shared/constants/therapySchools";
+import type { ChatMessage } from "@opengnothia/shared/types";
 
 interface UseSchoolRecommendationOptions {
   onSchoolSelected?: (school: TherapySchoolDef) => Promise<void>;

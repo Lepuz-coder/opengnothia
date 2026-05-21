@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Modal } from "./Modal";
 import { Button } from "./Button";
 import { AlertTriangle, ChevronDown, ChevronUp, Copy, Check } from "lucide-react";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@opengnothia/shared/i18n";
 
 interface ErrorModalProps {
   isOpen: boolean;

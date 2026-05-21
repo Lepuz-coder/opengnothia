@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Angry, Frown, Meh, Smile, Laugh, type LucideIcon } from "lucide-react";
-import { cn } from "@/lib/cn";
-import type { Translations } from "@/i18n";
+import { cn } from "@opengnothia/shared/lib/cn";
+import type { Translations } from "@opengnothia/shared/i18n";
 
 function moodIconFor(m: number): LucideIcon {
   if (m <= 2) return Angry;

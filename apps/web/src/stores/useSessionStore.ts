@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { ChatMessage, SessionStatus, SessionSummary, ExtractedInsight, SessionMode } from "@/types";
+import type { ChatMessage, SessionStatus, SessionSummary, ExtractedInsight, SessionMode } from "@opengnothia/shared/types";
 
 interface SessionState {
   status: SessionStatus;

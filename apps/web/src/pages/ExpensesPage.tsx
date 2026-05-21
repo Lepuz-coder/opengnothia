@@ -4,8 +4,8 @@ import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { getTokenUsageRecords, getTokenUsageSummaryByProvider } from "@/services/db/queries";
 import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
-import { useTranslation, getDateLocale } from "@/i18n";
-import type { TokenUsageRecord } from "@/types";
+import { useTranslation, getDateLocale } from "@opengnothia/shared/i18n";
+import type { TokenUsageRecord } from "@opengnothia/shared/types";
 import { SpendingStrip } from "@/components/dashboard/SpendingStrip";
 import { SpendingChart } from "@/components/dashboard/SpendingChart";
 

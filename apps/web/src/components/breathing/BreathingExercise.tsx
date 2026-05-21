@@ -1,8 +1,8 @@
 import { useReducer, useEffect } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { useTranslation } from "@/i18n";
-import type { BreathingTechnique } from "@/constants/breathingTechniques";
+import { useTranslation } from "@opengnothia/shared/i18n";
+import type { BreathingTechnique } from "@opengnothia/shared/constants/breathingTechniques";
 
 interface BreathingExerciseProps {
   technique: BreathingTechnique;

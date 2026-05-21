@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Theme } from "@/types";
+import type { Theme } from "@opengnothia/shared/types";
 
 interface AppState {
   isOnboarded: boolean;

@@ -1,7 +1,7 @@
-import type { UserProfile, PatientIntakeForm, CheckIn, SessionSummary, TherapySchool, Language, AIProvider } from "@/types";
-import type { TherapySchoolDef } from "@/constants/therapySchools";
+import type { UserProfile, PatientIntakeForm, CheckIn, SessionSummary, TherapySchool, Language, AIProvider } from "@opengnothia/shared/types";
+import type { TherapySchoolDef } from "@opengnothia/shared/constants/therapySchools";
 import { getSchoolById } from "@/stores/useSchoolsStore";
-import { getCurrentLanguage, getDateLocale } from "@/i18n";
+import { getCurrentLanguage, getDateLocale } from "@opengnothia/shared/i18n";
 
 function getLanguageInstruction(lang?: Language): string {
   const l = lang ?? getCurrentLanguage();
@@ -20,8 +20,6 @@ function getLanguageInstruction(lang?: Language): string {
 
 // --- Trigger messages & helpers used by pages ---
 
-export const TEST_MESSAGE = "Hello, test message.";
-export const TEST_SYSTEM_PROMPT = "Say a short hello.";
 export const GREETING_TRIGGER = "Hello, let's start the session.";
 export const WEEKLY_SUMMARY_TRIGGER = "Generate weekly summary.";
 export const JOURNAL_ANALYSIS_TRIGGER = "Analyze my journal entry.";

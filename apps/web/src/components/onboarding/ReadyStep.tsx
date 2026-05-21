@@ -1,7 +1,7 @@
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useSettingsStore } from "@/stores/useSettingsStore";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@opengnothia/shared/i18n";
 
 interface ReadyStepProps {
   onComplete: () => void;

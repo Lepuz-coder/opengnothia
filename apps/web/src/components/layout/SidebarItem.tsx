@@ -1,5 +1,5 @@
 import { NavLink } from "react-router";
-import { cn } from "@/lib/cn";
+import { cn } from "@opengnothia/shared/lib/cn";
 import type { LucideIcon } from "lucide-react";
 
 interface SidebarItemProps {

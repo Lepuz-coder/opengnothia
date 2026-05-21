@@ -2,14 +2,14 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
-import { cn } from "@/lib/cn";
+import { cn } from "@opengnothia/shared/lib/cn";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useAppStore } from "@/stores/useAppStore";
-import { useTranslation, getDayNames, getDateLocale } from "@/i18n";
-import { streamMessage } from "@/services/ai/aiService";
-import { AIError } from "@/services/ai/AIError";
-import { getErrorDisplayInfo, type ErrorDisplayInfo } from "@/services/ai/errorMessages";
-import { calculateCost } from "@/services/ai/costCalculator";
+import { useTranslation, getDayNames, getDateLocale } from "@opengnothia/shared/i18n";
+import { streamMessage } from "@opengnothia/shared/ai/aiService";
+import { AIError } from "@opengnothia/shared/ai/AIError";
+import { getErrorDisplayInfo, type ErrorDisplayInfo } from "@opengnothia/shared/ai/errorMessages";
+import { calculateCost } from "@opengnothia/shared/ai/costCalculator";
 import { buildDreamAnalysisPrompt, buildPatientNotesUpdatePrompt, dreamPatientNotesMessage } from "@/services/ai/promptBuilder";
 import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
 import {
@@ -27,7 +27,7 @@ import { ErrorModal } from "@/components/ui/ErrorModal";
 import { Plus, ArrowLeft, Sparkles, Trash2, Loader2, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import type { Dream, AIProvider, TokenUsage } from "@/types";
+import type { Dream, AIProvider, TokenUsage } from "@opengnothia/shared/types";
 
 type View = "calendar" | "new" | "detail";
 

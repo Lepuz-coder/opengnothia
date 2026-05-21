@@ -4,7 +4,7 @@ import logoImg from "@/assets/logo.svg";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAppStore } from "@/stores/useAppStore";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@opengnothia/shared/i18n";
 import { invoke } from "@tauri-apps/api/core";
 import { verifyPassword } from "@/lib/security";
 import { loadSettings } from "@/lib/store";

@@ -1,6 +1,6 @@
 import { GraduationCap } from "lucide-react";
 import { PlaceholderPage } from "@/components/ui/PlaceholderPage";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@opengnothia/shared/i18n";
 
 export default function ProgramsPage() {
   const { t } = useTranslation();

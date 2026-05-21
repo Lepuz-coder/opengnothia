@@ -1,8 +1,8 @@
 import { memo, useCallback, useState } from "react";
 import { Sparkles, ChevronDown, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/cn";
-import { useTranslation, getDateLocale } from "@/i18n";
-import type { ChatMessage as ChatMessageType } from "@/types";
+import { cn } from "@opengnothia/shared/lib/cn";
+import { useTranslation, getDateLocale } from "@opengnothia/shared/i18n";
+import type { ChatMessage as ChatMessageType } from "@opengnothia/shared/types";
 import { AssistantMessageContent } from "./AssistantMessageContent";
 
 interface ChatMessageProps {

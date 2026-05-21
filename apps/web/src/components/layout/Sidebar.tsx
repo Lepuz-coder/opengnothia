@@ -3,10 +3,10 @@ import { PanelLeftClose, PanelLeft, FileText, Loader2, X } from "lucide-react";
 import logoImg from "@/assets/logo.svg";
 import { useAppStore } from "@/stores/useAppStore";
 import { loadSettings } from "@/lib/store";
-import { navItems } from "@/constants/navigation";
+import { navItems } from "@opengnothia/shared/constants/navigation";
 import { SidebarItem } from "./SidebarItem";
-import { cn } from "@/lib/cn";
-import { useTranslation } from "@/i18n";
+import { cn } from "@opengnothia/shared/lib/cn";
+import { useTranslation } from "@opengnothia/shared/i18n";
 
 export function Sidebar() {
   const { sidebarCollapsed, toggleSidebar, isNoteTaking, hasSeenNoteTutorial, setHasSeenNoteTutorial } = useAppStore();

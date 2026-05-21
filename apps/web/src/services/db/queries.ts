@@ -1,5 +1,5 @@
 import { getDatabase } from "./database";
-import type { CheckIn, Dream, Session, UserProfile, PatientIntakeForm, ChatMessage, SessionSummary, TokenUsageRecord, JournalEntry, MoodEntry, WeeklySummary, InsightGroup, Insight, CourseStepProgress } from "@/types";
+import type { CheckIn, Dream, Session, UserProfile, PatientIntakeForm, ChatMessage, SessionSummary, TokenUsageRecord, JournalEntry, MoodEntry, WeeklySummary, InsightGroup, Insight, CourseStepProgress } from "@opengnothia/shared/types";
 
 // User Profile
 export async function getUserProfile(): Promise<UserProfile | null> {

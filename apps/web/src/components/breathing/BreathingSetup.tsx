@@ -2,11 +2,11 @@ import { Wind } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@opengnothia/shared/i18n";
 import {
   getBreathingTechniques,
   getDurationOptions,
-} from "@/constants/breathingTechniques";
+} from "@opengnothia/shared/constants/breathingTechniques";
 
 interface BreathingSetupProps {
   selectedTechniqueId: string;

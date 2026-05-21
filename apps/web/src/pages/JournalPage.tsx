@@ -3,14 +3,14 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
-import { cn } from "@/lib/cn";
+import { cn } from "@opengnothia/shared/lib/cn";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useAppStore } from "@/stores/useAppStore";
-import { useTranslation, getDayNames, getDateLocale } from "@/i18n";
-import { streamMessage } from "@/services/ai/aiService";
-import { AIError } from "@/services/ai/AIError";
-import { getErrorDisplayInfo, type ErrorDisplayInfo } from "@/services/ai/errorMessages";
-import { calculateCost } from "@/services/ai/costCalculator";
+import { useTranslation, getDayNames, getDateLocale } from "@opengnothia/shared/i18n";
+import { streamMessage } from "@opengnothia/shared/ai/aiService";
+import { AIError } from "@opengnothia/shared/ai/AIError";
+import { getErrorDisplayInfo, type ErrorDisplayInfo } from "@opengnothia/shared/ai/errorMessages";
+import { calculateCost } from "@opengnothia/shared/ai/costCalculator";
 import { buildJournalAnalysisPrompt, buildPatientNotesUpdatePrompt, JOURNAL_ANALYSIS_TRIGGER, journalPatientNotesMessage } from "@/services/ai/promptBuilder";
 import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
 import {
@@ -29,7 +29,7 @@ import { ErrorModal } from "@/components/ui/ErrorModal";
 import { Plus, ArrowLeft, Trash2, Sparkles, Loader2, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import type { JournalEntry, AIProvider, TokenUsage } from "@/types";
+import type { JournalEntry, AIProvider, TokenUsage } from "@opengnothia/shared/types";
 
 type View = "calendar" | "write" | "detail";
 

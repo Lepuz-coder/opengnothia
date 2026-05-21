@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { Loader2 } from "lucide-react";
-import { useTranslation } from "@/i18n";
-import type { ChatMessage as ChatMessageType } from "@/types";
+import { useTranslation } from "@opengnothia/shared/i18n";
+import type { ChatMessage as ChatMessageType } from "@opengnothia/shared/types";
 
 interface ChatContainerProps {
   messages: ChatMessageType[];

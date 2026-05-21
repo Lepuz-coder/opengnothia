@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Shield, Lock, Heart, Loader2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@opengnothia/shared/i18n";
 import { pickAndReadImportFile, importAllData } from "@/services/data/dataPortService";
 
 interface WelcomeStepProps {

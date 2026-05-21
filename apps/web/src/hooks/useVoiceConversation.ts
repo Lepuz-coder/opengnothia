@@ -2,8 +2,8 @@ import { useState, useCallback, useRef } from "react";
 import { useSessionStore } from "@/stores/useSessionStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
-import { synthesizeSpeech, playAudioBlob, type TTSResult } from "@/services/ai/ttsService";
-import { transcribeAudio } from "@/services/ai/transcriptionService";
+import { synthesizeSpeech, playAudioBlob, type TTSResult } from "@opengnothia/shared/ai/ttsService";
+import { transcribeAudio } from "@opengnothia/shared/ai/transcriptionService";
 import { saveTokenUsage } from "@/services/db/queries";
 
 export type VoiceLoopStatus =

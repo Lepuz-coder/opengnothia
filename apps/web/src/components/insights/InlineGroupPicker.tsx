@@ -1,6 +1,6 @@
 import { Plus } from "lucide-react";
-import { useTranslation } from "@/i18n";
-import type { InsightGroup } from "@/types";
+import { useTranslation } from "@opengnothia/shared/i18n";
+import type { InsightGroup } from "@opengnothia/shared/types";
 
 interface InlineGroupPickerProps {
   groups: InsightGroup[];

@@ -1,4 +1,4 @@
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@opengnothia/shared/i18n";
 import { SessionTimer } from "@/components/chat/SessionTimer";
 import { ContextUsageIndicator } from "@/components/session/ContextUsageIndicator";
 

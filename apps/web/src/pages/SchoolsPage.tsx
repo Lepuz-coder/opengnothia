@@ -7,15 +7,15 @@ import { Modal } from "@/components/ui/Modal";
 import { ErrorModal } from "@/components/ui/ErrorModal";
 import { ChatContainer } from "@/components/chat/ChatContainer";
 import { ChatInput } from "@/components/chat/ChatInput";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@opengnothia/shared/i18n";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useAppStore } from "@/stores/useAppStore";
 import { useSchoolsStore, getAllSchools, isBuiltInSchool, getSchoolById, RECOMMENDED_SCHOOL_ID } from "@/stores/useSchoolsStore";
-import { getLocalizedTherapySchool } from "@/i18n/therapySchools";
+import { getLocalizedTherapySchool } from "@opengnothia/shared/i18n/therapySchools";
 import { loadSettings } from "@/lib/store";
-import { cn } from "@/lib/cn";
+import { cn } from "@opengnothia/shared/lib/cn";
 import { useSchoolRecommendation } from "@/hooks/useSchoolRecommendation";
-import type { TherapySchoolDef } from "@/constants/therapySchools";
+import type { TherapySchoolDef } from "@opengnothia/shared/constants/therapySchools";
 
 export default function SchoolsPage() {
   const { t, language } = useTranslation();

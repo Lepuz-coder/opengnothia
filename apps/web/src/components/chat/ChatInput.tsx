@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Send, Mic, Loader2, Square } from "lucide-react";
-import { cn } from "@/lib/cn";
-import { useTranslation } from "@/i18n";
+import { cn } from "@opengnothia/shared/lib/cn";
+import { useTranslation } from "@opengnothia/shared/i18n";
 import type { RecordingState } from "@/hooks/useAudioRecorder";
 
 interface ChatInputProps {

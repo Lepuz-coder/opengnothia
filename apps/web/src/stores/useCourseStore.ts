@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { ChatMessage } from "@/types";
+import type { ChatMessage } from "@opengnothia/shared/types";
 
 interface CourseState {
   activeCourseId: string | null;

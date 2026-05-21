@@ -5,14 +5,14 @@ import { ArrowLeft, Loader2, Trash2, FileText, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { ChatContainer } from "@/components/chat/ChatContainer";
-import { useTranslation, getDateLocale } from "@/i18n";
+import { useTranslation, getDateLocale } from "@opengnothia/shared/i18n";
 import { getSessionById, deleteSession, getSessionTotalCost, getPatientNotes, updateSessionNarrative, saveTokenUsage } from "@/services/db/queries";
-import { streamMessage } from "@/services/ai/aiService";
+import { streamMessage } from "@opengnothia/shared/ai/aiService";
 import { buildSummaryPrompt, SESSION_SUMMARY_SYSTEM_PROMPT } from "@/services/ai/promptBuilder";
-import { calculateCost } from "@/services/ai/costCalculator";
-import { createBufferedTextStream } from "@/lib/createBufferedTextStream";
+import { calculateCost } from "@opengnothia/shared/ai/costCalculator";
+import { createBufferedTextStream } from "@opengnothia/shared/lib/createBufferedTextStream";
 import { useSettingsStore } from "@/stores/useSettingsStore";
-import type { ChatMessage, Session } from "@/types";
+import type { ChatMessage, Session } from "@opengnothia/shared/types";
 
 interface PastSessionDetailProps {
   sessionId: string;

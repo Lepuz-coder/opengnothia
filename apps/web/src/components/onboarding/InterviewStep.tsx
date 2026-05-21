@@ -4,8 +4,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { useSettingsStore } from "@/stores/useSettingsStore";
-import { useTranslation } from "@/i18n";
-import type { Translations } from "@/i18n";
+import { useTranslation } from "@opengnothia/shared/i18n";
+import type { Translations } from "@opengnothia/shared/i18n";
 
 interface InterviewStepProps {
   onNext: (data: {

@@ -1,7 +1,7 @@
 import { create } from "zustand";
-import type { TherapySchoolDef } from "@/constants/therapySchools";
-import { getLocalizedTherapySchools } from "@/i18n/therapySchools";
-import type { Language } from "@/types";
+import type { TherapySchoolDef } from "@opengnothia/shared/constants/therapySchools";
+import { getLocalizedTherapySchools } from "@opengnothia/shared/i18n/therapySchools";
+import type { Language } from "@opengnothia/shared/types";
 
 interface SchoolsState {
   customSchools: TherapySchoolDef[];

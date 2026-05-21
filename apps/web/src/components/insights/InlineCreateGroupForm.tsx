@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { cn } from "@/lib/cn";
-import { useTranslation } from "@/i18n";
-import { EMOJI_PRESETS, COLOR_PRESETS } from "@/constants/insightPresets";
+import { cn } from "@opengnothia/shared/lib/cn";
+import { useTranslation } from "@opengnothia/shared/i18n";
+import { EMOJI_PRESETS, COLOR_PRESETS } from "@opengnothia/shared/constants/insightPresets";
 
 export interface NewGroupDraft {
   name: string;

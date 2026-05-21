@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import { X } from "lucide-react";
-import { cn } from "@/lib/cn";
+import { cn } from "@opengnothia/shared/lib/cn";
 
 interface ModalProps {
   isOpen: boolean;

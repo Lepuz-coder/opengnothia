@@ -1,4 +1,4 @@
-import { cn } from "@/lib/cn";
+import { cn } from "@opengnothia/shared/lib/cn";
 
 interface BadgeProps {
   children: React.ReactNode;

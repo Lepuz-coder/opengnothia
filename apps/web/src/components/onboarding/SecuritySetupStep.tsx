@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Toggle } from "@/components/ui/Toggle";
 import { useAppStore } from "@/stores/useAppStore";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@opengnothia/shared/i18n";
 import { generateSalt, hashPassword } from "@/lib/security";
 import { invoke } from "@tauri-apps/api/core";
 import { loadSettings } from "@/lib/store";

@@ -3,8 +3,8 @@ import { useNavigate } from "react-router";
 import { useCourseStore } from "@/stores/useCourseStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useAppStore } from "@/stores/useAppStore";
-import { useTranslation } from "@/i18n";
-import { COURSES, type CourseDefinition } from "@/constants/courses";
+import { useTranslation } from "@opengnothia/shared/i18n";
+import { COURSES, type CourseDefinition } from "@opengnothia/shared/constants/courses";
 import {
   initializeCourseProgress,
   getCourseProgress,
@@ -18,10 +18,10 @@ import {
   getCourseNotesUpdatedAt,
   saveTokenUsage,
 } from "@/services/db/queries";
-import { streamMessage, sendMessage } from "@/services/ai/aiService";
-import { AIError } from "@/services/ai/AIError";
-import { getErrorDisplayInfo, type ErrorDisplayInfo } from "@/services/ai/errorMessages";
-import { calculateCost } from "@/services/ai/costCalculator";
+import { streamMessage, sendMessage } from "@opengnothia/shared/ai/aiService";
+import { AIError } from "@opengnothia/shared/ai/AIError";
+import { getErrorDisplayInfo, type ErrorDisplayInfo } from "@opengnothia/shared/ai/errorMessages";
+import { calculateCost } from "@opengnothia/shared/ai/costCalculator";
 import {
   buildCourseLessonSystemPrompt,
   buildCourseLessonGreetingPrompt,
@@ -29,19 +29,19 @@ import {
   buildCourseLessonNotesUpdateMessage,
   buildCourseNotesUpdatePrompt,
   COURSE_LESSON_TRIGGER,
-} from "@/services/ai/coursePromptBuilder";
+} from "@opengnothia/shared/ai/coursePromptBuilder";
 import { updateCourseNotes } from "@/services/ai/courseNotes";
-import { getProvider } from "@/constants/providers";
-import { getCourseStepDescription } from "@/constants/courseStepDescriptions";
+import { getProvider } from "@opengnothia/shared/constants/providers";
+import { getCourseStepDescription } from "@opengnothia/shared/constants/courseStepDescriptions";
 import { ChatContainer } from "@/components/chat/ChatContainer";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { Button } from "@/components/ui/Button";
 import { ErrorModal } from "@/components/ui/ErrorModal";
 import { Modal } from "@/components/ui/Modal";
 import { Tabs } from "@/components/ui/Tabs";
-import type { ChatMessage, CourseStepProgress, Language, TokenUsage } from "@/types";
+import type { ChatMessage, CourseStepProgress, Language, TokenUsage } from "@opengnothia/shared/types";
 import { ArrowLeft, Lock, Check, Play, Loader2, ChevronRight, CheckCircle2, MoreVertical, Search, X, BookOpen, Sparkles, Target, RotateCcw } from "lucide-react";
-import { createBufferedTextStream } from "@/lib/createBufferedTextStream";
+import { createBufferedTextStream } from "@opengnothia/shared/lib/createBufferedTextStream";
 
 type View = "list" | "journey" | "lesson";
 type CourseStats = {

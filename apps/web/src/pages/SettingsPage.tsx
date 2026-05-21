@@ -12,7 +12,7 @@ import { useAppStore } from "@/stores/useAppStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useSchoolsStore, RECOMMENDED_SCHOOL_ID } from "@/stores/useSchoolsStore";
 import { useTheme } from "@/hooks/useTheme";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@opengnothia/shared/i18n";
 import {
   DEFAULT_MEMORY_MODEL_ID,
   DEFAULT_MODEL_ID,
@@ -24,12 +24,12 @@ import {
   modelSupportsAdaptiveThinking,
   modelRequiresAdaptiveThinking,
   modelSupportsMaxThinking,
-} from "@/constants/providers";
+} from "@opengnothia/shared/constants/providers";
 import { getUserProfile, upsertUserProfile, clearAllData } from "@/services/db/queries";
 import { Modal } from "@/components/ui/Modal";
 import { invoke } from "@tauri-apps/api/core";
 import { generateSalt, hashPassword, verifyPassword } from "@/lib/security";
-import { synthesizeSpeech, playAudioBlob } from "@/services/ai/ttsService";
+import { synthesizeSpeech, playAudioBlob } from "@opengnothia/shared/ai/ttsService";
 import {
   exportAllData,
   saveExportToFile,
@@ -39,7 +39,7 @@ import {
   type ExportFile,
   type DataStats,
 } from "@/services/data/dataPortService";
-import type { AIProvider, Language, SessionMode, TherapySchool, ThinkingLevel, ThinkingType, TTSModel, TTSVoice } from "@/types";
+import type { AIProvider, Language, SessionMode, TherapySchool, ThinkingLevel, ThinkingType, TTSModel, TTSVoice } from "@opengnothia/shared/types";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();

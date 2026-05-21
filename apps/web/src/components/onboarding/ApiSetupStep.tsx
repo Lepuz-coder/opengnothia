@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Toggle } from "@/components/ui/Toggle";
 import { useSettingsStore } from "@/stores/useSettingsStore";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@opengnothia/shared/i18n";
 import {
   RECOMMENDED_MODEL_ID,
   providers,
@@ -14,10 +14,10 @@ import {
   modelSupportsAdaptiveThinking,
   modelRequiresAdaptiveThinking,
   modelSupportsMaxThinking,
-} from "@/constants/providers";
-import { testApiKey } from "@/services/ai/aiService";
+} from "@opengnothia/shared/constants/providers";
+import { testApiKey } from "@opengnothia/shared/ai/aiService";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import type { ThinkingLevel, ThinkingType } from "@/types";
+import type { ThinkingLevel, ThinkingType } from "@opengnothia/shared/types";
 
 interface ApiSetupStepProps {
   onNext: () => void;

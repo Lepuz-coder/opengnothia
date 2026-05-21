@@ -1,6 +1,6 @@
 import { DollarSign } from "lucide-react";
-import type { TokenUsageRecord } from "@/types";
-import type { Translations } from "@/i18n";
+import type { TokenUsageRecord } from "@opengnothia/shared/types";
+import type { Translations } from "@opengnothia/shared/i18n";
 
 interface SpendingStripProps {
   records: TokenUsageRecord[];

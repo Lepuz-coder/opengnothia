@@ -4,12 +4,12 @@ import remarkGfm from "remark-gfm";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Loader2, Lightbulb, X, Pencil, Plus, Check, Sparkles } from "lucide-react";
-import { useTranslation } from "@/i18n";
-import { cn } from "@/lib/cn";
+import { useTranslation } from "@opengnothia/shared/i18n";
+import { cn } from "@opengnothia/shared/lib/cn";
 import { getInsightGroups, getInsightsByIds } from "@/services/db/queries";
-import { EMOJI_PRESETS, COLOR_PRESETS } from "@/constants/insightPresets";
+import { EMOJI_PRESETS, COLOR_PRESETS } from "@opengnothia/shared/constants/insightPresets";
 import { showToast } from "@/stores/useToastStore";
-import type { ExtractedInsight, Insight, InsightGroup } from "@/types";
+import type { ExtractedInsight, Insight, InsightGroup } from "@opengnothia/shared/types";
 
 interface SessionEndSummaryProps {
   summaryNarrative: string;

@@ -3,13 +3,13 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { ErrorModal } from "@/components/ui/ErrorModal";
-import { cn } from "@/lib/cn";
+import { cn } from "@opengnothia/shared/lib/cn";
 import { useSettingsStore } from "@/stores/useSettingsStore";
-import { useTranslation } from "@/i18n";
-import { streamMessage } from "@/services/ai/aiService";
-import { AIError } from "@/services/ai/AIError";
-import { getErrorDisplayInfo, type ErrorDisplayInfo } from "@/services/ai/errorMessages";
-import { calculateCost } from "@/services/ai/costCalculator";
+import { useTranslation } from "@opengnothia/shared/i18n";
+import { streamMessage } from "@opengnothia/shared/ai/aiService";
+import { AIError } from "@opengnothia/shared/ai/AIError";
+import { getErrorDisplayInfo, type ErrorDisplayInfo } from "@opengnothia/shared/ai/errorMessages";
+import { calculateCost } from "@opengnothia/shared/ai/costCalculator";
 import { buildMilestoneAnalysisPrompt } from "@/services/ai/promptBuilder";
 import {
   getCompletedSessionCount,
@@ -25,8 +25,8 @@ import {
 import { Sparkles, Lock, CheckCircle2, Loader2, Trophy, MessageSquare, BookOpen, Moon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import type { AIProvider, TokenUsage } from "@/types";
-import type { Translations } from "@/i18n";
+import type { AIProvider, TokenUsage } from "@opengnothia/shared/types";
+import type { Translations } from "@opengnothia/shared/i18n";
 
 const MILESTONES = [7, 15, 30, 60, 120, 180, 240, 365] as const;
 type Milestone = (typeof MILESTONES)[number];

@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import { DEFAULT_MEMORY_MODEL_ID, DEFAULT_MODEL_ID, DEFAULT_PROVIDER_ID, getProvider } from "@/constants/providers";
-import type { AIProvider, Approach, Language, SessionMode, TherapySchool, ThinkingLevel, ThinkingType, TTSModel, TTSVoice } from "@/types";
+import { DEFAULT_MEMORY_MODEL_ID, DEFAULT_MODEL_ID, DEFAULT_PROVIDER_ID, getProvider } from "@opengnothia/shared/constants/providers";
+import type { AIProvider, Approach, Language, SessionMode, TherapySchool, ThinkingLevel, ThinkingType, TTSModel, TTSVoice } from "@opengnothia/shared/types";
 
 interface SettingsState {
   language: Language;

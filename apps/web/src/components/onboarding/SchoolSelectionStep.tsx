@@ -5,13 +5,13 @@ import { Card } from "@/components/ui/Card";
 import { ErrorModal } from "@/components/ui/ErrorModal";
 import { ChatContainer } from "@/components/chat/ChatContainer";
 import { ChatInput } from "@/components/chat/ChatInput";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@opengnothia/shared/i18n";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { getAllSchools, RECOMMENDED_SCHOOL_ID } from "@/stores/useSchoolsStore";
 import { loadSettings } from "@/lib/store";
 import { useSchoolRecommendation } from "@/hooks/useSchoolRecommendation";
-import { cn } from "@/lib/cn";
-import type { TherapySchoolDef } from "@/constants/therapySchools";
+import { cn } from "@opengnothia/shared/lib/cn";
+import type { TherapySchoolDef } from "@opengnothia/shared/constants/therapySchools";
 
 interface SchoolSelectionStepProps {
   onNext: () => void;

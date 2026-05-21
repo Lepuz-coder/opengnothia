@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAppStore } from "@/stores/useAppStore";
-import { getBreathingTechniques } from "@/constants/breathingTechniques";
+import { getBreathingTechniques } from "@opengnothia/shared/constants/breathingTechniques";
 import { BreathingSetup } from "@/components/breathing/BreathingSetup";
 import { BreathingExercise } from "@/components/breathing/BreathingExercise";
 

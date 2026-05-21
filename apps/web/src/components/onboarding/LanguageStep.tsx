@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/Button";
 import { useSettingsStore } from "@/stores/useSettingsStore";
-import { useTranslation } from "@/i18n";
-import { cn } from "@/lib/cn";
-import type { Language } from "@/types";
+import { useTranslation } from "@opengnothia/shared/i18n";
+import { cn } from "@opengnothia/shared/lib/cn";
+import type { Language } from "@opengnothia/shared/types";
 
 interface LanguageStepProps {
   onNext: () => void;

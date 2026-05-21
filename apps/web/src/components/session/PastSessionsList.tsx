@@ -4,12 +4,12 @@ import remarkGfm from "remark-gfm";
 import { Clock, ChevronLeft, ChevronRight, MessageCircle, Loader2 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { useSettingsStore } from "@/stores/useSettingsStore";
-import { useTranslation, getDayNames, getDateLocale } from "@/i18n";
-import { streamMessage } from "@/services/ai/aiService";
-import { calculateCost } from "@/services/ai/costCalculator";
+import { useTranslation, getDayNames, getDateLocale } from "@opengnothia/shared/i18n";
+import { streamMessage } from "@opengnothia/shared/ai/aiService";
+import { calculateCost } from "@opengnothia/shared/ai/costCalculator";
 import { buildWeeklySummaryPrompt, WEEKLY_SUMMARY_TRIGGER } from "@/services/ai/promptBuilder";
 import { getCompletedSessions, getWeeklySummary, saveWeeklySummary, getUserProfile, getPatientNotes, saveTokenUsage } from "@/services/db/queries";
-import type { Session, AIProvider, TokenUsage, WeeklySummary } from "@/types";
+import type { Session, AIProvider, TokenUsage, WeeklySummary } from "@opengnothia/shared/types";
 
 export interface WeekSummaryInfo {
   weekSessionCount: number;

@@ -1,5 +1,5 @@
 import { load } from "@tauri-apps/plugin-store";
-import { DEFAULT_MEMORY_MODEL_ID, DEFAULT_MODEL_ID, DEFAULT_PROVIDER_ID } from "@/constants/providers";
+import { DEFAULT_MEMORY_MODEL_ID, DEFAULT_MODEL_ID, DEFAULT_PROVIDER_ID } from "@opengnothia/shared/constants/providers";
 
 const STORE_DEFAULTS = {
   isOnboarded: false,

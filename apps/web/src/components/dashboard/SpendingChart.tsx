@@ -1,9 +1,9 @@
 import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/Card";
 import { Tabs } from "@/components/ui/Tabs";
-import { getDateLocale } from "@/i18n";
-import type { Translations } from "@/i18n";
-import type { TokenUsageRecord, Language } from "@/types";
+import { getDateLocale } from "@opengnothia/shared/i18n";
+import type { Translations } from "@opengnothia/shared/i18n";
+import type { TokenUsageRecord, Language } from "@opengnothia/shared/types";
 
 type Period = "daily" | "weekly" | "monthly";
 

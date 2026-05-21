@@ -1,7 +1,7 @@
 import { MessageSquare, Play, ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import type { Session, UserProfile } from "@/types";
-import type { Translations } from "@/i18n";
+import type { Session, UserProfile } from "@opengnothia/shared/types";
+import type { Translations } from "@opengnothia/shared/i18n";
 
 interface TodaySessionHeroProps {
   todaySession: Session | null;

@@ -1,6 +1,6 @@
 import { ClipboardList, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@opengnothia/shared/i18n";
 
 interface IntakeFormCTAProps {
   onClick: () => void;

@@ -1,7 +1,7 @@
-import { sendMessage } from "@/services/ai/aiService";
-import { calculateCost } from "@/services/ai/costCalculator";
+import { sendMessage } from "@opengnothia/shared/ai/aiService";
+import { calculateCost } from "@opengnothia/shared/ai/costCalculator";
 import { upsertCourseNotes, saveTokenUsage } from "@/services/db/queries";
-import type { AIProvider, ChatMessage, ThinkingLevel, ThinkingType, TokenUsage } from "@/types";
+import type { AIProvider, ChatMessage, ThinkingLevel, ThinkingType, TokenUsage } from "@opengnothia/shared/types";
 
 interface UpdateCourseNotesParams {
   courseId: string;

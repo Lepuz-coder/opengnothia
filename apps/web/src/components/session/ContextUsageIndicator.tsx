@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { useTranslation } from "@/i18n";
-import { formatTokenCount } from "@/lib/formatTokens";
+import { useTranslation } from "@opengnothia/shared/i18n";
+import { formatTokenCount } from "@opengnothia/shared/lib/formatTokens";
 import { getSessionTotalCost } from "@/services/db/queries";
 
 interface ContextUsageIndicatorProps {

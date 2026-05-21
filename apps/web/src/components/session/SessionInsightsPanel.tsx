@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { X, Plus, Loader2, Trash2, Pencil, Check } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@opengnothia/shared/i18n";
 import { useSessionStore } from "@/stores/useSessionStore";
 import {
   createInsight,
@@ -11,7 +11,7 @@ import {
   getInsightsByIds,
   updateInsightContent,
 } from "@/services/db/queries";
-import type { Insight, InsightGroup } from "@/types";
+import type { Insight, InsightGroup } from "@opengnothia/shared/types";
 import { InlineGroupPicker } from "@/components/insights/InlineGroupPicker";
 import { InlineCreateGroupForm, type NewGroupDraft } from "@/components/insights/InlineCreateGroupForm";
 

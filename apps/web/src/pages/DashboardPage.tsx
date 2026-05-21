@@ -5,7 +5,7 @@ import {
   ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
-import { cn } from "@/lib/cn";
+import { cn } from "@opengnothia/shared/lib/cn";
 import {
   saveMoodEntry, getTodayMoodEntry, getMoodEntriesByDateRange,
   getCompletedSessionCount, getJournalEntryCount, getDreamCount,
@@ -13,8 +13,8 @@ import {
   getUserProfile,
 } from "@/services/db/queries";
 import { useSessionStore } from "@/stores/useSessionStore";
-import { useTranslation, getDayNames, getDateLocale, type Translations } from "@/i18n";
-import type { MoodEntry, Session, UserProfile, JournalEntry, Dream } from "@/types";
+import { useTranslation, getDayNames, getDateLocale, type Translations } from "@opengnothia/shared/i18n";
+import type { MoodEntry, Session, UserProfile, JournalEntry, Dream } from "@opengnothia/shared/types";
 import { MoodChart } from "@/components/dashboard/MoodChart";
 import { MoodPickerScale, MoodIcon } from "@/components/dashboard/MoodPickerScale";
 import { TodaySessionHero } from "@/components/dashboard/TodaySessionHero";

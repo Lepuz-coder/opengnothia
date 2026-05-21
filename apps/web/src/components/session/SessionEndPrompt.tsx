@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@opengnothia/shared/i18n";
 
 interface SessionEndPromptProps {
   onClose: () => void;

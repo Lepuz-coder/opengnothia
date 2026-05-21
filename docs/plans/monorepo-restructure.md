@@ -12,7 +12,7 @@ Phase-level overview. Tick a phase when all its steps are done.
 - [x] **Phase 1** — Move web code into `apps/web/` (atomic)
 - [x] **Phase 2** — Workspace setup (root files, lockfile reset)
 - [x] **Phase 3** — `packages/shared` skeleton + wiring test
-- [ ] **Phase 4** — Extract pure modules into shared + import codemod
+- [x] **Phase 4** — Extract pure modules into shared + import codemod
 - [ ] **Phase 5** — `DatabasePort` interface, queries to shared, Tauri adapter
 - [ ] **Phase 6** — Migrations to shared + `runMigrations()` helper
 - [ ] **Phase 7** — Update release workflow
@@ -305,12 +305,12 @@ The user plans to build a companion Expo mobile app with **full feature parity, 
 
 ### Phase 4 — Extract pure modules into shared (codemod-heavy phase)
 
-- [ ] **Step 26** — `git mv apps/web/src/types packages/shared/src/types`.
-- [ ] **Step 27** — `git mv apps/web/src/i18n packages/shared/src/i18n`.
-- [ ] **Step 28** — `git mv apps/web/src/constants packages/shared/src/constants`.
-- [ ] **Step 29** — `git mv apps/web/src/services/ai packages/shared/src/ai`.
-- [ ] **Step 30** — `git mv apps/web/src/lib/cn.ts apps/web/src/lib/formatTokens.ts apps/web/src/lib/createBufferedTextStream.ts apps/web/src/lib/createMarkerStrippedStream.ts packages/shared/src/lib/`.
-- [ ] **Step 31** — Rewrite imports across `apps/web/src/`. A safe codemod approach:
+- [x] **Step 26** — `git mv apps/web/src/types packages/shared/src/types`.
+- [x] **Step 27** — `git mv apps/web/src/i18n packages/shared/src/i18n`.
+- [x] **Step 28** — `git mv apps/web/src/constants packages/shared/src/constants`.
+- [x] **Step 29** — `git mv apps/web/src/services/ai packages/shared/src/ai`.
+- [x] **Step 30** — `git mv apps/web/src/lib/cn.ts apps/web/src/lib/formatTokens.ts apps/web/src/lib/createBufferedTextStream.ts apps/web/src/lib/createMarkerStrippedStream.ts packages/shared/src/lib/`.
+- [x] **Step 31** — Rewrite imports across `apps/web/src/`. A safe codemod approach:
     - `@/types` → `@opengnothia/shared/types`
     - `@/i18n` → `@opengnothia/shared/i18n`
     - `@/constants` → `@opengnothia/shared/constants`
@@ -322,10 +322,24 @@ The user plans to build a companion Expo mobile app with **full feature parity, 
     - `@/lib/createBufferedTextStream` → `@opengnothia/shared/lib/createBufferedTextStream`
     - `@/lib/createMarkerStrippedStream` → `@opengnothia/shared/lib/createMarkerStrippedStream`
     Use `sed -i '' -E` (macOS) or a `grep -rl ... | xargs sed -i` script. Keep `@/lib/security`, `@/lib/store`, `@/services/data/*`, `@/services/db/*` unchanged.
-- [ ] **Step 32** — Rewrite imports **inside the moved files themselves** — they likely import each other with `@/...` paths. Within `packages/shared/src/`, anything that used to reference another shared module via `@/...` must become a relative import (e.g., `../types` or `./AIError`). Run a sweep with `grep -rn "from \"@/" packages/shared/` and rewrite each.
-- [ ] **Step 33 — 🧪 Verification + typecheck.** `pnpm --filter @opengnothia/web build` typechecks clean.
-- [ ] **Step 34 — 🧪 Run [Full UI Regression Checklist](#full-ui-regression-checklist).** Every page must load with no console errors. Critically test pages that heavily use moved modules: any page using AI (`SessionPage`, `OnboardingPage` interview step, `AnalysesPage`), any page using i18n (all), any page using types (all).
-- [ ] **Step 35** — Commit: `refactor(monorepo): extract pure modules into @opengnothia/shared`.
+- [x] **Step 32** — Rewrite imports **inside the moved files themselves** — they likely import each other with `@/...` paths. Within `packages/shared/src/`, anything that used to reference another shared module via `@/...` must become a relative import (e.g., `../types` or `./AIError`). Run a sweep with `grep -rn "from \"@/" packages/shared/` and rewrite each.
+- [x] **Step 33 — 🧪 Verification + typecheck.** `pnpm --filter @opengnothia/web build` typechecks clean.
+- [x] **Step 34 — 🧪 Run [Full UI Regression Checklist](#full-ui-regression-checklist).** Every page must load with no console errors. Critically test pages that heavily use moved modules: any page using AI (`SessionPage`, `OnboardingPage` interview step, `AnalysesPage`), any page using i18n (all), any page using types (all).
+- [x] **Step 35** — Commit: `refactor(monorepo): extract pure modules into @opengnothia/shared`.
+
+**Phase 4 note:** Completed on 2026-05-21. 46 files moved via `git mv` (types/, i18n/, constants/ whole directories; 8 of 11 ai/* files; 4 pure lib/* files); 75 files modified by codemod. 178 `@/...` imports in `apps/web/src/` rewritten to `@opengnothia/shared/...`; all intra-shared `@/` imports converted to relative paths. Step 31 was completed selectively (codemod restricted to the 8 ai filenames that actually moved, not all of `@/services/ai/*`).
+
+**Deviation #1 — i18n dependency injection.** `packages/shared/src/i18n/index.ts` originally imported `useSettingsStore` from `apps/web` (violates D3). Refactored to expose `setLanguageBindings({ useLanguage, getLanguage })`; `apps/web/src/main.tsx` wires Zustand-backed bindings before `ReactDOM.render`. All `getCurrentLanguage`/`useTranslation` call sites are inside function bodies (verified by grep across `constants/breathingTechniques.ts`, `i18n/therapySchools/index.ts`, `ai/aiService.ts`, `ai/coursePromptBuilder.ts`), so binding-after-import is safe; a default fallback `() => "tr"` covers the pre-binding window.
+
+**Deviation #2 — three `services/ai/*` files deferred.** `backgroundNotes.ts`, `courseNotes.ts`, and `promptBuilder.ts` stayed in `apps/web/src/services/ai/` because they import non-shared modules that D3 keeps app-local (`useAppStore`, `useSchoolsStore.getSchoolById`, `services/db/queries`). They will move when Phase 5 lands queries in shared and a schools-accessor pattern is decided. Their intra-app imports of moved siblings (`aiService`, `costCalculator`) were still rewritten to `@opengnothia/shared/ai/*`, so they compile.
+
+**Deviation #3 — TEST constants inlined.** `TEST_MESSAGE` / `TEST_SYSTEM_PROMPT` (used only by `aiService.testApiKey`) were inlined into shared `ai/aiService.ts`; originals removed from the deferred `promptBuilder.ts`. Keeps the moved aiService free of back-references into apps/web.
+
+**Other changes captured in this commit:**
+- `packages/shared/package.json` — added runtime deps `clsx`, `lucide-react`, `tailwind-merge` (now consumed by `lib/cn.ts` and `constants/navigation.ts`); added `./i18n/therapySchools` exports entry (only directory-with-index inside shared that's imported externally — by `useSchoolsStore.ts` and `SchoolsPage.tsx`).
+- `.claude/launch.json` — `npm run dev` → `pnpm --filter @opengnothia/web dev` (the former silently broke after Phase 1's move since root has no `dev` script).
+
+Verification: `pnpm --filter @opengnothia/web exec tsc --noEmit` clean; `pnpm build:web` (tsc + vite) clean, 2116 modules transformed in 1.92s. Final grep confirms zero `@/(types|i18n|constants|lib/{cn,formatTokens,createBufferedTextStream,createMarkerStrippedStream}|services/ai/{8 moved filenames})` imports remain in `apps/web/src/` and zero `@/` imports inside `packages/shared/src/`. User-driven UI regression in the running Tauri dev session covered language switch, Dashboard, full session round-trip, API key test, provider switch, breathing exercise, schools page, and journal/dream analyses.
 
 ### Phase 5 — Define DB port, move queries, write Tauri adapter
 

@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, ArrowLeft, ArrowRight } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import { useTranslation } from "@/i18n";
+import { useTranslation } from "@opengnothia/shared/i18n";
 import { loadSettings } from "@/lib/store";
 import { upsertPatientIntakeForm, getPatientIntakeForm } from "@/services/db/queries";
-import type { PatientIntakeForm, PatientIntakeFormField } from "@/types";
+import type { PatientIntakeForm, PatientIntakeFormField } from "@opengnothia/shared/types";
 
 interface IntakeFormModalProps {
   isOpen: boolean;

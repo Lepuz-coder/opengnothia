@@ -359,6 +359,54 @@ ol::-webkit-scrollbar-corner {
   .streaming-text-content {
     word-break: break-word;
   }
+
+  /* Session ambient aurora — softness comes from the gradient plus one static
+     blur; the blur is never animated, only transform/opacity are. */
+  .aurora-orb {
+    position: absolute;
+    border-radius: 9999px;
+    pointer-events: none;
+    filter: blur(60px);
+    -webkit-filter: blur(60px);
+    will-change: transform, opacity;
+  }
+  .aurora-orb--teal {
+    width: clamp(420px, 55vw, 780px);
+    height: clamp(420px, 55vw, 780px);
+    top: -18%;
+    left: -12%;
+    background: radial-gradient(circle, rgba(58, 186, 180, 0.10) 0%, rgba(58, 186, 180, 0.04) 40%, transparent 70%);
+    animation: aurora-drift-1 75s ease-in-out infinite alternate;
+  }
+  .aurora-orb--blue {
+    width: clamp(380px, 48vw, 700px);
+    height: clamp(380px, 48vw, 700px);
+    top: 28%;
+    right: -14%;
+    background: radial-gradient(circle, rgba(62, 99, 221, 0.08) 0%, rgba(62, 99, 221, 0.03) 40%, transparent 70%);
+    animation: aurora-drift-2 90s ease-in-out infinite alternate;
+  }
+  .aurora-orb--violet {
+    width: clamp(320px, 40vw, 600px);
+    height: clamp(320px, 40vw, 600px);
+    bottom: -14%;
+    left: 18%;
+    background: radial-gradient(circle, rgba(139, 124, 246, 0.07) 0%, rgba(139, 124, 246, 0.025) 40%, transparent 70%);
+    animation: aurora-drift-3 60s ease-in-out infinite alternate;
+  }
+
+  /* Chat message entrance — runs once per DOM mount */
+  .msg-enter {
+    animation: msg-enter 0.35s ease-out both;
+  }
+
+  /* Mini AI orb — chat identity marker + empty state */
+  .mini-orb {
+    border-radius: 9999px;
+    background: radial-gradient(circle at 35% 35%, rgba(75, 195, 190, 0.95) 0%, rgba(58, 186, 180, 0.55) 45%, rgba(35, 110, 107, 0.2) 72%, transparent 100%);
+    box-shadow: 0 0 12px rgba(58, 186, 180, 0.35);
+    animation: orb-breathe 5s ease-in-out infinite;
+  }
 }
 
 @keyframes breathing-glow {
@@ -389,5 +437,61 @@ ol::-webkit-scrollbar-corner {
   100% {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Session ambient aurora drift — transform/opacity only, alternate direction
+   so the loop never jumps. */
+@keyframes aurora-drift-1 {
+  0%   { transform: translate3d(0, 0, 0) scale(1); opacity: 0.75; }
+  50%  { transform: translate3d(6vw, 5vh, 0) scale(1.12); opacity: 1; }
+  100% { transform: translate3d(-4vw, 8vh, 0) scale(1.04); opacity: 0.65; }
+}
+
+@keyframes aurora-drift-2 {
+  0%   { transform: translate3d(0, 0, 0) scale(1); opacity: 0.7; }
+  50%  { transform: translate3d(-7vw, -4vh, 0) scale(1.15); opacity: 1; }
+  100% { transform: translate3d(3vw, -8vh, 0) scale(0.95); opacity: 0.6; }
+}
+
+@keyframes aurora-drift-3 {
+  0%   { transform: translate3d(0, 0, 0) scale(1); opacity: 0.65; }
+  50%  { transform: translate3d(5vw, -6vh, 0) scale(1.1); opacity: 0.95; }
+  100% { transform: translate3d(-5vw, 3vh, 0) scale(1.02); opacity: 0.6; }
+}
+
+@keyframes msg-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes orb-breathe {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-orb {
+    animation: none; /* atmosphere stays as a static gradient wash */
+  }
+  .msg-enter {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .mini-orb {
+    animation: none;
   }
 }

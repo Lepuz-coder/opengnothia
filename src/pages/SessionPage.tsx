@@ -36,6 +36,7 @@ import { testTranscriptApiKey } from "@/services/ai/ttsService";
 import { Square, Loader2, FileText, Sparkles, Mic, MessageSquare, Pause, Play, Lightbulb, ChevronRight } from "lucide-react";
 import { useVoiceConversation, type VoiceLoopStatus } from "@/hooks/useVoiceConversation";
 import { VoiceConversationView } from "@/components/session/VoiceConversationView";
+import { AmbientBackground } from "@/components/session/AmbientBackground";
 import { SessionInsightsPanel } from "@/components/session/SessionInsightsPanel";
 import { IntakeFormModal } from "@/components/session/IntakeFormModal";
 import { IntakeFormCTA } from "@/components/session/IntakeFormCTA";
@@ -98,12 +99,16 @@ function VoiceStatusBadge({ status, t }: { status: VoiceLoopStatus; t: ReturnTyp
   if (!label) return null;
   const isActive = status !== "paused";
   return (
-    <Badge variant={isActive ? "primary" : "default"}>
-      <span className="flex items-center gap-1.5">
-        {isActive && <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />}
-        {label}
-      </span>
-    </Badge>
+    <span
+      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border backdrop-blur-md ${
+        isActive
+          ? "border-primary-500/25 bg-primary-500/10 text-primary-300"
+          : "border-white/[0.08] bg-white/[0.04] text-[var(--text-muted)]"
+      }`}
+    >
+      {isActive && <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />}
+      {label}
+    </span>
   );
 }
 
@@ -1268,9 +1273,10 @@ export default function SessionPage() {
   const modelName = modelConfig?.name ?? settings.model;
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="relative isolate flex flex-col h-screen">
+      <AmbientBackground />
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-3 border-b border-[var(--border-color)]/50 bg-[var(--bg-primary)]">
+      <div className="flex items-center justify-between px-6 py-3 border-b border-white/[0.06] bg-surface-950/55 backdrop-blur-xl">
         <div className="flex items-center gap-2">
           <h2 className="font-semibold">{t.session.sessionTitle}</h2>
           <Badge variant="primary">
@@ -1284,7 +1290,7 @@ export default function SessionPage() {
               <VoiceStatusBadge status={voiceLoop.status} t={t} />
               <button
                 onClick={voiceLoop.status === "paused" ? voiceLoop.resumeLoop : voiceLoop.pauseLoop}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs hover:bg-[var(--bg-tertiary)] transition-colors"
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs border border-transparent hover:border-white/[0.08] hover:bg-white/[0.05] transition-colors"
               >
                 {voiceLoop.status === "paused" ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
                 {voiceLoop.status === "paused" ? t.voice.resumeVoice : t.voice.pauseVoice}
@@ -1294,7 +1300,7 @@ export default function SessionPage() {
                   voiceLoop.stopLoop();
                   useSessionStore.getState().setSessionMode("chat");
                 }}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] transition-colors"
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-[var(--text-muted)] border border-transparent hover:border-white/[0.08] hover:bg-white/[0.05] transition-colors"
               >
                 <MessageSquare className="w-3 h-3" />
                 {t.voice.switchToChat}
@@ -1306,8 +1312,8 @@ export default function SessionPage() {
             onClick={() => session.toggleInsightsPanel()}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
               session.insightsPanelOpen
-                ? "bg-primary-500/10 text-primary-400"
-                : "hover:bg-[var(--bg-tertiary)]"
+                ? "bg-primary-500/10 text-primary-400 border border-primary-500/25 shadow-[0_0_16px_-6px_rgba(58,186,180,0.4)]"
+                : "border border-transparent hover:border-white/[0.08] hover:bg-white/[0.05]"
             }`}
           >
             <Lightbulb className="w-4 h-4" />

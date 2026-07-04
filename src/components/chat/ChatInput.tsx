@@ -148,10 +148,10 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
         <div className="max-w-3xl mx-auto w-full">
           <div
             className={cn(
-              "relative flex items-end rounded-2xl border bg-[var(--bg-secondary)] shadow-lg shadow-black/20 transition-all duration-300",
+              "relative flex items-end rounded-2xl border backdrop-blur-xl transition-all duration-300",
               isRecording
-                ? "border-red-500/50 shadow-red-500/10"
-                : "border-[var(--border-color)] focus-within:border-primary-500/50 focus-within:ring-1 focus-within:ring-primary-500/20"
+                ? "bg-[linear-gradient(135deg,rgba(239,68,68,0.08),rgba(26,39,68,0.6))] border-red-500/40 shadow-[0_0_24px_-8px_rgba(239,68,68,0.4),0_8px_32px_-8px_rgba(0,0,0,0.4)]"
+                : "bg-surface-800/60 border-white/[0.08] shadow-[0_8px_32px_-8px_rgba(0,0,0,0.4)] focus-within:border-primary-500/40 focus-within:shadow-[0_0_0_1px_rgba(58,186,180,0.12),0_0_28px_-6px_rgba(58,186,180,0.35),0_8px_32px_-8px_rgba(0,0,0,0.5)]"
             )}
           >
             {isRecording ? (
@@ -173,7 +173,7 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
                   <RecordingTimer />
                   <button
                     onClick={onMicStop}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center bg-red-500 text-white hover:bg-red-600 transition-colors"
+                    className="w-8 h-8 rounded-full flex items-center justify-center bg-red-500 text-white hover:bg-red-600 shadow-[0_0_12px_rgba(239,68,68,0.4)] transition-colors"
                     title={t.transcript.recording}
                   >
                     <Square className="w-3.5 h-3.5 fill-current" />
@@ -198,10 +198,10 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
                     onClick={onMicClick}
                     disabled={disabled || recordingState === "transcribing"}
                     className={cn(
-                      "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
+                      "w-8 h-8 rounded-full flex items-center justify-center transition-all",
                       recordingState === "transcribing"
                         ? "text-primary-400"
-                        : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                        : "text-[var(--text-muted)] hover:text-primary-300 hover:bg-primary-500/10"
                     )}
                     title={
                       recordingState === "transcribing"
@@ -220,9 +220,9 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
                     onClick={handleSubmit}
                     disabled={!value.trim() || disabled}
                     className={cn(
-                      "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
+                      "w-8 h-8 rounded-full flex items-center justify-center transition-all",
                       value.trim() && !disabled
-                        ? "bg-primary-500 text-white hover:bg-primary-600"
+                        ? "bg-gradient-to-br from-primary-400 to-primary-600 text-white shadow-[0_0_14px_rgba(58,186,180,0.4)] hover:shadow-[0_0_20px_rgba(58,186,180,0.6)] hover:from-primary-300 hover:to-primary-500"
                         : "text-[var(--text-muted)]"
                     )}
                   >

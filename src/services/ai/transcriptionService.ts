@@ -1,5 +1,6 @@
-// OpenAI Whisper-1 pricing: $0.006 per minute
-const WHISPER_COST_PER_MINUTE = 0.006;
+// gpt-4o-transcribe: better accuracy than whisper-1 at the same price ($0.006/min)
+export const STT_MODEL = "gpt-4o-transcribe";
+const STT_COST_PER_MINUTE = 0.006;
 
 function getWavDurationMinutes(blob: Blob): Promise<number> {
   return blob.slice(0, 44).arrayBuffer().then((header) => {
@@ -27,7 +28,7 @@ export async function transcribeAudio(
 
   const formData = new FormData();
   formData.append("file", audioBlob, "recording.wav");
-  formData.append("model", "whisper-1");
+  formData.append("model", STT_MODEL);
   if (language) {
     formData.append("language", language);
   }
@@ -45,7 +46,7 @@ export async function transcribeAudio(
   }
 
   const data = await response.json();
-  const cost = durationMinutes * WHISPER_COST_PER_MINUTE;
+  const cost = durationMinutes * STT_COST_PER_MINUTE;
 
   return {
     text: data.text,

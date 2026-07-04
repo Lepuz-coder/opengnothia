@@ -3,7 +3,7 @@ import { useSessionStore } from "@/stores/useSessionStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { synthesizeSpeech, playAudioBlob, type TTSResult } from "@/services/ai/ttsService";
-import { transcribeAudio } from "@/services/ai/transcriptionService";
+import { transcribeAudio, STT_MODEL } from "@/services/ai/transcriptionService";
 import { saveTokenUsage } from "@/services/db/queries";
 
 export type VoiceLoopStatus =
@@ -236,7 +236,7 @@ export function useVoiceConversation({ onTranscriptionReady, language }: UseVoic
       await saveTokenUsage({
         session_id: sessionId,
         provider: "openai",
-        model: "whisper-1",
+        model: STT_MODEL,
         input_tokens: 0,
         output_tokens: 0,
         cost: result.cost,

@@ -590,10 +590,10 @@ export const ja: Translations = {
   },
   transcript: {
     title: "文字起こし設定",
-    description: "音声からテキストへの変換にはOpenAI Whisperを使用します。メインのAIプロバイダーに関係なく、OpenAI APIキーが必要です。",
+    description: "音声からテキストへの変換にはOpenAIのGPT-4o Transcribeモデルを使用します。メインのAIプロバイダーに関係なく、OpenAI APIキーが必要です。",
     openaiApiKey: "OpenAI APIキー（文字起こし用）",
     apiKeyRequired: "文字起こし用APIキーが必要です",
-    apiKeyDescription: "音声の文字起こしにはOpenAI Whisperを使用します。この機能を使うにはOpenAI APIキーが必要です。ここまたは設定から追加できます。",
+    apiKeyDescription: "音声の文字起こしにはOpenAIのGPT-4o Transcribeモデルを使用します。この機能を使うにはOpenAI APIキーが必要です。ここまたは設定から追加できます。",
     saveAndRecord: "保存して録音開始",
     recording: "録音中... クリックで停止",
     recordingAudio: "録音中...",

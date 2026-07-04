@@ -590,10 +590,10 @@ export const en: Translations = {
   },
   transcript: {
     title: "Transcript Settings",
-    description: "Voice-to-text transcription uses OpenAI Whisper. An OpenAI API key is required regardless of your main AI provider.",
+    description: "Voice-to-text transcription uses OpenAI's GPT-4o Transcribe model. An OpenAI API key is required regardless of your main AI provider.",
     openaiApiKey: "OpenAI API Key (for transcription)",
     apiKeyRequired: "Transcription API Key Required",
-    apiKeyDescription: "Voice transcription uses OpenAI Whisper. You need to add an OpenAI API key to use this feature. You can add it here or in Settings.",
+    apiKeyDescription: "Voice transcription uses OpenAI's GPT-4o Transcribe model. You need to add an OpenAI API key to use this feature. You can add it here or in Settings.",
     saveAndRecord: "Save & Start Recording",
     recording: "Recording... Click to stop",
     recordingAudio: "Recording audio...",

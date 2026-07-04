@@ -590,10 +590,10 @@ export const de: Translations = {
   },
   transcript: {
     title: "Transkriptionseinstellungen",
-    description: "Sprache-zu-Text-Transkription verwendet OpenAI Whisper. Ein OpenAI-API-Schlüssel ist unabhängig von deinem Haupt-KI-Anbieter erforderlich.",
+    description: "Sprache-zu-Text-Transkription verwendet OpenAIs GPT-4o-Transcribe-Modell. Ein OpenAI-API-Schlüssel ist unabhängig von deinem Haupt-KI-Anbieter erforderlich.",
     openaiApiKey: "OpenAI-API-Schlüssel (für Transkription)",
     apiKeyRequired: "Transkriptions-API-Schlüssel erforderlich",
-    apiKeyDescription: "Sprachtranskription verwendet OpenAI Whisper. Du benötigst einen OpenAI-API-Schlüssel, um diese Funktion zu nutzen. Du kannst ihn hier oder in den Einstellungen hinzufügen.",
+    apiKeyDescription: "Sprachtranskription verwendet OpenAIs GPT-4o-Transcribe-Modell. Du benötigst einen OpenAI-API-Schlüssel, um diese Funktion zu nutzen. Du kannst ihn hier oder in den Einstellungen hinzufügen.",
     saveAndRecord: "Speichern & Aufnahme starten",
     recording: "Aufnahme... Klicke zum Stoppen",
     recordingAudio: "Audio wird aufgenommen...",

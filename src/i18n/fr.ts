@@ -590,10 +590,10 @@ export const fr: Translations = {
   },
   transcript: {
     title: "Parametres de transcription",
-    description: "La transcription vocale utilise OpenAI Whisper. Une cle API OpenAI est requise quel que soit ton fournisseur d'IA principal.",
+    description: "La transcription vocale utilise le modele GPT-4o Transcribe d'OpenAI. Une cle API OpenAI est requise quel que soit ton fournisseur d'IA principal.",
     openaiApiKey: "Cle API OpenAI (pour la transcription)",
     apiKeyRequired: "Cle API de transcription requise",
-    apiKeyDescription: "La transcription vocale utilise OpenAI Whisper. Tu dois ajouter une cle API OpenAI pour utiliser cette fonctionnalite. Tu peux l'ajouter ici ou dans les parametres.",
+    apiKeyDescription: "La transcription vocale utilise le modele GPT-4o Transcribe d'OpenAI. Tu dois ajouter une cle API OpenAI pour utiliser cette fonctionnalite. Tu peux l'ajouter ici ou dans les parametres.",
     saveAndRecord: "Enregistrer et demarrer",
     recording: "Enregistrement... Clique pour arreter",
     recordingAudio: "Enregistrement audio...",

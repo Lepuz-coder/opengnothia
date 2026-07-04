@@ -590,10 +590,10 @@ export const zh: Translations = {
   },
   transcript: {
     title: "语音转写设置",
-    description: "语音转文字使用 OpenAI Whisper。无论你的主要 AI 服务商是什么，都需要 OpenAI API 密钥。",
+    description: "语音转文字使用 OpenAI 的 GPT-4o Transcribe 模型。无论你的主要 AI 服务商是什么，都需要 OpenAI API 密钥。",
     openaiApiKey: "OpenAI API 密钥（用于语音转写）",
     apiKeyRequired: "需要语音转写 API 密钥",
-    apiKeyDescription: "语音转写使用 OpenAI Whisper。你需要添加 OpenAI API 密钥才能使用此功能。可以在此处或在设置中添加。",
+    apiKeyDescription: "语音转写使用 OpenAI 的 GPT-4o Transcribe 模型。你需要添加 OpenAI API 密钥才能使用此功能。可以在此处或在设置中添加。",
     saveAndRecord: "保存并开始录音",
     recording: "录音中...点击停止",
     recordingAudio: "正在录音...",

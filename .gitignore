@@ -7,6 +7,11 @@ dist/
 # Rust / Tauri
 src-tauri/target/
 
+# Mac App Store signing (developer-specific)
+**/src-tauri/embedded.provisionprofile
+*.pkg
+*.dmg
+
 # Environment
 .env
 .env.*

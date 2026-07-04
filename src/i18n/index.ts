@@ -146,6 +146,7 @@ export interface Translations {
     noteTakingModalDescription: string;
     noteTakingModalProgress: string;
     noteTakingModalWarning: string;
+    noteTakingStartBlocked: string;
     generateSummary: string;
     generateInsights: string;
     summaryNotGeneratedYet: string;

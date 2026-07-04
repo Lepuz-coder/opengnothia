@@ -30,6 +30,7 @@ import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildPatien
 import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
 import { createSession, updateSessionMessages, completeSession, deleteSession, getUserProfile, getTodayCheckIn, getRecentSessions, getPatientNotes, getPatientNotesUpdatedAt, getCompletedSessionCount, saveTokenUsage, getInsightGroups, createInsightGroup, createInsight, getPatientIntakeForm, intakeFormHasContent } from "@/services/db/queries";
 import { getAllSchools, getSchoolById } from "@/stores/useSchoolsStore";
+import { showToast } from "@/stores/useToastStore";
 import { providers, getProvider, modelSupportsThinking } from "@/constants/providers";
 import { ErrorModal } from "@/components/ui/ErrorModal";
 import { testTranscriptApiKey } from "@/services/ai/ttsService";
@@ -47,8 +48,6 @@ import { createBufferedTextStream } from "@/lib/createBufferedTextStream";
 import { createMarkerStrippedStream } from "@/lib/createMarkerStrippedStream";
 
 const CHAT_STREAM_FLUSH_DELAY_MS = 48;
-const NOTE_TAKING_PROGRESS_DURATION_MS = 60_000;
-const NOTE_TAKING_PROGRESS_INTERVAL_MS = 250;
 
 async function trackUsage(
   provider: AIProvider,
@@ -119,7 +118,7 @@ export default function SessionPage() {
   const settings = useSettingsStore();
   const { t, language } = useTranslation();
   const setSidebarHidden = useAppStore((s) => s.setSidebarHidden);
-  const setNoteTaking = useAppStore((s) => s.setNoteTaking);
+  const sessionNotesPreparing = useAppStore((s) => s.sessionNoteTakingStartedAt !== null);
   const [saving, setSaving] = useState(false);
   const [startModalOpen, setStartModalOpen] = useState(false);
   const [schoolPickerOpen, setSchoolPickerOpen] = useState(false);
@@ -146,10 +145,6 @@ export default function SessionPage() {
 
   const [pendingSessionEnd, setPendingSessionEnd] = useState(false);
   const [isRevealing, setIsRevealing] = useState(false);
-  const [noteTakingModalOpen, setNoteTakingModalOpen] = useState(false);
-  const [noteTakingProgress, setNoteTakingProgress] = useState(0);
-  const [noteTakingNotesDone, setNoteTakingNotesDone] = useState(false);
-  const noteTakingRunRef = useRef(0);
 
   // Intake form state
   const [intakeForm, setIntakeForm] = useState<PatientIntakeForm | null>(null);
@@ -169,28 +164,6 @@ export default function SessionPage() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!noteTakingModalOpen) return;
-
-    const startedAt = Date.now();
-    const updateProgress = () => {
-      const elapsed = Date.now() - startedAt;
-      const nextProgress = Math.min((elapsed / NOTE_TAKING_PROGRESS_DURATION_MS) * 100, 100);
-      setNoteTakingProgress(nextProgress);
-    };
-
-    updateProgress();
-    const intervalId = window.setInterval(updateProgress, NOTE_TAKING_PROGRESS_INTERVAL_MS);
-    return () => window.clearInterval(intervalId);
-  }, [noteTakingModalOpen]);
-
-  useEffect(() => {
-    if (!noteTakingModalOpen || !noteTakingNotesDone) return;
-    setNoteTakingProgress(100);
-    setNoteTakingModalOpen(false);
-    setNoteTaking(false);
-  }, [noteTakingModalOpen, noteTakingNotesDone, setNoteTaking]);
-
   // Handle navigation state from dashboard (open start modal)
   const navStateHandled = useRef(false);
   useEffect(() => {
@@ -198,7 +171,11 @@ export default function SessionPage() {
     navStateHandled.current = true;
     const state = location.state as { openStartModal?: boolean } | null;
     if (!state) return;
-    if (state.openStartModal && (session.status === "idle" || session.status === "pre")) {
+    if (
+      state.openStartModal &&
+      (session.status === "idle" || session.status === "pre") &&
+      useAppStore.getState().sessionNoteTakingStartedAt === null
+    ) {
       setStartModalOpen(true);
     }
     navigate(location.pathname, { replace: true, state: null });
@@ -330,6 +307,10 @@ export default function SessionPage() {
   }, [selectedMode, settings, handleStartSession, handleGreeting, voiceLoop]);
 
   const beginSessionStartFlow = useCallback(async () => {
+    if (useAppStore.getState().sessionNoteTakingStartedAt !== null) {
+      showToast(t.session.noteTakingStartBlocked, "info");
+      return;
+    }
     const latestIntake = await getPatientIntakeForm();
     const hasSeenPrompt = useAppStore.getState().hasSeenIntakeFormPrompt;
     if (!intakeFormHasContent(latestIntake) && !hasSeenPrompt) {
@@ -346,7 +327,7 @@ export default function SessionPage() {
       return;
     }
     await performSessionStart();
-  }, [performSessionStart]);
+  }, [performSessionStart, t]);
 
   const performCompaction = useCallback(async () => {
     const store = useSessionStore.getState();
@@ -659,13 +640,8 @@ export default function SessionPage() {
   }, [extractInsights]);
 
   const beginMandatoryNoteTaking = useCallback((messages: ChatMessage[]) => {
-    const runId = noteTakingRunRef.current + 1;
-    noteTakingRunRef.current = runId;
-
-    setNoteTaking(true);
-    setNoteTakingModalOpen(true);
-    setNoteTakingProgress(0);
-    setNoteTakingNotesDone(false);
+    useAppStore.getState().startSessionNoteTaking();
+    const runStartedAt = useAppStore.getState().sessionNoteTakingStartedAt;
 
     const sessionId = useSessionStore.getState().sessionId;
 
@@ -700,11 +676,11 @@ export default function SessionPage() {
         // Silent failure for background notes
       })
       .finally(() => {
-        if (noteTakingRunRef.current === runId) {
-          setNoteTakingNotesDone(true);
+        if (useAppStore.getState().sessionNoteTakingStartedAt === runStartedAt) {
+          useAppStore.getState().finishSessionNoteTaking();
         }
       });
-  }, [settings, language, setNoteTaking]);
+  }, [settings, language]);
 
 
   const handleMicClick = useCallback(async () => {
@@ -865,7 +841,6 @@ export default function SessionPage() {
   const acceptedGroupIdMap = useRef<Map<string, string>>(new Map());
 
   const handleSaveAndClose = useCallback(async () => {
-    if (noteTakingModalOpen || useAppStore.getState().isNoteTaking) return;
     setSaving(true);
     const state = useSessionStore.getState();
     if (state.sessionId) {
@@ -880,7 +855,7 @@ export default function SessionPage() {
     setSidebarHidden(false);
     setSaving(false);
     navigate("/dashboard");
-  }, [navigate, setSidebarHidden, noteTakingModalOpen]);
+  }, [navigate, setSidebarHidden]);
 
   const handleAcceptExtractedInsight = useCallback(async (insight: ExtractedInsight) => {
     let targetGroupId = insight.group_id;
@@ -956,7 +931,7 @@ export default function SessionPage() {
                 </Button>
               ) : null
             )}
-            <Button onClick={() => setStartModalOpen(true)} size="lg">
+            <Button onClick={() => setStartModalOpen(true)} size="lg" disabled={sessionNotesPreparing}>
               {t.session.startSession}
             </Button>
           </div>
@@ -1220,39 +1195,6 @@ export default function SessionPage() {
           onGenerateSummary={handleGenerateSummary}
           onGenerateInsights={handleGenerateInsights}
         />
-        <Modal
-          isOpen={noteTakingModalOpen}
-          onClose={() => {}}
-          title={t.session.noteTakingModalTitle}
-          dismissible={false}
-          className="max-w-md"
-        >
-          <div className="space-y-5">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary-500/15 text-primary-400 flex items-center justify-center shrink-0">
-                <Loader2 className="w-5 h-5 animate-spin" />
-              </div>
-              <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
-                {t.session.noteTakingModalDescription}
-              </p>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs text-[var(--text-muted)]">
-                <span>{t.session.noteTakingModalProgress}</span>
-                <span className="tabular-nums">{Math.round(noteTakingProgress)}%</span>
-              </div>
-              <div className="w-full h-2 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-primary-500 transition-all duration-300 ease-out"
-                  style={{ width: `${Math.min(noteTakingProgress, 100)}%` }}
-                />
-              </div>
-            </div>
-            <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-              {t.session.noteTakingModalWarning}
-            </p>
-          </div>
-        </Modal>
         <ErrorModal
           isOpen={errorModalInfo !== null}
           onClose={() => setErrorModalInfo(null)}

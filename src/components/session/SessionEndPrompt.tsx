@@ -21,7 +21,7 @@ export function SessionEndPrompt({ onClose, onContinue }: SessionEndPromptProps)
       <div
         role="status"
         aria-live="polite"
-        className="max-w-3xl mx-auto rounded-2xl border border-primary-500/30 bg-[var(--bg-secondary)] shadow-lg shadow-black/20 px-6 py-5"
+        className="max-w-3xl mx-auto rounded-2xl border border-primary-500/30 bg-surface-800/70 backdrop-blur-xl shadow-[0_0_32px_-10px_rgba(58,186,180,0.25),0_8px_32px_-8px_rgba(0,0,0,0.5)] px-6 py-5"
       >
         <div className="flex items-start gap-3 mb-4">
           <div className="w-10 h-10 rounded-xl bg-primary-500/15 text-primary-400 flex items-center justify-center shrink-0">

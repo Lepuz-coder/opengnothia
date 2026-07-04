@@ -31,13 +31,16 @@ function ChatMessageComponent({ message, onRevealStateChange, revealStreamingTex
     <div className={cn("w-full", isUser && "flex justify-end")}>
       <div
         className={cn(
-          "text-base leading-relaxed",
+          "msg-enter text-base leading-relaxed",
           isUser
-            ? "max-w-[70%] rounded-2xl rounded-br-md px-4 py-3 bg-[var(--bg-secondary)] text-[var(--text-primary)]"
+            ? "max-w-[70%] rounded-2xl rounded-br-md px-4 py-3 text-[var(--text-primary)] bg-gradient-to-br from-primary-500/[0.13] to-surface-800/90 border border-primary-500/20 shadow-[0_4px_20px_-6px_rgba(10,33,32,0.6)]"
             : "w-full text-[var(--text-primary)]",
           !isUser && (message.isStreaming || isRevealing) && "min-h-[3.5rem]"
         )}
       >
+        {/* Assistant identity marker */}
+        {!isUser && <span className="mini-orb block w-4 h-4 mb-1.5" />}
+
         {/* Thinking section */}
         {hasThinking && !isUser && (
           <div className="mb-2">

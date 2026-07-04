@@ -265,9 +265,12 @@ export function useVoiceConversation({ onTranscriptionReady, language }: UseVoic
     }
   }, [recorder, language, resetStreamState, updateStatus]);
 
-  const confirmTranscript = useCallback(() => {
-    if (!lastUserTranscript) return;
-    const text = lastUserTranscript;
+  const confirmTranscript = useCallback((overrideText?: string) => {
+    // Optional override lets the user send a hand-edited transcript instead of the STT result
+    const override = typeof overrideText === "string" ? overrideText.trim() : "";
+    const text = override || lastUserTranscript;
+    if (!text) return;
+    setLastUserTranscript(text);
     resetStreamState();
     setCurrentAIText(null);
     updateStatus("waiting_for_ai");

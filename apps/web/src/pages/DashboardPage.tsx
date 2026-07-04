@@ -8,6 +8,8 @@ import { Card } from "@/components/ui/Card";
 import { cn } from "@opengnothia/shared/lib/cn";
 import { getQueries } from "@/db";
 import { useSessionStore } from "@/stores/useSessionStore";
+import { useAppStore } from "@/stores/useAppStore";
+import { showToast } from "@/stores/useToastStore";
 import { useTranslation, getDayNames, getDateLocale, type Translations } from "@opengnothia/shared/i18n";
 import type { MoodEntry, Session, UserProfile, JournalEntry, Dream } from "@opengnothia/shared/types";
 import { MoodChart } from "@/components/dashboard/MoodChart";
@@ -233,7 +235,13 @@ export default function DashboardPage() {
         todaySession={heroSession}
         profile={profile}
         t={t}
-        onStart={() => navigate("/session", { state: { openStartModal: true } })}
+        onStart={() => {
+          if (useAppStore.getState().sessionNoteTakingStartedAt !== null) {
+            showToast(t.session.noteTakingStartBlocked, "info");
+            return;
+          }
+          navigate("/session", { state: { openStartModal: true } });
+        }}
         onContinue={() => navigate("/session")}
       />
 

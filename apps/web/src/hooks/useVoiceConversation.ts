@@ -3,7 +3,7 @@ import { useSessionStore } from "@/stores/useSessionStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { synthesizeSpeech, playAudioBlob, type TTSResult } from "@opengnothia/shared/ai/ttsService";
-import { transcribeAudio } from "@opengnothia/shared/ai/transcriptionService";
+import { transcribeAudio, STT_MODEL } from "@opengnothia/shared/ai/transcriptionService";
 import { getQueries } from "@/db";
 
 export type VoiceLoopStatus =
@@ -238,7 +238,7 @@ export function useVoiceConversation({ onTranscriptionReady, language }: UseVoic
       await queries.saveTokenUsage({
         session_id: sessionId,
         provider: "openai",
-        model: "whisper-1",
+        model: STT_MODEL,
         input_tokens: 0,
         output_tokens: 0,
         cost: result.cost,

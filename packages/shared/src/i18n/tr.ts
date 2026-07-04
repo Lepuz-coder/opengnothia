@@ -590,10 +590,10 @@ export const tr: Translations = {
   },
   transcript: {
     title: "Transkripsiyon Ayarları",
-    description: "Sesten yazıya dönüştürme OpenAI Whisper kullanır. Ana AI sağlayıcınızdan bağımsız olarak bir OpenAI API anahtarı gereklidir.",
+    description: "Sesten yazıya dönüştürme OpenAI'ın GPT-4o Transcribe modelini kullanır. Ana AI sağlayıcınızdan bağımsız olarak bir OpenAI API anahtarı gereklidir.",
     openaiApiKey: "OpenAI API Anahtarı (transkripsiyon için)",
     apiKeyRequired: "Transkripsiyon API Anahtarı Gerekli",
-    apiKeyDescription: "Ses transkripsiyonu OpenAI Whisper kullanır. Bu özelliği kullanmak için bir OpenAI API anahtarı eklemeniz gerekiyor. Buradan veya Ayarlar'dan ekleyebilirsiniz.",
+    apiKeyDescription: "Ses transkripsiyonu OpenAI'ın GPT-4o Transcribe modelini kullanır. Bu özelliği kullanmak için bir OpenAI API anahtarı eklemeniz gerekiyor. Buradan veya Ayarlar'dan ekleyebilirsiniz.",
     saveAndRecord: "Kaydet ve Kayda Başla",
     recording: "Kaydediliyor... Durdurmak için tıkla",
     recordingAudio: "Ses kaydediliyor...",

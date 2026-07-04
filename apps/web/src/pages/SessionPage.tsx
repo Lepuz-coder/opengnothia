@@ -16,7 +16,7 @@ import { ChatInput } from "@/components/chat/ChatInput";
 import type { ChatInputHandle } from "@/components/chat/ChatInput";
 import { TranscriptApiKeyModal } from "@/components/chat/TranscriptApiKeyModal";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
-import { transcribeAudio } from "@opengnothia/shared/ai/transcriptionService";
+import { transcribeAudio, STT_MODEL } from "@opengnothia/shared/ai/transcriptionService";
 import { SessionEndSummary } from "@/components/session/SessionEndSummary";
 import { SessionControlsBar } from "@/components/session/SessionControlsBar";
 import { PastSessionsList } from "@/components/session/PastSessionsList";
@@ -722,7 +722,7 @@ export default function SessionPage() {
       await queries.saveTokenUsage({
         session_id: sessionId,
         provider: "openai",
-        model: "whisper-1",
+        model: STT_MODEL,
         input_tokens: 0,
         output_tokens: 0,
         cost: result.cost,

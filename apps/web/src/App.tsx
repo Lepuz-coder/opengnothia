@@ -65,7 +65,21 @@ function AppContent() {
         const memoryThinkingType = await store.get<string>("memoryThinkingType");
         const providerMemoryThinkingSettings = await store.get<Record<string, { enabled: boolean; level: string; type?: string }>>("providerMemoryThinkingSettings");
         const transcriptApiKey = await store.get<string>("transcriptApiKey");
+        let ttsModel = await store.get<string>("ttsModel");
+        let ttsVoice = await store.get<string>("ttsVoice");
         const preferredSessionMode = await store.get<string>("preferredSessionMode");
+
+        // gpt-4o-mini-tts support was removed; coerce stale stored values back to supported ones
+        if (ttsModel !== "tts-1" && ttsModel !== "tts-1-hd") {
+          ttsModel = "tts-1";
+          await store.set("ttsModel", ttsModel);
+          await store.save();
+        }
+        if (ttsVoice === "marin" || ttsVoice === "cedar") {
+          ttsVoice = "alloy";
+          await store.set("ttsVoice", ttsVoice);
+          await store.save();
+        }
 
         // Load schools data
         const customSchools = await store.get<any[]>("customSchools");
@@ -110,6 +124,8 @@ function AppContent() {
           ...(memoryThinkingType && { memoryThinkingType: memoryThinkingType as any }),
           ...(providerMemoryThinkingSettings && { providerMemoryThinkingSettings: providerMemoryThinkingSettings as any }),
           ...(transcriptApiKey && { transcriptApiKey }),
+          ...(ttsModel && { ttsModel: ttsModel as any }),
+          ...(ttsVoice && { ttsVoice: ttsVoice as any }),
           ...(preferredSessionMode && { preferredSessionMode: preferredSessionMode as any }),
         });
       } catch {

@@ -1,0 +1,13 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "bundle": {
+    "targets": ["app"],
+    "category": "Lifestyle",
+    "macOS": {
+      "entitlements": "./Entitlements.MAS.plist",
+      "signingIdentity": "3rd Party Mac Developer Application: Emirhan Durusoy (TBV5TAGQ74)",
+      "providerShortName": "TBV5TAGQ74",
+      "minimumSystemVersion": "10.15"
+    }
+  }
+}

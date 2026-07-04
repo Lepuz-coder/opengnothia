@@ -24,14 +24,14 @@ export function SessionControlsBar({
   const { t } = useTranslation();
   return (
     <div className="px-4 pb-3 -mt-1">
-      <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
+      <div className="max-w-3xl mx-auto flex items-center justify-between gap-3 rounded-xl border border-white/[0.05] bg-surface-900/40 backdrop-blur-md px-3 py-1.5">
         <div className="flex items-center gap-3">
           {startedAt && <SessionTimer startedAt={startedAt} />}
           <button
             type="button"
             onClick={onEndSession}
             disabled={endDisabled}
-            className="text-sm text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-sm text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-white/[0.06] px-2 py-1 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {t.session.endSession}
           </button>

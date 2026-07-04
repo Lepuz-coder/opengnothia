@@ -119,7 +119,8 @@ export function ChatContainer({ messages, isLoading, isStreaming, isCompacting, 
     <div ref={scrollContainerRef} className="flex-1 overflow-y-auto scrollbar-thin">
       <div ref={contentWrapperRef} className="max-w-3xl mx-auto px-4 py-6 min-h-full flex flex-col gap-6">
         {messages.length === 0 && !isLoading && !isStreaming && (
-          <div className="flex items-center justify-center flex-1">
+          <div className="flex flex-col items-center justify-center flex-1 gap-4">
+            <span className="mini-orb w-12 h-12" />
             <p className="text-[var(--text-muted)] text-sm">{t.chat.preparing}</p>
           </div>
         )}
@@ -135,14 +136,14 @@ export function ChatContainer({ messages, isLoading, isStreaming, isCompacting, 
         {showLoadingDots && (
           <div className="py-2">
             <div className="flex gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-[var(--text-muted)] animate-bounce [animation-delay:0ms]" />
-              <div className="w-2 h-2 rounded-full bg-[var(--text-muted)] animate-bounce [animation-delay:150ms]" />
-              <div className="w-2 h-2 rounded-full bg-[var(--text-muted)] animate-bounce [animation-delay:300ms]" />
+              <div className="w-2 h-2 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 shadow-[0_0_8px_rgba(58,186,180,0.45)] animate-bounce [animation-delay:0ms]" />
+              <div className="w-2 h-2 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 shadow-[0_0_8px_rgba(58,186,180,0.45)] animate-bounce [animation-delay:150ms]" />
+              <div className="w-2 h-2 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 shadow-[0_0_8px_rgba(58,186,180,0.45)] animate-bounce [animation-delay:300ms]" />
             </div>
           </div>
         )}
         {isCompacting && (
-          <div className="py-4 px-4 rounded-xl bg-primary-500/5 border border-primary-500/20">
+          <div className="py-4 px-4 rounded-xl border border-primary-500/20 bg-[linear-gradient(135deg,rgba(58,186,180,0.07),rgba(26,39,68,0.5))] backdrop-blur-md">
             <div className="flex items-center gap-3">
               <Loader2 className="w-4 h-4 animate-spin text-primary-400" />
               <span className="text-sm font-medium text-primary-400">{t.chat.compacting}</span>

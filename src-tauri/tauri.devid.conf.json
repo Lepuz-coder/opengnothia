@@ -1,0 +1,11 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "bundle": {
+    "targets": ["app"],
+    "macOS": {
+      "entitlements": "./Entitlements.DevID.plist",
+      "signingIdentity": "Developer ID Application: Emirhan Durusoy (TBV5TAGQ74)",
+      "minimumSystemVersion": "10.15"
+    }
+  }
+}

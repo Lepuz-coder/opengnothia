@@ -13,6 +13,8 @@ import {
   getUserProfile,
 } from "@/services/db/queries";
 import { useSessionStore } from "@/stores/useSessionStore";
+import { useAppStore } from "@/stores/useAppStore";
+import { showToast } from "@/stores/useToastStore";
 import { useTranslation, getDayNames, getDateLocale, type Translations } from "@/i18n";
 import type { MoodEntry, Session, UserProfile, JournalEntry, Dream } from "@/types";
 import { MoodChart } from "@/components/dashboard/MoodChart";
@@ -235,7 +237,13 @@ export default function DashboardPage() {
         todaySession={heroSession}
         profile={profile}
         t={t}
-        onStart={() => navigate("/session", { state: { openStartModal: true } })}
+        onStart={() => {
+          if (useAppStore.getState().sessionNoteTakingStartedAt !== null) {
+            showToast(t.session.noteTakingStartBlocked, "info");
+            return;
+          }
+          navigate("/session", { state: { openStartModal: true } });
+        }}
         onContinue={() => navigate("/session")}
       />
 

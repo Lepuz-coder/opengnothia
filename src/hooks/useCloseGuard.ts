@@ -5,10 +5,11 @@ import { useTranslation } from "@/i18n";
 
 export function useCloseGuard() {
   const isNoteTaking = useAppStore((s) => s.isNoteTaking);
+  const sessionNotesPreparing = useAppStore((s) => s.sessionNoteTakingStartedAt !== null);
   const { t } = useTranslation();
 
   useEffect(() => {
-    if (!isNoteTaking) return;
+    if (!isNoteTaking && !sessionNotesPreparing) return;
 
     function handleBeforeUnload(e: BeforeUnloadEvent) {
       e.preventDefault();
@@ -33,5 +34,5 @@ export function useCloseGuard() {
       window.removeEventListener("beforeunload", handleBeforeUnload);
       unlisten?.();
     };
-  }, [isNoteTaking, t]);
+  }, [isNoteTaking, sessionNotesPreparing, t]);
 }

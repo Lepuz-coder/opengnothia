@@ -9,15 +9,16 @@ import { cn } from "@/lib/cn";
 import { useTranslation } from "@/i18n";
 
 export function Sidebar() {
-  const { sidebarCollapsed, toggleSidebar, isNoteTaking, hasSeenNoteTutorial, setHasSeenNoteTutorial } = useAppStore();
+  const { sidebarCollapsed, toggleSidebar, isNoteTaking, sessionNoteTakingStartedAt, hasSeenNoteTutorial, setHasSeenNoteTutorial } = useAppStore();
   const { t } = useTranslation();
   const [showTutorial, setShowTutorial] = useState(false);
+  const noteTakingActive = isNoteTaking || sessionNoteTakingStartedAt !== null;
 
   useEffect(() => {
-    if (isNoteTaking && !hasSeenNoteTutorial) {
+    if (noteTakingActive && !hasSeenNoteTutorial) {
       setShowTutorial(true);
     }
-  }, [isNoteTaking, hasSeenNoteTutorial]);
+  }, [noteTakingActive, hasSeenNoteTutorial]);
 
   async function dismissTutorial() {
     setShowTutorial(false);
@@ -64,7 +65,7 @@ export function Sidebar() {
 
       {/* Bottom bar */}
       <div className="px-3 py-4 border-t border-[var(--border-color)] space-y-2">
-        {isNoteTaking && (
+        {noteTakingActive && (
           <div className="relative">
             <div className={cn(
               "flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-[var(--text-muted)] bg-[var(--bg-tertiary)] transition-all",

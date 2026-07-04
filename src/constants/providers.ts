@@ -15,6 +15,16 @@ export const providers: AIProviderConfig[] = [
     models: [
       // Claude Opus
       {
+        id: "claude-opus-4-8",
+        name: "Claude Opus 4.8",
+        contextWindow: 1000000,
+        costPer1kInput: 0.005,
+        costPer1kOutput: 0.025,
+        supportsThinking: true,
+        supportsAdaptiveThinking: true,
+        requiresAdaptiveThinking: true,
+      },
+      {
         id: "claude-opus-4-7",
         name: "Claude Opus 4.7",
         contextWindow: 200000,
@@ -58,6 +68,16 @@ export const providers: AIProviderConfig[] = [
         supportsThinking: true,
       },
       // Claude Sonnet
+      {
+        id: "claude-sonnet-5",
+        name: "Claude Sonnet 5",
+        contextWindow: 1000000,
+        costPer1kInput: 0.003,
+        costPer1kOutput: 0.015,
+        supportsThinking: true,
+        supportsAdaptiveThinking: true,
+        requiresAdaptiveThinking: true,
+      },
       {
         id: "claude-sonnet-4-6",
         name: "Claude Sonnet 4.6",

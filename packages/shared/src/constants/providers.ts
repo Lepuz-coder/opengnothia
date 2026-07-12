@@ -138,6 +138,33 @@ export const providers: AIProviderConfig[] = [
     models: [
       // GPT-5 Serisi
       {
+        id: "gpt-5.6-sol",
+        name: "GPT-5.6 Sol",
+        contextWindow: 1050000,
+        costPer1kInput: 0.005,
+        costPer1kOutput: 0.03,
+        supportsThinking: true,
+        supportsXHighThinking: true,
+      },
+      {
+        id: "gpt-5.6-terra",
+        name: "GPT-5.6 Terra",
+        contextWindow: 1050000,
+        costPer1kInput: 0.0025,
+        costPer1kOutput: 0.015,
+        supportsThinking: true,
+        supportsXHighThinking: true,
+      },
+      {
+        id: "gpt-5.6-luna",
+        name: "GPT-5.6 Luna",
+        contextWindow: 1050000,
+        costPer1kInput: 0.001,
+        costPer1kOutput: 0.006,
+        supportsThinking: true,
+        supportsXHighThinking: true,
+      },
+      {
         id: "gpt-5.5",
         name: "GPT-5.5",
         contextWindow: 400000,

@@ -17,6 +17,7 @@ import {
   DEFAULT_MEMORY_MODEL_ID,
   DEFAULT_MODEL_ID,
   DEFAULT_PROVIDER_ID,
+  RECOMMENDED_MEMORY_MODEL_ID,
   RECOMMENDED_MODEL_ID,
   providers,
   getProvider,
@@ -126,7 +127,7 @@ export default function SettingsPage() {
   })) ?? [];
   const memoryModelOptions = currentProvider?.models.map((m) => ({
     value: m.id,
-    label: m.id === RECOMMENDED_MODEL_ID ? `${m.name} (${t.settings.recommended})` : m.name,
+    label: m.id === RECOMMENDED_MEMORY_MODEL_ID ? `${m.name} (${t.settings.recommended})` : m.name,
   })) ?? [];
   const showThinkingToggle = modelSupportsThinking(settings.provider, settings.model);
   const showMemoryThinkingToggle = modelSupportsThinking(settings.provider, settings.memoryModel);

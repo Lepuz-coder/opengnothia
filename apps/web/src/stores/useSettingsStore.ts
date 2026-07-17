@@ -104,7 +104,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     // Reset models to new provider's first model
     const newProvider = getProvider(provider);
     const newModel = newProvider?.models[0]?.id ?? state.model;
-    const newMemoryModel = newProvider?.models[0]?.id ?? state.memoryModel;
+    const newMemoryModel = provider === DEFAULT_PROVIDER_ID
+      ? DEFAULT_MEMORY_MODEL_ID
+      : newProvider?.models[0]?.id ?? state.memoryModel;
 
     set({
       provider,

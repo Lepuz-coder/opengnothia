@@ -7,6 +7,7 @@ import { Toggle } from "@/components/ui/Toggle";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useTranslation } from "@opengnothia/shared/i18n";
 import {
+  RECOMMENDED_MEMORY_MODEL_ID,
   RECOMMENDED_MODEL_ID,
   providers,
   getProvider,
@@ -44,7 +45,7 @@ export function ApiSetupStep({ onNext, onBack }: ApiSetupStepProps) {
   })) ?? [];
   const memoryModelOptions = currentProvider?.models.map((m) => ({
     value: m.id,
-    label: m.id === RECOMMENDED_MODEL_ID ? `${m.name} (${t.settings.recommended})` : m.name,
+    label: m.id === RECOMMENDED_MEMORY_MODEL_ID ? `${m.name} (${t.settings.recommended})` : m.name,
   })) ?? [];
   const showThinkingToggle = modelSupportsThinking(provider, model);
   const showMemoryThinkingToggle = modelSupportsThinking(provider, memoryModel);

@@ -1,7 +1,7 @@
 {
   "name": "@opengnothia/web",
   "private": false,
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "AI-powered self-therapy desktop application",
   "license": "MIT",
   "repository": {

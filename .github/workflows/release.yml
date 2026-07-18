@@ -1,4 +1,4 @@
-name: macOS Release
+name: Desktop Release
 
 on:
   push:
@@ -10,10 +10,16 @@ on:
         description: 'Existing release tag to rebuild'
         required: true
         type: string
+      windows_only:
+        description: 'Build only the Windows installers'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   release:
     name: Build signed and notarized DMG
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.windows_only != true }}
     runs-on: macos-latest
     permissions:
       contents: write
@@ -101,8 +107,8 @@ jobs:
         with:
           tagName: ${{ env.RELEASE_TAG }}
           releaseName: '${{ env.RELEASE_TAG }}'
-          releaseBody: 'Download the signed and notarized macOS DMG from the assets below.'
-          releaseDraft: true
+          releaseBody: 'Download the signed and notarized macOS DMG or the Windows installer from the assets below.'
+          releaseDraft: ${{ github.event_name != 'workflow_dispatch' }}
           prerelease: false
           args: --target universal-apple-darwin --config src-tauri/tauri.devid.conf.json
 
@@ -175,3 +181,79 @@ jobs:
           if [[ -n "${APPLE_API_KEY_PATH:-}" ]]; then
             rm -f "$APPLE_API_KEY_PATH"
           fi
+
+  windows:
+    name: Build Windows installers
+    needs: release
+    if: ${{ always() && (needs.release.result == 'success' || needs.release.result == 'skipped') }}
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build and upload Windows installers
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ env.RELEASE_TAG }}
+          releaseName: '${{ env.RELEASE_TAG }}'
+          releaseBody: 'Download the signed and notarized macOS DMG or the Windows installer from the assets below.'
+          releaseDraft: false
+          prerelease: false
+
+      - name: Verify uploaded Windows installers
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $release = gh release view $env:RELEASE_TAG --json assets | ConvertFrom-Json
+          $assetNames = @($release.assets | ForEach-Object { $_.name })
+
+          $msi = @($assetNames | Where-Object { $_ -like '*.msi' })
+          $setupExe = @($assetNames | Where-Object { $_ -like '*-setup.exe' })
+
+          if ($msi.Count -eq 0) {
+            throw 'The release does not contain an MSI installer.'
+          }
+
+          if ($setupExe.Count -eq 0) {
+            throw 'The release does not contain a setup EXE installer.'
+          }
+
+          Write-Host "MSI: $($msi -join ', ')"
+          Write-Host "Setup EXE: $($setupExe -join ', ')"

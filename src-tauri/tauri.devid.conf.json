@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "bundle": {
-    "targets": ["app"],
+    "targets": ["dmg"],
     "macOS": {
       "entitlements": "./Entitlements.DevID.plist",
       "signingIdentity": "Developer ID Application: Emirhan Durusoy (TBV5TAGQ74)",

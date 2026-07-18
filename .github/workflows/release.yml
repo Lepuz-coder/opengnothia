@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Existing release tag to rebuild'
+        required: true
+        type: string
 
 jobs:
   release:
@@ -11,6 +17,8 @@ jobs:
     runs-on: macos-latest
     permissions:
       contents: write
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
 
     steps:
       - name: Checkout repository
@@ -91,12 +99,36 @@ jobs:
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: '${{ github.ref_name }}'
+          tagName: ${{ env.RELEASE_TAG }}
+          releaseName: '${{ env.RELEASE_TAG }}'
           releaseBody: 'Download the signed and notarized macOS DMG from the assets below.'
           releaseDraft: true
           prerelease: false
           args: --target universal-apple-darwin --config src-tauri/tauri.devid.conf.json
+
+      - name: Notarize, staple, and replace macOS DMG
+        env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          dmg_path="$(find "$GITHUB_WORKSPACE/src-tauri/target/universal-apple-darwin/release/bundle/dmg" -type f -name '*.dmg' -print -quit)"
+
+          if [[ -z "$dmg_path" ]]; then
+            echo "No macOS DMG was produced."
+            exit 1
+          fi
+
+          codesign --verify --strict --verbose=2 "$dmg_path"
+          xcrun notarytool submit "$dmg_path" \
+            --key "$APPLE_API_KEY_PATH" \
+            --key-id "$APPLE_API_KEY" \
+            --issuer "$APPLE_API_ISSUER" \
+            --wait
+          xcrun stapler staple "$dmg_path"
+          xcrun stapler validate "$dmg_path"
+
+          gh release upload "$RELEASE_TAG" "$dmg_path" --clobber
 
       - name: Verify uploaded DMG signature and notarization
         env:
@@ -106,7 +138,7 @@ jobs:
           mount_path="$RUNNER_TEMP/opengnothia-dmg"
 
           mkdir -p "$asset_dir" "$mount_path"
-          gh release download "$GITHUB_REF_NAME" --pattern '*.dmg' --dir "$asset_dir"
+          gh release download "$RELEASE_TAG" --pattern '*.dmg' --dir "$asset_dir"
 
           dmg_path="$(find "$asset_dir" -type f -name '*.dmg' -print -quit)"
           if [[ -z "$dmg_path" ]]; then
@@ -135,7 +167,7 @@ jobs:
       - name: Publish verified GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release edit "$GITHUB_REF_NAME" --draft=false
+        run: gh release edit "$RELEASE_TAG" --draft=false
 
       - name: Remove App Store Connect API key
         if: always()

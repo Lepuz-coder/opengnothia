@@ -38,6 +38,11 @@
     ],
     "macOS": {
       "entitlements": "./Entitlements.plist"
+    },
+    "iOS": {
+      "developmentTeam": "TBV5TAGQ74",
+      "minimumSystemVersion": "14.0",
+      "bundleVersion": "1"
     }
   }
 }

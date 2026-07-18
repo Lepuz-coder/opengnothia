@@ -1,0 +1,106 @@
+name: iOS App Store Build
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  ios:
+    name: Build signed IPA
+    runs-on: macos-15
+    permissions:
+      contents: read
+    env:
+      APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+      APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios
+
+      - name: Cache Rust build
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install App Store Connect API key
+        env:
+          APPLE_API_PRIVATE_KEY_BASE64: ${{ secrets.APPLE_API_PRIVATE_KEY_BASE64 }}
+        run: |
+          key_dir="$HOME/.appstoreconnect/private_keys"
+          key_path="$key_dir/AuthKey_${APPLE_API_KEY}.p8"
+
+          mkdir -p "$key_dir"
+          printf '%s' "$APPLE_API_PRIVATE_KEY_BASE64" | base64 --decode > "$key_path"
+          chmod 600 "$key_path"
+
+          echo "APPLE_API_KEY_PATH=$key_path" >> "$GITHUB_ENV"
+
+      - name: Generate iOS project
+        run: pnpm tauri ios init --ci
+
+      - name: Build signed IPA
+        run: |
+          pnpm tauri ios build \
+            --ci \
+            --export-method app-store-connect \
+            --build-number "$GITHUB_RUN_NUMBER"
+
+      - name: Verify IPA signature
+        id: ipa
+        run: |
+          ipa_path="$(find "$GITHUB_WORKSPACE/src-tauri/gen/apple/build" -type f -name '*.ipa' -print -quit)"
+
+          if [[ -z "$ipa_path" ]]; then
+            echo "No IPA file was produced."
+            exit 1
+          fi
+
+          extract_dir="$RUNNER_TEMP/verified-ipa"
+          ditto -x -k "$ipa_path" "$extract_dir"
+          app_path="$(find "$extract_dir/Payload" -maxdepth 1 -type d -name '*.app' -print -quit)"
+
+          if [[ -z "$app_path" ]]; then
+            echo "The IPA does not contain an application bundle."
+            exit 1
+          fi
+
+          codesign --verify --deep --strict --verbose=2 "$app_path"
+          codesign -dv --verbose=4 "$app_path" 2>&1
+
+          echo "path=$ipa_path" >> "$GITHUB_OUTPUT"
+
+      - name: Upload signed IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenGnothia-iOS-${{ github.run_number }}
+          path: ${{ steps.ipa.outputs.path }}
+          if-no-files-found: error
+
+      - name: Remove App Store Connect API key
+        if: always()
+        run: |
+          if [[ -n "${APPLE_API_KEY_PATH:-}" ]]; then
+            rm -f "$APPLE_API_KEY_PATH"
+          fi

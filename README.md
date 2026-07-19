@@ -231,26 +231,6 @@ pnpm tauri dev
 pnpm tauri build
 ```
 
-### macOS: "App is damaged" Warning
-
-If you download OpenGnothia from GitHub Releases on macOS, you may see a **"OpenGnothia is damaged and can't be opened"** warning. This happens because the app is not signed with an Apple Developer certificate.
-
-To fix this, open Terminal and run **both** commands:
-
-```bash
-xattr -cr /Applications/OpenGnothia.app
-codesign --force --deep --sign - /Applications/OpenGnothia.app
-```
-
-If you downloaded it to a different location:
-
-```bash
-xattr -cr ~/Downloads/OpenGnothia.app
-codesign --force --deep --sign - ~/Downloads/OpenGnothia.app
-```
-
-> **Important:** The `codesign` step is required after `xattr -cr`. Without it, macOS cannot properly track permissions (e.g. microphone access) and may show repeated permission dialogs.
-
 ### First Launch
 
 On first launch, the onboarding flow will guide you through:

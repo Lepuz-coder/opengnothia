@@ -162,35 +162,39 @@ OpenGnothia includes carefully crafted therapeutic prompts for six different app
 
 ```
 opengnothia/
-├── src/                        # React frontend
-│   ├── components/             # UI components
-│   │   ├── ui/                 # Reusable primitives (Button, Card, Modal, etc.)
-│   │   ├── chat/               # Chat interface (messages, input, timer)
-│   │   ├── breathing/          # Breathing exercise components
-│   │   ├── session/            # Session-related components
-│   │   └── onboarding/         # First-run onboarding flow
-│   ├── pages/                  # Route pages (Dashboard, Session, Journal, etc.)
-│   ├── stores/                 # Zustand state stores
-│   ├── services/
-│   │   ├── ai/                 # AI provider integration & prompt building
-│   │   └── db/                 # SQLite database queries
-│   ├── constants/              # Therapy schools, providers, breathing techniques
-│   ├── hooks/                  # Custom React hooks
-│   ├── i18n/                   # Internationalization (en, tr)
-│   ├── types/                  # TypeScript type definitions
-│   └── lib/                    # Utility functions
+├── apps/
+│   └── web/                    # Desktop app (Tauri + React)
+│       ├── src/                # React frontend
+│       │   ├── components/     # UI components (ui, chat, breathing, session, onboarding)
+│       │   ├── pages/          # Route pages (Dashboard, Session, Journal, etc.)
+│       │   ├── stores/         # Zustand state stores
+│       │   ├── services/ai/    # App-side AI orchestration (prompt building, notes)
+│       │   ├── db/             # Tauri adapter for the shared DatabasePort
+│       │   ├── hooks/          # Custom React hooks
+│       │   └── lib/            # App-specific utilities (settings store, security)
+│       ├── src-tauri/          # Tauri / Rust backend
+│       │   ├── src/            # Rust source (main.rs, lib.rs)
+│       │   ├── migrations/     # SQLite migration files
+│       │   ├── icons/          # App icons for all platforms
+│       │   ├── Cargo.toml      # Rust dependencies
+│       │   └── tauri.conf.json # Tauri configuration
+│       ├── scripts/            # Signed build scripts (Developer ID, Mac App Store)
+│       ├── assets/             # Static assets (screenshots)
+│       ├── package.json
+│       └── vite.config.ts
 │
-├── src-tauri/                  # Tauri / Rust backend
-│   ├── src/                    # Rust source (main.rs, lib.rs)
-│   ├── migrations/             # SQLite migration files (12 versions)
-│   ├── icons/                  # App icons for all platforms
-│   ├── Cargo.toml              # Rust dependencies
-│   └── tauri.conf.json         # Tauri configuration
+├── packages/
+│   └── shared/                 # @opengnothia/shared — platform-agnostic modules
+│       └── src/
+│           ├── ai/             # AI providers, TTS/STT, cost calculation
+│           ├── constants/      # Therapy schools, providers, breathing techniques
+│           ├── db/             # DatabasePort interface + queries
+│           ├── i18n/           # Internationalization (en, tr, de, es, fr, ja, pt, zh)
+│           ├── lib/            # Pure utility functions
+│           └── types/          # TypeScript type definitions
 │
-├── assets/                     # Static assets
-│   └── screenshots/            # App screenshots
-├── package.json
-├── vite.config.ts
+├── package.json                # Workspace root
+├── pnpm-workspace.yaml
 └── tsconfig.json
 ```
 

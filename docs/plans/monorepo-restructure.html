@@ -1,0 +1,1324 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Monorepo Restructure — Takip Panosu</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --panel-2: #fbfcfd;
+    --border: #e3e6ea;
+    --border-strong: #cfd4da;
+    --text: #1a1d21;
+    --text-2: #565d66;
+    --text-3: #868e98;
+    --accent: #2f7d6e;
+    --accent-soft: #e6f2ef;
+    --accent-2: #4a5fc1;
+    --warn: #b4761b;
+    --warn-soft: #fdf3e2;
+    --danger: #b4453a;
+    --code-bg: #f2f4f6;
+    --shadow: 0 1px 2px rgba(16,24,40,.04), 0 4px 14px rgba(16,24,40,.05);
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161a;
+      --panel: #1b1e23;
+      --panel-2: #202429;
+      --border: #2c3138;
+      --border-strong: #3a4048;
+      --text: #e8eaed;
+      --text-2: #a8b0ba;
+      --text-3: #79818c;
+      --accent: #5cbfab;
+      --accent-soft: #1d2b29;
+      --accent-2: #8b9bf0;
+      --warn: #d99b3f;
+      --warn-soft: #2b2418;
+      --danger: #e0736a;
+      --code-bg: #22262c;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 14px rgba(0,0,0,.25);
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 96px; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  code, pre, .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+  code { background: var(--code-bg); padding: .1em .38em; border-radius: 5px; font-size: .875em; }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; margin: 10px 0 0;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  a { color: var(--accent-2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px 80px; }
+
+  /* ---------- sticky header ---------- */
+  header.top {
+    position: sticky; top: 0; z-index: 50;
+    background: color-mix(in srgb, var(--panel) 88%, transparent);
+    backdrop-filter: saturate(1.4) blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .top-inner { max-width: 1080px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .top h1 { font-size: 15px; font-weight: 650; margin: 0; letter-spacing: -.01em; white-space: nowrap; }
+  .top h1 span { color: var(--text-3); font-weight: 450; }
+  .top-bar { flex: 1 1 240px; min-width: 180px; }
+  .bar { height: 7px; border-radius: 99px; background: var(--border); overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 0%; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .35s ease; }
+  .top-num { font-size: 12.5px; color: var(--text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .top-num b { color: var(--text); font-weight: 650; }
+  .btn {
+    font: inherit; font-size: 12.5px; padding: 5px 11px; border-radius: 7px;
+    border: 1px solid var(--border-strong); background: var(--panel); color: var(--text-2);
+    cursor: pointer; white-space: nowrap;
+  }
+  .btn:hover { background: var(--panel-2); color: var(--text); }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 34px 0 8px; }
+  .hero h2 { font-size: 27px; line-height: 1.25; margin: 0 0 10px; letter-spacing: -.02em; }
+  .hero p { color: var(--text-2); margin: 0; max-width: 74ch; }
+  .meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .chip { font-size: 12px; padding: 3px 9px; border-radius: 99px; border: 1px solid var(--border); background: var(--panel); color: var(--text-2); }
+  .chip b { color: var(--text); font-weight: 600; }
+
+  /* ---------- generic card ---------- */
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+  h3.sec { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--text-3); font-weight: 650; margin: 38px 0 12px; }
+
+  /* ---------- phase overview grid ---------- */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(212px, 1fr)); gap: 10px; }
+  .pcard {
+    display: block; padding: 12px 13px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--panel); box-shadow: var(--shadow); color: inherit; position: relative; overflow: hidden;
+  }
+  .pcard:hover { border-color: var(--border-strong); text-decoration: none; }
+  .pcard .pc-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .pcard .pc-name { font-size: 12px; font-weight: 650; color: var(--text-3); letter-spacing: .04em; text-transform: uppercase; }
+  .pcard .pc-title { font-size: 13.5px; font-weight: 550; margin-top: 3px; line-height: 1.35; }
+  .pcard .bar { margin-top: 10px; height: 5px; }
+  .pcard .pc-count { font-size: 11.5px; color: var(--text-3); margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .dot { width: 9px; height: 9px; border-radius: 99px; background: var(--border-strong); flex: none; }
+  .pcard[data-state="done"] { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); background: color-mix(in srgb, var(--accent-soft) 60%, var(--panel)); }
+  .pcard[data-state="done"] .dot { background: var(--accent); }
+  .pcard[data-state="active"] .dot { background: var(--warn); box-shadow: 0 0 0 3px color-mix(in srgb, var(--warn) 22%, transparent); }
+  .pcard[data-state="done"] .pc-name { color: var(--accent); }
+
+  /* ---------- phase sections ---------- */
+  details.phase { margin-top: 12px; }
+  details.phase > summary {
+    list-style: none; cursor: pointer; padding: 14px 16px; display: flex; gap: 12px; align-items: center;
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
+  }
+  details.phase[open] > summary { border-radius: var(--radius) var(--radius) 0 0; border-bottom-color: transparent; }
+  details.phase > summary::-webkit-details-marker { display: none; }
+  .caret { color: var(--text-3); font-size: 11px; transition: transform .18s ease; flex: none; }
+  details.phase[open] .caret { transform: rotate(90deg); }
+  .ph-title { font-weight: 600; font-size: 15px; flex: 1 1 auto; letter-spacing: -.01em; }
+  .ph-title em { font-style: normal; color: var(--text-3); font-weight: 450; }
+  .ph-badge {
+    font-size: 11.5px; font-variant-numeric: tabular-nums; padding: 2px 9px; border-radius: 99px;
+    border: 1px solid var(--border); color: var(--text-2); background: var(--panel-2); flex: none;
+  }
+  .ph-badge[data-state="done"] { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); color: var(--accent); font-weight: 600; }
+  .ph-badge[data-state="active"] { background: var(--warn-soft); border-color: color-mix(in srgb, var(--warn) 40%, var(--border)); color: var(--warn); font-weight: 600; }
+  .ph-body {
+    border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius) var(--radius);
+    background: var(--panel); padding: 6px 16px 16px; box-shadow: var(--shadow);
+  }
+
+  /* ---------- steps ---------- */
+  ul.steps { list-style: none; margin: 0; padding: 0; }
+  ul.steps > li { border-top: 1px solid var(--border); }
+  ul.steps > li:first-child { border-top: none; }
+  .step { display: flex; gap: 11px; align-items: flex-start; padding: 11px 2px; cursor: pointer; }
+  .step:hover { background: color-mix(in srgb, var(--panel-2) 70%, transparent); }
+  .step input { margin: 3px 0 0; width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; flex: none; }
+  .step .body { flex: 1 1 auto; min-width: 0; }
+  .step .no { font-weight: 600; color: var(--text); margin-right: 6px; }
+  .step .txt { color: var(--text-2); }
+  .step input:checked ~ .body .no,
+  .step input:checked ~ .body .txt { color: var(--text-3); }
+  .step input:checked ~ .body .no { text-decoration: line-through; }
+  .tag {
+    display: inline-block; font-size: 10.5px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase;
+    padding: 1px 7px; border-radius: 5px; margin-right: 7px; vertical-align: 1px;
+  }
+  .tag.reg { background: var(--warn-soft); color: var(--warn); border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); }
+  .tag.verify { background: var(--accent-soft); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+  .tag.commit { background: var(--code-bg); color: var(--text-2); border: 1px solid var(--border); }
+
+  .note {
+    margin-top: 14px; padding: 12px 14px; border-radius: 9px; font-size: 13.5px; color: var(--text-2);
+    background: var(--panel-2); border: 1px solid var(--border); border-left: 3px solid var(--accent);
+  }
+  .note b { color: var(--text); }
+  .note + .note { margin-top: 8px; }
+  .note ul { margin: 8px 0 0; padding-left: 18px; }
+
+  /* ---------- decision / info blocks ---------- */
+  .dlist { display: grid; gap: 10px; }
+  details.d > summary {
+    cursor: pointer; list-style: none; padding: 12px 15px; display: flex; gap: 10px; align-items: baseline;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  }
+  details.d[open] > summary { border-radius: 10px 10px 0 0; border-bottom-color: transparent; }
+  details.d > summary::-webkit-details-marker { display: none; }
+  details.d .dk { font-weight: 700; color: var(--accent); font-size: 12.5px; flex: none; }
+  details.d .dt { font-weight: 500; font-size: 14px; }
+  details.d .d-body {
+    border: 1px solid var(--border); border-top: none; border-radius: 0 0 10px 10px; background: var(--panel);
+    padding: 4px 15px 14px; font-size: 13.8px; color: var(--text-2);
+  }
+  .d-body p { margin: 9px 0 0; }
+  .d-body b { color: var(--text); }
+
+  table.files { width: 100%; border-collapse: collapse; font-size: 13.3px; }
+  table.files td { padding: 7px 10px; border-top: 1px solid var(--border); vertical-align: top; color: var(--text-2); }
+  table.files tr:first-child td { border-top: none; }
+  table.files td:first-child { width: 40%; color: var(--text); }
+
+  ul.plain { margin: 0; padding-left: 20px; color: var(--text-2); }
+  ul.plain li { margin: 5px 0; }
+  ul.plain li b { color: var(--text); font-weight: 600; }
+
+  /* ---------- regression checklist ---------- */
+  .passbar { display: flex; gap: 6px; flex-wrap: wrap; padding: 14px 16px 0; }
+  .pass-btn {
+    font: inherit; font-size: 12.5px; padding: 6px 12px; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--panel-2); color: var(--text-2);
+  }
+  .pass-btn:hover { border-color: var(--border-strong); }
+  .pass-btn[aria-selected="true"] { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); color: var(--accent); font-weight: 600; }
+  .pass-btn small { font-variant-numeric: tabular-nums; opacity: .75; margin-left: 5px; font-size: 11px; }
+  .reg-group { padding: 4px 16px 2px; }
+  .reg-group > h4 { font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--text-3); margin: 16px 0 4px; }
+  ul.reg { list-style: none; margin: 0; padding: 0; }
+  ul.reg li { border-top: 1px solid var(--border); }
+  ul.reg li:first-child { border-top: none; }
+  ul.reg ul { list-style: none; margin: 0 0 6px; padding: 0 0 0 26px; }
+  ul.reg ul li { border-top: none; }
+  .step.sub { padding: 6px 2px; font-size: 13.5px; }
+  .step.sub input { width: 14px; height: 14px; margin-top: 3px; }
+
+  .warnbar {
+    display: none; margin: 14px 0 -8px; padding: 10px 14px; border-radius: 9px; font-size: 13px;
+    background: var(--warn-soft); border: 1px solid color-mix(in srgb, var(--warn) 40%, var(--border)); color: var(--warn);
+  }
+  .warnbar.on { display: block; }
+  footer.f { margin-top: 46px; padding-top: 18px; border-top: 1px solid var(--border); color: var(--text-3); font-size: 12.5px; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+  .saved { color: var(--accent); opacity: 0; transition: opacity .3s ease; }
+  .saved.on { opacity: 1; }
+  @media (max-width: 620px) {
+    .hero h2 { font-size: 22px; }
+    .top h1 { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <h1>Monorepo Restructure <span>· takip panosu</span></h1>
+    <div class="top-bar"><div class="bar"><i id="totalBar"></i></div></div>
+    <div class="top-num"><b id="totalDone">0</b>/<span id="totalAll">0</span> adım · <b id="totalPct">0%</b></div>
+    <button class="btn" id="expandAll" type="button">Tümünü aç</button>
+    <button class="btn" id="resetAll" type="button">Sıfırla</button>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="warnbar" id="storageWarn">
+    <b>Bu sekmede işaretler kalıcı değil.</b> Tarayıcı bu sayfa için <code>localStorage</code>'a izin vermiyor (genellikle sayfa <code>data:</code> ya da kısıtlı bir kaynaktan açıldığında olur). İşaretler yalnızca sayfa yenilenene kadar durur — dosyayı diskten <code>file://</code> olarak veya bir yerel sunucu üzerinden aç.
+  </div>
+
+  <section class="hero">
+    <h2>Monorepo Restructure: Tauri Desktop + Expo Mobile + Shared</h2>
+    <p>Mevcut tek paketli Tauri masaüstü uygulamasını <code>apps/web</code>, <code>apps/mobile</code>, <code>apps/backend</code> ve <code>packages/shared</code> olmak üzere dört paketli bir pnpm monorepo'suna dönüştürme planı. Başarı ölçütü: masaüstü uygulaması birebir aynı çalışır, release workflow installer üretmeye devam eder, mobil smoke test paylaşılan bir sorguyu expo-sqlite üzerinden çalıştırır, backend smoke testi workers.dev üzerindeki abonelik-korumalı AI proxy'sini curl ile doğrular.</p>
+    <div class="meta">
+      <span class="chip">Branch <b>restructure/monorepo</b></span>
+      <span class="chip">Baz sürüm <b>v1.6.0</b> → <b>v1.7.0</b></span>
+      <span class="chip">12 faz · 88 adım</span>
+      <span class="chip">Revizyon <b>2026-08-17</b> — mobil abonelik + backend (D13–D17)</span>
+    </div>
+  </section>
+
+  <h3 class="sec">Faz Özeti</h3>
+  <div class="grid" id="phaseGrid"></div>
+
+  <h3 class="sec">Bağlam</h3>
+  <div class="card" style="padding:16px 18px">
+    <p style="margin:0 0 10px;color:var(--text-2)">OpenGnothia yerel-öncelikli, gizlilik odaklı bir AI self-terapi masaüstü uygulaması (Tauri 2 + React 19 + Vite + TypeScript + Zustand + Tailwind 4). Tüm kullanıcı verisi (16 SQLite tablosu) cihazda durur. Depo <a href="https://github.com/Lepuz-coder/opengnothia">Lepuz-coder/opengnothia</a>, <code>master</code> üzerinde <code>v1.6.0</code>, tek geliştirici, aktif yayında. Depodaki GitHub yıldızları korunmak istendiği için ikinci bir depoya bölmek yerine yeniden yapılandırma yapılıyor.</p>
+    <p style="margin:0 0 14px;color:var(--text-2)">Hedef, <b>yerel-öncelikli, senkronizasyonsuz</b> bir Expo mobil uygulaması — masaüstüyle parite; istisnalar D13'te (AI yapılandırması, masraf yüzeyi, ödeme modeli). Mobil <b>ücretli</b>: AI özellikleri RevenueCat aboneliği ister ve <code>apps/backend</code>'deki Cloudflare Worker proxy'si üzerinden çalışır; kullanıcı verisi yine tamamen cihazda kalır, backend yalnızca OpenAI aracısıdır. Bu plan mobil UI yazmıyor — monorepo'yu, shared'ın RN runtime'ında çalıştığını ve backend proxy'nin canlıda işlediğini kanıtlıyor.</p>
+
+    <h4 style="font-size:12.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin:0 0 6px">Önce okunacak giriş noktaları</h4>
+    <table class="files">
+      <tr><td><code>package.json</code></td><td>mevcut tek paket kurulumu, pnpm yönetimli</td></tr>
+      <tr><td><code>vite.config.ts</code> · <code>tsconfig.json</code></td><td><code>@/</code> alias'ı <code>./src</code>'e bakıyor</td></tr>
+      <tr><td><code>src-tauri/tauri.conf.json</code></td><td><code>frontendDist: "../dist"</code>, <code>beforeDevCommand: "pnpm dev"</code></td></tr>
+      <tr><td><code>src-tauri/Cargo.toml</code></td><td>Rust bağımlılıkları, sürüm <code>1.6.0</code></td></tr>
+      <tr><td><code>src-tauri/src/lib.rs:294+</code></td><td>17 adet <code>Migration { include_str!(...) }</code> kaydı</td></tr>
+      <tr><td><code>src/services/db/database.ts</code></td><td>10 satırlık Tauri SQL singleton'ı — port arkasına gizlenecek yüzey</td></tr>
+      <tr><td><code>src/services/db/queries.ts</code></td><td>~1000 satır ham SQL</td></tr>
+      <tr><td><code>src/services/ai/aiService.ts</code></td><td>saf <code>fetch</code> tabanlı, Tauri'siz</td></tr>
+      <tr><td><code>src/lib/store.ts</code></td><td>ayar kalıcılığı için <code>@tauri-apps/plugin-store</code></td></tr>
+      <tr><td><code>src/services/data/dataPortService.ts</code></td><td>dışa/içe aktarım için <code>plugin-fs</code> + <code>plugin-dialog</code></td></tr>
+      <tr><td><code>.github/workflows/release.yml</code></td><td>tag tetiklemeli çok platformlu Tauri release'i (yollar düz yapıyı varsayıyor)</td></tr>
+    </table>
+
+    <h4 style="font-size:12.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin:20px 0 6px">Yüzey alanı</h4>
+    <div class="meta" style="margin-top:0">
+      <span class="chip"><b>13</b> sayfa</span>
+      <span class="chip"><b>51</b> bileşen</span>
+      <span class="chip"><b>7</b> Zustand store</span>
+      <span class="chip"><b>16</b> veritabanı tablosu</span>
+      <span class="chip"><b>17</b> migration dosyası</span>
+      <span class="chip"><b>~488</b> <code>@/</code> import noktası</span>
+    </div>
+
+    <h4 style="font-size:12.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin:20px 0 6px">Bariz olmayan kısıtlar</h4>
+    <ul class="plain">
+      <li>Tauri Rust tarafı migration SQL'ini <code>include_str!</code> ile derleme anında gömüyor; yollar <code>src-tauri/src/lib.rs</code>'e görelidir ve taşımadan sonra cerrahi güncelleme ister.</li>
+      <li>Vite'ın <code>watch.ignored: ["**/src-tauri/**"]</code> ayarı ile Tauri'nin <code>beforeDevCommand: "pnpm dev"</code>'i birbirine bağlı bir dev döngüsü kurar; taşımadan sonra da çalışmalı.</li>
+      <li>Codemod, hangi <code>@/</code> önekinin <code>@opengnothia/shared/*</code>'a gideceği, hangisinin uygulama-yerel kalacağı konusunda kesin olmalı.</li>
+      <li><code>pnpm-lock.yaml</code> otoritedir; kökte kalmış <code>package-lock.json</code> silinmeli.</li>
+      <li><code>release.yml</code> <code>pnpm install --frozen-lockfile</code> kullanıyor — yapı değişikliği, lockfile ve workflow yol referanslarını aynı anda güncellemeyi gerektirir.</li>
+      <li><b><code>apps/web/</code>'de kalması gereken Tauri-bağımlı yüzey:</b> <code>hooks/useAudioRecorder.ts</code>, <code>hooks/useCloseGuard.ts</code>, <code>components/LockScreen.tsx</code>, <code>components/onboarding/SecuritySetupStep.tsx</code>, <code>components/onboarding/ApiSetupStep.tsx</code>, <code>pages/SettingsPage.tsx</code>, <code>lib/store.ts</code>, <code>services/db/database.ts</code>, <code>services/data/dataPortService.ts</code>.</li>
+    </ul>
+  </div>
+
+  <h3 class="sec">Verilen Kararlar</h3>
+  <div class="dlist">
+    <details class="d">
+      <summary><span class="dk">D1</span><span class="dt">Her iki platformda aynı uygulama, yerel-öncelikli, senkronizasyon yok</span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> Mobil, masaüstü uygulamasının tam parite bir yeniden yorumu. Her cihazın kendi SQLite DB'si ve kendi AI API çağrıları var. Platformlar arası veri senkronizasyonu yok.</p>
+        <p><b>Neden:</b> README'de duran ve kimliğin merkezinde olan gizlilik/yerel-öncelik vaadini korur. Senkronizasyon bir backend, E2E şifreleme ve çakışma çözümü gerektirirdi.</p>
+        <p><b>Reddedilen:</b> (a) Yalnızca-okuma companion uygulaması — backend/senkron gerektirir, mobil-only kullanıcıya değer vermez. (b) Cloud-first yeniden yazım — gizlilik sözünü bozar.</p>
+        <p><b>Revizyon (2026-08-17):</b> "Tam parite" daraltıldı — mobilde AI erişimi abonelik + backend proxy üzerinden (D13–D15); ExpensesPage, SpendingChart/SpendingStrip ve ayarlardaki AI bölümü mobilde hiç yok. Çekirdek değişmedi: kullanıcı verisi (16 tablo) her cihazda yerel, senkronizasyon yok; backend'e yalnızca AI istekleri uğrar, hiçbir şey saklanmaz (D17). Masaüstü kalıcı olarak ücretsiz + kendi-anahtarın (BYOK).</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">D2</span><span class="dt">Veritabanı katmanı için port &amp; adapter (hexagonal)</span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> <code>packages/shared</code> bir <code>DatabasePort</code> arayüzü (<code>select</code>, <code>execute</code>) sunar. Her uygulama kendi adapter'ını verir — <code>apps/web</code> <code>@tauri-apps/plugin-sql</code>'i, <code>apps/mobile</code> <code>expo-sqlite</code>'ı sarar. Tüm sorgu mantığı shared'da yaşar ve portu tüketir.</p>
+        <p><b>Neden:</b> 16 tablo ve ~1000 satır SQL en büyük tekrar riski. Tauri SQL ile expo-sqlite'ın yüzeyi neredeyse aynı, dolayısıyla port ~30 satır. Settings/fs/dialog kendi portlarını hak edecek kadar büyük değil.</p>
+        <p><b>Reddedilen:</b> (a) Sorguları kopyala-yapıştır — kaçınılmaz kayma. (b) Drizzle gibi ORM — 16 tabloluk ham SQL'i taşımak çok daha büyük yatırım; port düzeni ileride ORM'e geçişi engellemiyor.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">D3</span><span class="dt">Hibrit <code>packages/shared</code> kapsamı — sorgular içeride, store'lar dışarıda</span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> Shared: types, i18n, saf util'ler (<code>lib/cn.ts</code>, <code>formatTokens.ts</code>, <code>createBufferedTextStream.ts</code>, <code>createMarkerStrippedStream.ts</code>), AI servisleri, constants, DB port arayüzü, DB sorguları ve <code>runMigrations</code>. Zustand store'ları şimdilik <code>apps/web/src/stores/</code>'da kalır.</p>
+        <p><b>Neden:</b> Sorgular paylaşılmalı (D2). Store'lar şu an domain state (<code>messages</code>, <code>sessionId</code>) ile UI state'i (<code>insightsPanelOpen</code>, <code>pendingInsightDraft</code>) karıştırıyor; mobil UX tasarlanmadan ayırma yapmak erken olur.</p>
+        <p><b>Reddedilen:</b> (a) Yalın shared — sorgu tekrarı riskini erteler. (b) Store'ları da içeren iddialı shared — mobil UX belirsizken erken.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">D4</span><span class="dt">Migration'lar <code>packages/shared/migrations/</code>'da, tek doğruluk kaynağı</span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> <code>src-tauri/migrations/*.sql</code> dosyaları <code>packages/shared/migrations/</code>'a taşınır. Rust <code>include_str!</code> yolları <code>../../../../packages/shared/migrations/NNN_*.sql</code> olur. Mobil için <code>PRAGMA user_version</code> kullanan bir <code>runMigrations(db: DatabasePort)</code> yardımcısı yazılır.</p>
+        <p><b>Neden:</b> Şema iki platformda da birebir aynı olmalı (D1). İki kopya kayar; geliştirici tek kişi ve migration'lar artımlı ekleniyor.</p>
+        <p><b>Reddedilen:</b> (a) Uygulama başına birer kopya — kayma riski. (b) <code>.sql</code>'den TS sabiti üreten codegen adımı — statik SQL için gereksiz pipeline karmaşıklığı.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">D5</span><span class="dt">pnpm workspaces + TypeScript Project References (Turborepo yok)</span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> Kök <code>pnpm-workspace.yaml</code> <code>apps/*</code> ve <code>packages/*</code>'ı listeler. Kök <code>tsconfig.json</code> her pakete <code>references</code> veren bir orkestratördür. Turborepo yok.</p>
+        <p><b>Neden:</b> Tek geliştirici, 3 paket, build'ler zaten saniyeler içinde bitiyor. Turborepo'nun cache/pipeline faydası burada marjinal, karmaşıklığı gerçek. Gerekirse sonradan ~5 dakikada eklenir.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">D6</span><span class="dt">Tek feature branch, tek PR, fazlara bölünmüş commit'ler</span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> Tüm iş <code>master</code>'dan çıkan <code>restructure/monorepo</code> üzerinde. Commit'ler faz bazlı. Tek PR ile birleştirme.</p>
+        <p><b>Neden:</b> Faz 1 (her şeyi <code>apps/web/</code>'e taşımak) doğası gereği atomik — Tauri config, Vite config, tsconfig path'leri birlikte değişir. Hem çalışır hem commit'lenebilir bir "yarı yapılandırılmış" durum yok.</p>
+        <p><b>Reddedilen:</b> (a) master'a artımlı PR'lar — atomiklik nedeniyle imkânsız. (b) Doğrudan master'a commit — canlı release workflow'unu kırma riski.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">D7</span><span class="dt">Plan restructure + Expo smoke test'te biter (mobil UI yok)</span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> Son faz <code>apps/mobile</code>'ı <code>create-expo-app</code> ile kurar, <code>@opengnothia/shared</code>'ı workspace bağımlılığı olarak bağlar, <code>expo-sqlite</code> kurar, bir <code>ExpoSqliteAdapter</code> yazar, <code>runMigrations(db)</code> çalıştırır, tek bir paylaşılan sorgu çağırır ve sonucu ekrana basar. Gerçek UI, auth, ayarlar yok.</p>
+        <p><b>Neden:</b> Monorepo ve port tasarımını gerçek React Native bundler'ı (Metro) ve runtime'ına karşı, "restructure bitti" demeden önce doğrular. Tasarım hatasını burada yakalamak, mobil geliştirme sırasında yakalamaktan çok ucuz.</p>
+        <p><b>Revizyon (2026-08-17):</b> Plan artık iki smoke testle bitiyor: backend proxy'nin canlı doğrulaması (Faz 9) + Expo smoke testi (Faz 10). Mobil UI yine kapsam dışı.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">D8</span><span class="dt">Kaynak modunda shared, paket adı <code>@opengnothia/shared</code></span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> <code>packages/shared/</code> TypeScript kaynağı olarak tüketilir (<code>dist/</code> build adımı yok). Uygulamalar <code>@opengnothia/shared/&lt;subpath&gt;</code> ile import eder. Her uygulamanın kendi <code>@/*</code> alias'ı kendi <code>src/</code>'ine bakmaya devam eder.</p>
+        <p><b>Neden:</b> Monorepo private, shared npm'e yayınlanmayacak. Kaynak modu = sıfır build adımı, çalışan HMR, çalışan jump-to-definition.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">D9</span><span class="dt">Bağımsız uygulama sürümleri; kök ve shared private</span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> <code>apps/web/package.json</code> + <code>tauri.conf.json</code> + <code>Cargo.toml</code> sürüm-senkron kalır (restructure sonrası <code>1.7.0</code>). <code>apps/mobile</code> <code>0.1.0</code>'dan başlar. <code>packages/shared</code> private, <code>0.0.0</code>, hiç bump edilmez. Kök <code>package.json</code> de private ve sürümsüz.</p>
+        <p><b>Neden:</b> Web ve mobil bağımsız yayınlanacak. Mobil <code>0.1.0</code>'dayken web <code>1.7.0</code> ise tek monorepo sürümü yapay olur.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">D10</span><span class="dt">Kök README birincil kalır; uygulama README'leri minimal</span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> Mevcut kök <code>README.md</code> ana ürün README'si olarak kalır. Sonuna <code>apps/web/README.md</code> ve <code>apps/mobile/README.md</code>'ye işaret eden kısa bir "Development" bölümü eklenir.</p>
+        <p><b>Neden:</b> Yıldız momentumu ve keşfedilebilirlik kökteki README'den geliyor; içeriği alt klasörlere dağıtmak projeyi yeni gelenlerden gizler.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">D11</span><span class="dt">Temizlik</span></summary>
+      <div class="d-body">
+        <p>Bayat <code>claude/*</code> uzak branch'leri restructure branch'i açılmadan silinir (rebase edilemezler). <code>courses</code> branch'i için kullanıcı onayı alınır. Kökteki <code>package-lock.json</code> silinir (pnpm otoritedir). Kök <code>package.json</code>'da <code>packageManager</code> sabitlenir.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">D12</span><span class="dt">Paylaşılmayanlar — her uygulama kendi implementasyonunu yazar</span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> <code>lib/security.ts</code> (Web Crypto), <code>lib/store.ts</code> (Tauri store) ve <code>services/data/dataPortService.ts</code> (Tauri fs/dialog) shared'a girmez.</p>
+        <p><b>Neden:</b> Her biri platforma özgü API'lere dokunuyor (Web Crypto ↔ expo-crypto; Tauri store ↔ AsyncStorage; Tauri fs+dialog ↔ expo-file-system+expo-document-picker). Her biri için port tanımlamak, iki implementasyon yazmaktan daha fazla kod demek. Bu modüller küçük.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">D13</span><span class="dt">Mobil para modeli: freemium + tek aylık RevenueCat aboneliği <em style="font-style:normal;color:var(--text-3)">(2026-08-17)</em></span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> Mobil ücretli: RevenueCat üzerinden <b>tek abonelik paketi, aylık fiyat</b>, deneme süresi yok. <b>Freemium</b> — AI içermeyen özellikler (manuel journal/rüya kaydı, mood takibi, nefes egzersizleri, ekoller) ücretsiz; AI'a dokunan her özellik aktif abonelik ister. Lansman <b>önce iOS</b>, Android sonra. Mobilde hiç olmayanlar: ExpensesPage, Dashboard'daki SpendingChart/SpendingStrip, ayarlardaki tüm AI bölümü (anahtar / sağlayıcı / model / thinking / TTS). Onboarding: ApiSetupStep'in yerine <b>atlanabilir</b> abonelik adımı; atlanırsa AI gerektiren InterviewStep de atlanır, intake sonradan SessionPage'deki mevcut IntakeFormCTA/IntakeFormModal yoluyla tamamlanır. Masaüstü kalıcı olarak ücretsiz + BYOK.</p>
+        <p><b>Neden:</b> Mağaza dağıtımı doğal ücretli kanal; masaüstünün açık kaynak / kendi-anahtarın kimliği korunur. Freemium, uygulamanın AI'sız da değer sunan kısımlarını kilitlemez ve sert kapının "onboarding abonesiz bitemez" sorunundan kaçınır.</p>
+        <p><b>Reddedilen:</b> (a) Sert kapı — AI'sız özellikleri de kilitler, onboarding abonesiz tamamlanamazdı. (b) Masaüstünü de aboneliğe geçirmek. (c) Deneme süresi — istenmedi; ileride kod değişikliği olmadan RC intro offer ile eklenebilir.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">D14</span><span class="dt">Kimlik: anonim RevenueCat appUserID, hesap sistemi yok</span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> İstemci, RevenueCat SDK'sının anonim <code>appUserID</code>'sini her AI isteğine <code>Authorization: Bearer</code> olarak koyar. Worker, RevenueCat REST API'siyle aktif entitlement'ı doğrular ve sonucu KV'de ~1 saat cache'ler. Hesap, e-posta, şifre yok — backend kullanıcı hakkında yalnızca rastgele bir UUID bilir.</p>
+        <p><b>Kabul edilen risk:</b> appUserID fiilen bearer token; sızarsa aboneliği başkası kullanabilir — hız + günlük kota limitleri (D16) zararı sınırlar. Abonelik iptali en fazla cache TTL'i kadar gecikmeyle yansır.</p>
+        <p><b>Reddedilen:</b> Apple Sign-In + JWT hesap sistemi — gizlilik vaadini zayıflatır, kapsamı ikiye katlar.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">D15</span><span class="dt">OpenAI-uyumlu passthrough Worker; tüm AI parametreleri sunucuda sabit</span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> <code>apps/backend</code> (Hono + Wrangler, <code>@opengnothia/backend</code>) OpenAI şemasını aynen sunar: <code>/v1/chat/completions</code> (SSE), <code>/v1/audio/transcriptions</code> (multipart), <code>/v1/audio/speech</code> (binary). Mobil istemci shared'daki mevcut OpenAI adapter'ını <code>customBaseUrl</code> = Worker, <code>apiKey</code> = appUserID ile kullanır — shared'a ikinci bir protokol yazılmaz. Sunucu sabitleri: chat + memory modeli <code>gpt-5.6-sol</code>, transkripsiyon <code>whisper-1</code>, TTS <code>tts-1</code> + sabit ses; thinking konfigürasyonu sunucudan. İstemcinin <code>model</code>/<code>reasoning</code> alanları <b>reddedilmez, sessizce ezilir</b> — model değişikliği app güncellemesi/mağaza onayı gerektirmez. Hata sözleşmesi: <b>401</b> kimlik / <b>403</b> abonelik / <b>429</b> kota. Worker <code>@opengnothia/shared</code>'a bağımlı değil. Şimdilik workers.dev; mobil yayın öncesi custom domain bağlanacak (satın alınacak).</p>
+        <p><b>Neden:</b> Shared'daki SSE parser, thinking/usage event işleme ve AIError eşlemesi sıfır değişiklikle çalışır; Worker, açık kaynak repoda herkesin "aynen iletiyor, loglamıyor" diye denetleyebileceği ince bir katman olarak kalır.</p>
+        <p><b>Reddedilen:</b> Özel minimal API — shared'a ikinci bir protokol adapter'ı ve süregiden çift bakım demekti.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">D16</span><span class="dt">Adil kullanım: dakikalık hız limiti + günlük istek tavanları</span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> Kullanıcı başına ~20 istek/dk; günlük tavanlar chat 300 / transkripsiyon 200 / TTS 500 (Worker env değişkenleri — mağaza güncellemesi olmadan ayarlanır); gövde sınırları (chat 1 MB, ses 25 MB); <code>max_tokens</code> sunucu tavanı. Aşımda 429 <code>quota_exceeded</code>.</p>
+        <p><b>Neden:</b> Sabit abonelik fiyatı + değişken OpenAI maliyeti + sızmış kimlik riski = sınırsız bırakılamaz. Tavanlar normal kullanıcının asla değmeyeceği kadar cömert.</p>
+        <p><b>Reddedilen (şimdilik):</b> Token bazlı aylık bütçe — stream'den usage ayrıştırıp toplamayı gerektirir; ekonomi zorlarsa mobil planında eklenir.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">D17</span><span class="dt">Sıfır içerik logu</span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> Worker, istek/yanıt gövdelerini (terapi konuşma içeriğini) hiçbir koşulda loglamaz; içerik yalnızca istek süresince bellekte yaşar. Hata loglarında yalnızca durum kodu + endpoint + zaman. Kalıcı tutulan tek veri: KV'deki günlük sayaçlar ve entitlement cache'i — ikisi de içeriksiz, anonim UUID'ye bağlı.</p>
+        <p><b>İletişim:</b> README ve (mobil planda yazılacak) gizlilik politikası dürüstçe söyler: "mobilde AI istekleri bizim proxy'mizden geçer; içerik saklanmaz, loglanmaz; kimliğin anonim bir satın-alma UUID'sidir." "Hiç sunucumuz yok" cümlesi mobil için düzeltilir. Worker'ın açık kaynak olması iddiayı denetlenebilir kılar.</p>
+      </div>
+    </details>
+  </div>
+
+  <h3 class="sec">Etkilenen Dosyalar</h3>
+  <div class="dlist">
+    <details class="d">
+      <summary><span class="dk">YENİ</span><span class="dt">Kök seviyesi yeni dosyalar</span></summary>
+      <div class="d-body">
+        <table class="files">
+          <tr><td><code>package.json</code></td><td>workspace kökü, <code>"private": true</code>, script'ler (<code>dev:web</code>, <code>build:web</code> …), <code>packageManager</code> pin'i</td></tr>
+          <tr><td><code>pnpm-workspace.yaml</code></td><td><code>apps/*</code>, <code>packages/*</code></td></tr>
+          <tr><td><code>tsconfig.json</code></td><td>her pakete <code>references</code> veren orkestratör</td></tr>
+          <tr><td><code>.gitignore</code></td><td>mevcut girdiler korunur; Expo'ya özgü olanlar Faz 9'da eklenir</td></tr>
+        </table>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">TAŞI</span><span class="dt">Kök → <code>apps/web/</code></span></summary>
+      <div class="d-body">
+        <table class="files">
+          <tr><td><code>src/</code>, <code>src-tauri/</code>, <code>assets/</code>, <code>dist/</code></td><td>olduğu gibi <code>apps/web/</code> altına</td></tr>
+          <tr><td><code>index.html</code>, <code>vite.config.ts</code></td><td>değişiklik gerekmez (<code>__dirname</code> <code>apps/web/</code> olur)</td></tr>
+          <tr><td><code>tsconfig.json</code>, <code>tsconfig.node.json</code>, <code>package.json</code></td><td>taşınır ve düzenlenir</td></tr>
+        </table>
+        <p style="margin-top:10px">Kökte kalanlar: <code>node_modules/</code>, <code>pnpm-lock.yaml</code>, <code>README.md</code>, <code>LICENSE</code>, <code>.gitignore</code>, <code>.github/</code>, <code>.claude/</code>.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">DÜZENLE</span><span class="dt"><code>apps/web/</code> içi değişiklikler</span></summary>
+      <div class="d-body">
+        <table class="files">
+          <tr><td><code>apps/web/package.json</code></td><td>ad <code>@opengnothia/web</code>, <code>@opengnothia/shared</code> workspace bağımlılığı, Faz 8'de sürüm <code>1.7.0</code></td></tr>
+          <tr><td><code>apps/web/tsconfig.json</code></td><td><code>@/*</code> path'leri korunur; shared çözümü <code>exports</code> haritası üzerinden</td></tr>
+          <tr><td><code>src-tauri/tauri.conf.json</code></td><td><code>$schema</code> yolu doğrulanır; sürüm <code>1.7.0</code></td></tr>
+          <tr><td><code>src-tauri/Cargo.toml</code></td><td>sürüm <code>1.7.0</code></td></tr>
+          <tr><td><code>src-tauri/src/lib.rs</code></td><td>17 <code>include_str!</code> yolu <code>../../../../packages/shared/migrations/…</code> olur</td></tr>
+        </table>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">SHARED</span><span class="dt"><code>packages/shared/</code> içeriği</span></summary>
+      <div class="d-body">
+        <table class="files">
+          <tr><td><code>package.json</code></td><td><code>@opengnothia/shared</code>, private, ESM, subpath <code>exports</code> haritası</td></tr>
+          <tr><td><code>tsconfig.json</code></td><td>bağımsız TS config, <code>"composite": true</code></td></tr>
+          <tr><td><code>src/db/port.ts</code></td><td><code>DatabasePort</code> arayüzü</td></tr>
+          <tr><td><code>src/db/queries.ts</code></td><td><code>src/services/db/queries.ts</code>'den taşınır, factory'ye çevrilir</td></tr>
+          <tr><td><code>src/db/runMigrations.ts</code></td><td><code>PRAGMA user_version</code> ile bekleyen migration'ları uygular</td></tr>
+          <tr><td><code>migrations/*.sql</code></td><td><code>apps/web/src-tauri/migrations/</code>'dan taşınan 17 dosya</td></tr>
+          <tr><td><code>src/types/</code>, <code>src/i18n/</code>, <code>src/constants/</code>, <code>src/ai/</code>, <code>src/lib/</code></td><td><code>apps/web/src/</code>'den taşınan saf modüller</td></tr>
+        </table>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">KALIR</span><span class="dt"><code>apps/web/src/</code>'de kalanlar + yeni dosyalar</span></summary>
+      <div class="d-body">
+        <p><b>Kalır:</b> <code>components/</code> (51), <code>pages/</code> (13), <code>hooks/</code>, <code>stores/</code> (7, D3 gereği), <code>App.tsx</code>, <code>main.tsx</code>, <code>styles.css</code>, <code>vite-env.d.ts</code>, <code>lib/security.ts</code>, <code>lib/store.ts</code>, <code>services/data/dataPortService.ts</code>. Bunların yalnızca import'ları yeniden yazılır.</p>
+        <p><b>Yeni:</b> <code>src/adapters/tauriSqlAdapter.ts</code> (<code>DatabasePort</code> implementasyonu) ve <code>src/db/index.ts</code> (bootstrap: Tauri DB yükle, adapter'a sar, <code>createQueries(adapter)</code>, tekil <code>queries</code> dışa ver). <code>services/db/database.ts</code> bunlarla <b>değiştirilir</b>.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">IMPORT</span><span class="dt">Codemod haritası (~488 <code>@/</code> noktası)</span></summary>
+      <div class="d-body">
+        <table class="files">
+          <tr><td><code>@/types</code> (48)</td><td>→ <code>@opengnothia/shared/types</code></td></tr>
+          <tr><td><code>@/i18n</code> (69)</td><td>→ <code>@opengnothia/shared/i18n</code></td></tr>
+          <tr><td><code>@/constants</code> (39)</td><td>→ <code>@opengnothia/shared/constants</code></td></tr>
+          <tr><td><code>@/services/ai/…</code></td><td>→ <code>@opengnothia/shared/ai/…</code></td></tr>
+          <tr><td><code>@/lib/{cn,formatTokens,createBufferedTextStream,createMarkerStrippedStream}</code></td><td>→ <code>@opengnothia/shared/lib/…</code></td></tr>
+          <tr><td><code>@/services/db/queries</code></td><td>→ <code>@/db</code> (yerel singleton sarmalayıcı)</td></tr>
+          <tr><td>Değişmeyenler</td><td><code>@/components</code> (134), <code>@/stores</code> (49), <code>@/pages</code> (13), <code>@/hooks</code> (11), <code>@/assets</code> (4), <code>@/lib/security</code>, <code>@/lib/store</code>, <code>@/services/data/dataPortService</code></td></tr>
+        </table>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">MOBIL</span><span class="dt"><code>apps/mobile/</code> + CI + dokümantasyon + silinenler</span></summary>
+      <div class="d-body">
+        <p><b>Mobil:</b> <code>package.json</code> (Expo TS, <code>@opengnothia/shared</code> + <code>expo-sqlite</code>), <code>app.json</code>, <code>tsconfig.json</code>, <code>babel.config.js</code>, monorepo'ya ayarlı <code>metro.config.js</code>, smoke test <code>App.tsx</code>, <code>src/adapters/expoSqliteAdapter.ts</code>, <code>README.md</code>.</p>
+        <p><b>CI:</b> <code>.github/workflows/release.yml</code> — <code>swatinem/rust-cache</code> <code>workspaces</code> yolu <code>./apps/web/src-tauri -> target</code>, Tauri action'a <code>projectPath: apps/web</code>; <code>pnpm install</code> kökten çalışmaya devam eder.</p>
+        <p><b>Dokümantasyon:</b> kök <code>README.md</code>'ye "Development" bölümü; yeni <code>apps/web/README.md</code>.</p>
+        <p><b>Silinenler:</b> kök <code>package-lock.json</code>; bayat <code>claude/*</code> uzak branch'leri; onaylanırsa <code>courses</code> branch'i.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">BACKEND</span><span class="dt"><code>apps/backend/</code> içeriği (Faz 9'da eklenir)</span></summary>
+      <div class="d-body">
+        <table class="files">
+          <tr><td><code>package.json</code></td><td><code>@opengnothia/backend</code>, private, <code>0.1.0</code>, <code>hono</code> + <code>wrangler</code></td></tr>
+          <tr><td><code>wrangler.toml</code></td><td>worker adı, <code>USAGE_KV</code> KV binding'i, rate-limit binding'i, <code>[vars]</code> günlük tavanlar</td></tr>
+          <tr><td><code>src/index.ts</code></td><td>Hono app: <code>/health</code> + üç proxy rotası</td></tr>
+          <tr><td><code>src/middleware/auth.ts</code></td><td>RevenueCat entitlement doğrulama + KV cache (401/403)</td></tr>
+          <tr><td><code>src/middleware/limits.ts</code></td><td>dakikalık hız + günlük tavanlar (429), gövde sınırları</td></tr>
+          <tr><td><code>src/routes/chat.ts · transcription.ts · tts.ts</code></td><td>passthrough'lar; sunucu sabitleri (model / thinking / ses) burada ezilir</td></tr>
+          <tr><td><code>.dev.vars.example</code></td><td>yerel sır şablonu; gerçek <code>.dev.vars</code> gitignore'lu</td></tr>
+        </table>
+        <p style="margin-top:10px"><b>Shared'a dokunuşlar (Step 84):</b> <code>transcriptionService</code>/<code>ttsService</code>'e <code>baseUrl</code> parametresi; <code>errorMessages</code>'a 401/403/429 metinleri. <b>Kök:</b> <code>package.json</code>'a <code>dev:backend</code> / <code>deploy:backend</code> script'leri.</p>
+      </div>
+    </details>
+  </div>
+
+  <h3 class="sec">Uygulama Adımları</h3>
+
+  <details class="phase" id="phase-0" data-phase="0" data-name="Faz 0" data-title="Pre-flight">
+    <summary>
+      <span class="caret">▶</span>
+      <span class="ph-title">Faz 0 — <em>Pre-flight (branch + housekeeping)</em></span>
+      <span class="ph-badge" data-badge></span>
+    </summary>
+    <div class="ph-body">
+      <ul class="steps">
+        <li><label class="step"><input type="checkbox" data-track id="s1" data-seed><span class="body"><span class="no">Step 1</span><span class="txt">Confirm <code>git status</code> is clean on <code>master</code> and the working tree matches <code>Lepuz-coder/opengnothia</code>. If <code>src-tauri/tauri.conf.json</code> has uncommitted changes, decide with the user whether to commit, stash, or discard.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s2" data-seed><span class="body"><span class="no">Step 2</span><span class="txt">Verify the <code>v1.6.0</code> tag exists (<code>git tag -l v1.6.0</code>) — the rollback baseline.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s3" data-seed><span class="body"><span class="no">Step 3</span><span class="txt">Inspect each stale branch with <code>git log master..origin/&lt;branch&gt; --oneline</code> for <code>claude/*</code> and <code>courses</code>. Confirm with the user, then <code>git push origin --delete &lt;branch&gt;</code>.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s4" data-seed><span class="body"><span class="no">Step 4</span><span class="txt">Create and check out the working branch: <code>git checkout -b restructure/monorepo</code>.</span></span></label></li>
+      </ul>
+      <div class="note">
+        <b>Faz 0 notu — 2026-05-18'de tamamlandı.</b> Çalışma ağacı temizdi ve <code>v1.6.0</code> mevcuttu. <code>restructure/monorepo</code> zaten vardı, checkout edildi. Yerel <code>master</code>/<code>restructure/monorepo</code>, bu planı ekleyen ve Tauri identifier'ını değiştiren <code>7666071 phase file done</code> commit'ini içeriyor; bu commit <code>origin/master</code>'ın önünde. Silinen uzak branch'ler: <code>claude/add-session-expenses-history-qmJQG</code>, <code>claude/implement-dreams-feature-gzlvY</code>, <code>claude/implement-journal-feature-Nab0J</code>, <code>claude/redesign-chat-interface-KVN01</code>, <code>courses</code>.
+      </div>
+    </div>
+  </details>
+
+  <details class="phase" id="phase-1" data-phase="1" data-name="Faz 1" data-title="apps/web taşıması">
+    <summary>
+      <span class="caret">▶</span>
+      <span class="ph-title">Faz 1 — <em>Web kodunu <code>apps/web/</code> altına taşı (atomik, tek commit)</em></span>
+      <span class="ph-badge" data-badge></span>
+    </summary>
+    <div class="ph-body">
+      <ul class="steps">
+        <li><label class="step"><input type="checkbox" data-track id="s5" data-seed><span class="body"><span class="no">Step 5</span><span class="txt"><code>mkdir -p apps/web</code> (ve gerekirse <code>apps/mobile</code>, <code>packages/shared</code> için <code>.gitkeep</code> yer tutucuları).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s6" data-seed><span class="body"><span class="no">Step 6</span><span class="txt"><code>git mv</code> ile taşı: <code>src/</code>, <code>src-tauri/</code>, <code>index.html</code>, <code>vite.config.ts</code>, <code>tsconfig.json</code>, <code>tsconfig.node.json</code>, <code>package.json</code>, <code>assets/</code> → <code>apps/web/</code>.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s7" data-seed><span class="body"><span class="no">Step 7</span><span class="txt">Verify <code>tauri.conf.json</code> paths still resolve: <code>frontendDist: "../dist"</code> → <code>apps/web/dist</code> ✓; <code>$schema</code> → <code>apps/web/node_modules/…</code>, works once Phase 2's pnpm install creates per-package symlinks.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s8" data-seed><span class="body"><span class="no">Step 8</span><span class="txt">Verify <code>vite.config.ts</code>'in <code>path.resolve(__dirname, "./src")</code> ifadesi hâlâ doğru çözülüyor.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s9" data-seed><span class="body"><span class="tag verify">Doğrulama</span><span class="no">Step 9</span><span class="txt"><code>cd apps/web &amp;&amp; pnpm install &amp;&amp; pnpm tauri dev</code>. Masaüstü uygulaması birebir açılmalı. En az Dashboard ve Settings açılarak smoke test yapılır; tam regresyon Faz 2 sonrası.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s10" data-seed><span class="body"><span class="tag commit">Commit</span><span class="no">Step 10</span><span class="txt"><code>feat(monorepo): move web code into apps/web</code></span></span></label></li>
+      </ul>
+      <div class="note">
+        <b>Faz 1 notu — 2026-05-20'de tamamlandı.</b> 8 girdi <code>git mv</code> ile taşındı (232 yol değişikliği, 0 içerik değişikliği). <code>apps/web/</code> içinden <code>pnpm install</code>, <code>apps/web/node_modules/</code> ve mükerrer bir <code>apps/web/pnpm-lock.yaml</code> üretti — Faz 2'nin lockfile konsolidasyonu için yerinde bırakıldı. <code>pnpm build</code> (tsc + vite) başarılı. <code>cargo check</code> ilk denemede patladı: <code>target/</code> cache'i fiziksel olarak taşınsa da içinde eski <code>src-tauri/target/…</code> mutlak yolları vardı; tek seferlik <code>cargo clean</code> (12 GiB) sonrası tam yeniden derleme temiz geçti. İnteraktif smoke test (<code>pnpm tauri dev</code>) geçti.
+      </div>
+    </div>
+  </details>
+
+  <details class="phase" id="phase-2" data-phase="2" data-name="Faz 2" data-title="Workspace kurulumu">
+    <summary>
+      <span class="caret">▶</span>
+      <span class="ph-title">Faz 2 — <em>Workspace kurulumu (kök dosyalar, lockfile sıfırlama)</em></span>
+      <span class="ph-badge" data-badge></span>
+    </summary>
+    <div class="ph-body">
+      <ul class="steps">
+        <li><label class="step"><input type="checkbox" data-track id="s11" data-seed><span class="body"><span class="no">Step 11</span><span class="txt">Kökten <code>node_modules/</code> ve <code>package-lock.json</code>'ı sil. <code>pnpm-lock.yaml</code>'ı kökte konsolide et (Faz 1'deki <code>apps/web</code> install'ı ikinci bir lockfile üretmiş olabilir).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s12" data-seed><span class="body"><span class="no">Step 12</span><span class="txt">Kökte <code>pnpm-workspace.yaml</code> oluştur:<pre><code>packages:
+  - "apps/*"
+  - "packages/*"</code></pre></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s13" data-seed><span class="body"><span class="no">Step 13</span><span class="txt">Kök <code>package.json</code>'ı oluştur:<pre><code>{
+  "name": "opengnothia-monorepo",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev:web": "pnpm --filter @opengnothia/web tauri dev",
+    "dev:web:vite": "pnpm --filter @opengnothia/web dev",
+    "build:web": "pnpm --filter @opengnothia/web build",
+    "build:web:tauri": "pnpm --filter @opengnothia/web tauri build",
+    "dev:mobile": "pnpm --filter @opengnothia/mobile start"
+  }
+}</code></pre></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s14" data-seed><span class="body"><span class="no">Step 14</span><span class="txt"><code>apps/web/package.json</code> adını <code>@opengnothia/web</code> yap. <code>packageManager</code> yalnızca kökte.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s15" data-seed><span class="body"><span class="no">Step 15</span><span class="txt">Kökten <code>pnpm install</code>. Tek bir kök <code>node_modules/</code> + <code>.pnpm/</code> ve doğru <code>apps/web/node_modules/</code> symlink'leri oluşmalı.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s16" data-seed><span class="body"><span class="tag reg">UI Regresyonu</span><span class="no">Step 16</span><span class="txt"><code>pnpm dev:web</code> masaüstü uygulamasını açmalı ve <a href="#regression">tam UI regresyon listesi</a> geçmeli.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s17" data-seed><span class="body"><span class="tag commit">Commit</span><span class="no">Step 17</span><span class="txt"><code>chore(monorepo): set up pnpm workspace</code></span></span></label></li>
+      </ul>
+      <div class="note">
+        <b>Faz 2 notu — 2026-05-20'de tamamlandı.</b> Açık Soru #1, <code>@opengnothia/shared</code>/<code>@opengnothia/mobile</code> ile tutarlılık için <code>@opengnothia/web</code> lehine kapatıldı. <code>packageManager</code> <code>pnpm@10.18.2</code>'ye sabitlendi (Step 13'teki <code>9.15.0</code> planlama anındaki yer tutucuydu). Temizlik: <code>git rm package-lock.json</code>, kök ve <code>apps/web/node_modules/</code> silindi, mükerrer <code>apps/web/pnpm-lock.yaml</code> silindi. Kurulum sonrası kök <code>node_modules/</code> yalnızca <code>.pnpm/</code> + meta dosyaları tutuyor; <code>apps/web/node_modules/</code> sanal mağazaya 17 symlink veriyor. Doğrulama: <code>pnpm build:web</code> ~1.8s, <code>cargo check</code> 0.62s; Dashboard, Sessions (<code>plugin-sql</code>), Settings (<code>plugin-store</code>) ve Export (<code>plugin-fs</code> + <code>plugin-dialog</code>) elle denendi — dört native binding de çalışıyor.
+        <br><br><b>Sapma:</b> Faz 2 sıfır uygulama kodu değiştirdiği için 30 maddelik tam regresyon çalıştırılmadı; kapsamlı regresyon gerçek refactor'ların indiği Faz 4–5'e ertelendi.
+      </div>
+    </div>
+  </details>
+
+  <details class="phase" id="phase-3" data-phase="3" data-name="Faz 3" data-title="shared iskeleti">
+    <summary>
+      <span class="caret">▶</span>
+      <span class="ph-title">Faz 3 — <em><code>packages/shared</code> iskeleti + bağlantı testi</em></span>
+      <span class="ph-badge" data-badge></span>
+    </summary>
+    <div class="ph-body">
+      <ul class="steps">
+        <li><label class="step"><input type="checkbox" data-track id="s18" data-seed><span class="body"><span class="no">Step 18</span><span class="txt"><code>packages/shared/package.json</code>'ı oluştur (exports haritası dizin düzenini birebir yansıtır):<pre><code>{
+  "name": "@opengnothia/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./types": "./src/types/index.ts",
+    "./i18n": "./src/i18n/index.ts",
+    "./constants": "./src/constants/index.ts",
+    "./constants/*": "./src/constants/*.ts",
+    "./lib/*": "./src/lib/*.ts",
+    "./ai": "./src/ai/index.ts",
+    "./ai/*": "./src/ai/*.ts",
+    "./db": "./src/db/index.ts",
+    "./db/port": "./src/db/port.ts",
+    "./db/queries": "./src/db/queries.ts",
+    "./db/runMigrations": "./src/db/runMigrations.ts"
+  }
+}</code></pre></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s19" data-seed><span class="body"><span class="no">Step 19</span><span class="txt"><code>packages/shared/tsconfig.json</code>'ı oluştur; web tsconfig'iyle uyumlu derleyici seçenekleri, <code>"composite": true</code>.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s20" data-seed><span class="body"><span class="no">Step 20</span><span class="txt">Yer tutucu <code>packages/shared/src/index.ts</code>: <code>export const __sharedLoaded = true;</code></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s21" data-seed><span class="body"><span class="no">Step 21</span><span class="txt"><code>apps/web/package.json</code> bağımlılıklarına <code>"@opengnothia/shared": "workspace:*"</code> ekle, <code>pnpm install</code> çalıştır.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s22" data-seed><span class="body"><span class="no">Step 22</span><span class="txt">Doğrulama için <code>apps/web/src/main.tsx</code>'e geçici import ekle: <code>import { __sharedLoaded } from "@opengnothia/shared";</code></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s23" data-seed><span class="body"><span class="no">Step 23</span><span class="txt"><code>apps/web/tsconfig.json</code>'a <code>"references": [{ "path": "../../packages/shared" }]</code> ekle ve kök <code>tsconfig.json</code>'ı referanslarla oluştur.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s24" data-seed><span class="body"><span class="tag verify">Doğrulama</span><span class="no">Step 24</span><span class="txt"><code>pnpm --filter @opengnothia/web dev</code> hatasız derlenir, geçici import çözülür, Dashboard konsol hatasız açılır.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s25" data-seed><span class="body"><span class="tag commit">Commit</span><span class="no">Step 25</span><span class="txt">Geçici import'u kaldır, yer tutucu dosya kalsın. <code>chore(shared): scaffold @opengnothia/shared package</code></span></span></label></li>
+      </ul>
+      <div class="note">
+        <b>Faz 3 notu — 2026-05-20'de tamamlandı.</b> <code>packages/shared</code> composite <code>tsconfig.json</code> ile kuruldu; <code>exports</code> haritasına Step 18 spesifikasyonunun ötesinde bir <code>"."</code> kök girdisi eklendi (Step 22'nin çıplak import'u bunu gerektiriyor). Kök <code>tsconfig.json</code> yalnızca <code>./packages/shared</code>'a referans veren bir solution dosyası.
+      </div>
+      <div class="note" style="border-left-color:var(--warn)">
+        <b>Sapma (Step 23).</b> <code>apps/web/tsconfig.json</code> → <code>packages/shared</code> project reference'ı düşürüldü: <code>tsc --noEmit</code> TS6305 verdi ("Output file dist/src/index.d.ts has not been built from source file src/index.ts") — composite project reference'lar referans verilen projenin emit'ini şart koşuyor, oysa kaynak-modu shared (D8) hiç build almıyor. <code>apps/web</code>, <code>@opengnothia/shared</code>'ı tamamen <code>package.json</code> <code>exports</code> + <code>moduleResolution: "bundler"</code> üzerinden çözüyor; TS ve Vite bunu doğal olarak destekliyor.
+        <br><br><b>Doğrulama:</b> <code>tsc --noEmit</code> temiz; <code>pnpm build:web</code> temiz, 2117 modül; runtime smoke <code>[shared] loaded: true</code> bastı; geçici import geri alındı, <code>main.tsx</code> orijinal 11 satırlık hâline döndü.
+      </div>
+    </div>
+  </details>
+
+  <details class="phase" id="phase-4" data-phase="4" data-name="Faz 4" data-title="Saf modülleri çıkar">
+    <summary>
+      <span class="caret">▶</span>
+      <span class="ph-title">Faz 4 — <em>Saf modülleri shared'a çıkar + import codemod'u</em></span>
+      <span class="ph-badge" data-badge></span>
+    </summary>
+    <div class="ph-body">
+      <ul class="steps">
+        <li><label class="step"><input type="checkbox" data-track id="s26" data-seed><span class="body"><span class="no">Step 26</span><span class="txt"><code>git mv apps/web/src/types packages/shared/src/types</code></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s27" data-seed><span class="body"><span class="no">Step 27</span><span class="txt"><code>git mv apps/web/src/i18n packages/shared/src/i18n</code></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s28" data-seed><span class="body"><span class="no">Step 28</span><span class="txt"><code>git mv apps/web/src/constants packages/shared/src/constants</code></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s29" data-seed><span class="body"><span class="no">Step 29</span><span class="txt"><code>git mv apps/web/src/services/ai packages/shared/src/ai</code></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s30" data-seed><span class="body"><span class="no">Step 30</span><span class="txt"><code>git mv</code> ile 4 saf util: <code>lib/cn.ts</code>, <code>lib/formatTokens.ts</code>, <code>lib/createBufferedTextStream.ts</code>, <code>lib/createMarkerStrippedStream.ts</code> → <code>packages/shared/src/lib/</code></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s31" data-seed><span class="body"><span class="no">Step 31</span><span class="txt"><code>apps/web/src/</code> genelinde import'ları yeniden yaz (<code>sed -i '' -E</code> veya <code>grep -rl … | xargs sed -i</code>): <code>@/types</code>, <code>@/i18n</code>, <code>@/constants</code>, <code>@/services/ai/*</code>, dört <code>@/lib/*</code> → <code>@opengnothia/shared/…</code>. <code>@/lib/security</code>, <code>@/lib/store</code>, <code>@/services/data/*</code>, <code>@/services/db/*</code> dokunulmaz.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s32" data-seed><span class="body"><span class="no">Step 32</span><span class="txt">Taşınan dosyaların <b>kendi içindeki</b> import'ları düzelt: <code>packages/shared/src/</code> içindeki her <code>@/…</code> göreli yola çevrilmeli. <code>grep -rn "from \"@/" packages/shared/</code> ile süpür.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s33" data-seed><span class="body"><span class="tag verify">Doğrulama</span><span class="no">Step 33</span><span class="txt"><code>pnpm --filter @opengnothia/web build</code> tip kontrolünden temiz geçer.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s34" data-seed><span class="body"><span class="tag reg">UI Regresyonu</span><span class="no">Step 34</span><span class="txt"><a href="#regression">Tam UI regresyon listesi</a>. Özellikle taşınan modülleri yoğun kullanan sayfalar: AI (SessionPage, OnboardingPage interview, AnalysesPage), i18n (tümü), types (tümü).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s35" data-seed><span class="body"><span class="tag commit">Commit</span><span class="no">Step 35</span><span class="txt"><code>refactor(monorepo): extract pure modules into @opengnothia/shared</code></span></span></label></li>
+      </ul>
+      <div class="note">
+        <b>Faz 4 notu — 2026-05-21'de tamamlandı.</b> 46 dosya <code>git mv</code> ile taşındı (types/, i18n/, constants/ dizinleri; 11 <code>ai/*</code> dosyasından 8'i; 4 saf <code>lib/*</code>); codemod 75 dosyayı değiştirdi. <code>apps/web/src/</code>'deki 178 <code>@/…</code> import'u <code>@opengnothia/shared/…</code>'a çevrildi; shared içindeki tüm <code>@/</code> import'ları göreli yola döndü. Step 31 seçici uygulandı — codemod yalnızca gerçekten taşınan 8 ai dosyasıyla sınırlandı.
+      </div>
+      <div class="note" style="border-left-color:var(--warn)">
+        <b>Sapma #1 — i18n bağımlılık enjeksiyonu.</b> <code>packages/shared/src/i18n/index.ts</code> <code>apps/web</code>'den <code>useSettingsStore</code> import ediyordu (D3 ihlali). <code>setLanguageBindings({ useLanguage, getLanguage })</code> sunacak şekilde yeniden yazıldı; <code>apps/web/src/main.tsx</code> Zustand destekli binding'leri <code>ReactDOM.render</code>'dan önce bağlıyor. Tüm <code>getCurrentLanguage</code>/<code>useTranslation</code> çağrıları fonksiyon gövdelerinin içinde (grep ile doğrulandı), dolayısıyla import sonrası binding güvenli; binding öncesi pencere için <code>() =&gt; "tr"</code> fallback'i var.
+      </div>
+      <div class="note" style="border-left-color:var(--warn)">
+        <b>Sapma #2 — üç <code>services/ai/*</code> dosyası ertelendi.</b> <code>backgroundNotes.ts</code>, <code>courseNotes.ts</code> ve <code>promptBuilder.ts</code>, D3'ün uygulama-yerel tuttuğu modülleri (<code>useAppStore</code>, <code>useSchoolsStore.getSchoolById</code>, <code>services/db/queries</code>) import ettikleri için <code>apps/web/src/services/ai/</code>'de kaldı. Faz 5 sorguları shared'a taşıyıp bir schools-accessor deseni kararlaştırıldığında taşınacaklar. Taşınan kardeşlerine (<code>aiService</code>, <code>costCalculator</code>) yaptıkları import'lar yine de <code>@opengnothia/shared/ai/*</code>'a çevrildi, böylece derleniyorlar.
+      </div>
+      <div class="note" style="border-left-color:var(--warn)">
+        <b>Sapma #3 — TEST sabitleri satır içine alındı.</b> Yalnızca <code>aiService.testApiKey</code> tarafından kullanılan <code>TEST_MESSAGE</code> / <code>TEST_SYSTEM_PROMPT</code>, shared <code>ai/aiService.ts</code> içine gömüldü; orijinalleri ertelenen <code>promptBuilder.ts</code>'den silindi. Taşınan aiService'i <code>apps/web</code>'e geri referans vermekten kurtarır.
+      </div>
+      <div class="note">
+        <b>Bu commit'teki diğer değişiklikler:</b>
+        <ul>
+          <li><code>packages/shared/package.json</code> — runtime bağımlılıkları <code>clsx</code>, <code>lucide-react</code>, <code>tailwind-merge</code> eklendi (<code>lib/cn.ts</code> ve <code>constants/navigation.ts</code> kullanıyor); <code>./i18n/therapySchools</code> exports girdisi eklendi (shared içinde dışarıdan import edilen tek index'li dizin — <code>useSchoolsStore.ts</code> ve <code>SchoolsPage.tsx</code>).</li>
+          <li><code>.claude/launch.json</code> — <code>npm run dev</code> → <code>pnpm --filter @opengnothia/web dev</code> (Faz 1'in taşımasından sonra sessizce bozulmuştu, kökte <code>dev</code> script'i yok).</li>
+        </ul>
+        <b>Doğrulama:</b> <code>tsc --noEmit</code> temiz; <code>pnpm build:web</code> temiz, 2116 modül / 1.92s. Son grep, <code>apps/web/src/</code>'de taşınan modüllere ait sıfır <code>@/</code> import'u ve <code>packages/shared/src/</code>'de sıfır <code>@/</code> import'u doğruluyor. Kullanıcı destekli UI regresyonu: dil değişimi, Dashboard, tam seans turu, API anahtarı testi, sağlayıcı değişimi, nefes egzersizi, schools sayfası, journal/dream analizleri.
+      </div>
+    </div>
+  </details>
+
+  <details class="phase" id="phase-5" data-phase="5" data-name="Faz 5" data-title="DatabasePort + adapter">
+    <summary>
+      <span class="caret">▶</span>
+      <span class="ph-title">Faz 5 — <em><code>DatabasePort</code> arayüzü, sorgular shared'a, Tauri adapter'ı</em></span>
+      <span class="ph-badge" data-badge></span>
+    </summary>
+    <div class="ph-body">
+      <ul class="steps">
+        <li><label class="step"><input type="checkbox" data-track id="s36"><span class="body"><span class="no">Step 36</span><span class="txt"><code>packages/shared/src/db/port.ts</code>'i yaz:<pre><code>export interface DatabasePort {
+  select&lt;T&gt;(sql: string, params?: unknown[]): Promise&lt;T[]&gt;;
+  execute(sql: string, params?: unknown[]): Promise&lt;{ lastInsertId?: number; rowsAffected: number }&gt;;
+}</code></pre>Tauri <code>db.execute</code> ile expo-sqlite <code>runAsync</code>'in dönüş şekilleri biraz farklı — en küçük ortak paydayı seç.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s37"><span class="body"><span class="no">Step 37</span><span class="txt"><code>git mv apps/web/src/services/db/queries.ts packages/shared/src/db/queries.ts</code></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s38"><span class="body"><span class="no">Step 38</span><span class="txt"><code>queries.ts</code>'i factory desenine çevir — <b>bu fazın en büyük mekanik refactor'ı, fonksiyon fonksiyon ilerle</b>. Her <code>const db = await getDatabase()</code> closure'daki <code>db</code> parametresiyle değişir.<pre><code>export function createQueries(db: DatabasePort) {
+  return {
+    getUserProfile: async (): Promise&lt;UserProfile | null&gt; =&gt; { /* uses db.select */ },
+    // ... all 50+ query functions
+  };
+}
+export type Queries = ReturnType&lt;typeof createQueries&gt;;</code></pre></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s39"><span class="body"><span class="no">Step 39</span><span class="txt"><code>queries.ts</code> içindeki <code>@/types</code> import'larını göreli <code>../types</code>'a çevir.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s40"><span class="body"><span class="no">Step 40</span><span class="txt"><code>apps/web/src/adapters/tauriSqlAdapter.ts</code>'i oluştur:<pre><code>import type Database from "@tauri-apps/plugin-sql";
+import type { DatabasePort } from "@opengnothia/shared/db/port";
+
+export function createTauriSqlAdapter(db: Database): DatabasePort {
+  return {
+    select: (sql, params) =&gt; db.select(sql, params),
+    execute: async (sql, params) =&gt; {
+      const res = await db.execute(sql, params);
+      return { lastInsertId: res.lastInsertId, rowsAffected: res.rowsAffected };
+    },
+  };
+}</code></pre></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s41"><span class="body"><span class="no">Step 41</span><span class="txt"><code>services/db/database.ts</code>'in yerine <code>apps/web/src/db/index.ts</code>:<pre><code>import Database from "@tauri-apps/plugin-sql";
+import { createQueries, type Queries } from "@opengnothia/shared/db/queries";
+import { createTauriSqlAdapter } from "@/adapters/tauriSqlAdapter";
+
+let queries: Queries | null = null;
+export async function getQueries(): Promise&lt;Queries&gt; {
+  if (!queries) {
+    const db = await Database.load("sqlite:opengnothia.db");
+    queries = createQueries(createTauriSqlAdapter(db));
+  }
+  return queries;
+}</code></pre></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s42"><span class="body"><span class="no">Step 42</span><span class="txt">Eski <code>getDatabase()</code> çağrı noktalarını <code>getQueries()</code>'e çevir (<code>grep -rn "@/services/db" apps/web/src</code>). <b>Not:</b> <code>dataPortService.ts</code> ham tablo dökümü için <code>getDatabase</code>'i doğrudan kullanıyor — ya queries nesnesine bir <code>select</code> geçişi eklenir ya da adapter doğrudan import edilir. <b>Öneri:</b> kasıtlı olarak jenerik olduğu için <code>dataPortService</code>'e doğrudan <code>DatabasePort</code> enjekte et.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s43"><span class="body"><span class="no">Step 43</span><span class="txt"><code>apps/web/src/services/db/database.ts</code>'i sil.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s44"><span class="body"><span class="tag reg">UI Regresyonu</span><span class="no">Step 44</span><span class="txt"><b>En yüksek riskli faz</b> — DB'ye dokunan her akış doğrulanmalı: seans kaydet/devam ettir, journal/dream CRUD, insights, kurs ilerlemesi, haftalık özet, Settings'te dışa/içe aktarım. <a href="#regression">Tam liste</a>.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s45"><span class="body"><span class="tag commit">Commit</span><span class="no">Step 45</span><span class="txt"><code>refactor(db): introduce DatabasePort + Tauri adapter, queries in shared</code></span></span></label></li>
+      </ul>
+      <div class="note" style="border-left-color:var(--border-strong)">
+        <b>Faz 4'ten devreden:</b> <code>backgroundNotes.ts</code>, <code>courseNotes.ts</code>, <code>promptBuilder.ts</code> bu fazda sorgular shared'a taşındıktan sonra yeniden değerlendirilecek (schools-accessor deseni kararlaştırılmalı).
+      </div>
+    </div>
+  </details>
+
+  <details class="phase" id="phase-6" data-phase="6" data-name="Faz 6" data-title="Migration'lar shared'a">
+    <summary>
+      <span class="caret">▶</span>
+      <span class="ph-title">Faz 6 — <em>Migration'lar shared'a + <code>runMigrations()</code> yardımcısı</em></span>
+      <span class="ph-badge" data-badge></span>
+    </summary>
+    <div class="ph-body">
+      <ul class="steps">
+        <li><label class="step"><input type="checkbox" data-track id="s46"><span class="body"><span class="no">Step 46</span><span class="txt"><code>mkdir -p packages/shared/migrations</code> ve <code>git mv apps/web/src-tauri/migrations/*.sql packages/shared/migrations/</code>. Boşalan <code>src-tauri/migrations/</code> dizinini kaldır.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s47"><span class="body"><span class="no">Step 47</span><span class="txt"><code>apps/web/src-tauri/src/lib.rs</code>'deki 17 <code>include_str!</code> yolunu <code>"../migrations/NNN_*.sql"</code> → <code>"../../../../packages/shared/migrations/NNN_*.sql"</code> olarak güncelle (~satır 294+).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s48"><span class="body"><span class="no">Step 48</span><span class="txt"><code>packages/shared/src/db/runMigrations.ts</code>'i yaz:<pre><code>import type { DatabasePort } from "./port";
+
+export interface MigrationDef { version: number; sql: string; }
+
+export async function runMigrations(db: DatabasePort, migrations: MigrationDef[]): Promise&lt;void&gt; {
+  const result = await db.select&lt;{ user_version: number }&gt;("PRAGMA user_version");
+  const current = result[0]?.user_version ?? 0;
+  const pending = migrations.filter((m) =&gt; m.version &gt; current).sort((a, b) =&gt; a.version - b.version);
+  for (const m of pending) {
+    await db.execute(m.sql);
+    await db.execute(`PRAGMA user_version = ${m.version}`);
+  }
+}</code></pre>Mobil, her <code>.sql</code>'i string olarak alacak — mekanizma <a href="#questions">Açık Soru 3</a>'te.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s49"><span class="body"><span class="tag reg">UI Regresyonu</span><span class="no">Step 49</span><span class="txt"><b>Temiz DB açılışı:</b> <code>pnpm --filter @opengnothia/web tauri build</code> Rust'ı derlemeli. Ardından DB'yi silip (macOS: <code>~/Library/Application Support/com.opengnothia.app/opengnothia.db</code>) uygulamayı çalıştır — Onboarding akışı görünmeli, sonra <a href="#regression">tam liste</a>.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s50"><span class="body"><span class="tag commit">Commit</span><span class="no">Step 50</span><span class="txt"><code>refactor(db): migrations to shared, runMigrations helper</code></span></span></label></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="phase" id="phase-7" data-phase="7" data-name="Faz 7" data-title="Release workflow">
+    <summary>
+      <span class="caret">▶</span>
+      <span class="ph-title">Faz 7 — <em>Release workflow'unu güncelle</em></span>
+      <span class="ph-badge" data-badge></span>
+    </summary>
+    <div class="ph-body">
+      <ul class="steps">
+        <li><label class="step"><input type="checkbox" data-track id="s51"><span class="body"><span class="no">Step 51</span><span class="txt"><code>.github/workflows/release.yml</code>'i düzenle: <code>swatinem/rust-cache</code> <code>workspaces</code> değerini <code>'./src-tauri -> target'</code> → <code>'./apps/web/src-tauri -> target'</code>; <code>tauri-apps/tauri-action@v0</code> adımına <code>projectPath: apps/web</code> ekle; <code>pnpm install --frozen-lockfile</code> kökte kalsın (workspace-aware).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s52"><span class="body"><span class="no">Step 52</span><span class="txt">Gerçek release kesmeden workflow'u test et: ya branch'ten geçici bir <code>v1.7.0-rc1</code> tag'i at ve başarılıysa taslağı sil, ya da geçici bir <code>workflow_dispatch</code> tetikleyicisi ekleyip merge öncesi kaldır.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s53"><span class="body"><span class="tag verify">Doğrulama</span><span class="no">Step 53</span><span class="txt">Üç matris build'inin de (macOS, Ubuntu, Windows) geçtiğini doğrula.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s54"><span class="body"><span class="tag commit">Commit</span><span class="no">Step 54</span><span class="txt"><code>ci: update release workflow paths for monorepo</code></span></span></label></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="phase" id="phase-8" data-phase="8" data-name="Faz 8" data-title="Sürüm & README">
+    <summary>
+      <span class="caret">▶</span>
+      <span class="ph-title">Faz 8 — <em>Sürüm yükseltmeleri &amp; README'ler</em></span>
+      <span class="ph-badge" data-badge></span>
+    </summary>
+    <div class="ph-body">
+      <ul class="steps">
+        <li><label class="step"><input type="checkbox" data-track id="s55"><span class="body"><span class="no">Step 55</span><span class="txt"><code>apps/web/package.json</code> sürümünü <code>1.7.0</code> yap.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s56"><span class="body"><span class="no">Step 56</span><span class="txt"><code>apps/web/src-tauri/tauri.conf.json</code> sürümünü <code>1.7.0</code> yap.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s57"><span class="body"><span class="no">Step 57</span><span class="txt"><code>apps/web/src-tauri/Cargo.toml</code> sürümünü <code>1.7.0</code> yap.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s58"><span class="body"><span class="no">Step 58</span><span class="txt">Kök <code>README.md</code>'ye "Development" bölümü: <code>apps/web/</code> (Tauri masaüstü) ve <code>apps/mobile/</code> (Expo, geliştirme aşamasında); <code>cd apps/web &amp;&amp; pnpm tauri dev</code> ve <code>cd apps/mobile &amp;&amp; pnpm start</code>.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s59"><span class="body"><span class="no">Step 59</span><span class="txt"><code>apps/web/README.md</code>'yi yaz — minimal: ön koşullar, install, dev, build.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s60"><span class="body"><span class="tag commit">Commit</span><span class="no">Step 60</span><span class="txt"><code>chore: bump version to 1.7.0, update READMEs</code></span></span></label></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="phase" id="phase-9" data-phase="9" data-name="Faz 9" data-title="Backend: Worker AI proxy">
+    <summary>
+      <span class="caret">▶</span>
+      <span class="ph-title">Faz 9 — <em>Backend: Cloudflare Worker AI proxy (<code>apps/backend</code>)</em></span>
+      <span class="ph-badge" data-badge></span>
+    </summary>
+    <div class="ph-body">
+      <ul class="steps">
+        <li><label class="step"><input type="checkbox" data-track id="s78"><span class="body"><span class="no">Step 78</span><span class="txt"><b>Kullanıcı aksiyonu:</b> RevenueCat hesabı + projesi oluştur; tek aylık abonelik paketi ve <code>pro</code> entitlement'ını tanımla; secret REST API anahtarını al. (App Store Connect ürün bağlantısı mobil UI planının işi — bu faz için RC projesi + anahtar yeterli.)</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s79"><span class="body"><span class="no">Step 79</span><span class="txt"><code>apps/backend</code> iskeleti: <code>package.json</code> (<code>@opengnothia/backend</code>, <code>0.1.0</code>, private, <code>hono</code> + <code>wrangler</code>), <code>tsconfig.json</code>, <code>wrangler.toml</code> (worker adı, <code>USAGE_KV</code> KV binding'i, rate-limit binding'i, <code>[vars]</code> ile günlük tavanlar). Kök <code>package.json</code>'a <code>dev:backend</code> / <code>deploy:backend</code> script'leri. Kökten <code>pnpm install</code>.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s80"><span class="body"><span class="no">Step 80</span><span class="txt">Auth middleware: <code>Authorization: Bearer &lt;appUserID&gt;</code> → RevenueCat REST <code>GET /subscribers/{id}</code> ile aktif entitlement kontrolü → sonuç <code>USAGE_KV</code>'de ~1 saat TTL ile cache. Header yok/boş → <b>401</b>; kimlik var ama aktif abonelik yok → <b>403</b> (OpenAI-tarzı error JSON, <code>code: "subscription_required"</code>).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s81"><span class="body"><span class="no">Step 81</span><span class="txt">Limit middleware: kullanıcı başına dakikalık hız sınırı (~20/dk, rate-limit binding) + endpoint başına günlük KV sayaçları (chat <b>300</b> / transkripsiyon <b>200</b> / TTS <b>500</b> — env ile ayarlanabilir) → aşımda <b>429</b> (<code>code: "quota_exceeded"</code>). Gövde sınırları: chat 1 MB, ses yüklemesi 25 MB.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s82"><span class="body"><span class="no">Step 82</span><span class="txt"><code>POST /v1/chat/completions</code>: istemci gövdesinden <code>model</code> / <code>reasoning</code> / thinking alanlarını at, sunucu sabitlerini yaz (<code>gpt-5.6-sol</code> + sunucu thinking konfigi), <code>max_tokens</code>'ı tavanla, <code>OPENAI_API_KEY</code>'i enjekte et, OpenAI'dan dönen SSE stream'ini olduğu gibi geri akıt. İstemci alanları <b>reddedilmez, sessizce ezilir</b> — model değişimi app güncellemesi gerektirmez (D15).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s83"><span class="body"><span class="no">Step 83</span><span class="txt"><code>POST /v1/audio/transcriptions</code> (multipart passthrough, <code>model</code> → <code>whisper-1</code>) + <code>POST /v1/audio/speech</code> (<code>model</code> → <code>tts-1</code>, <code>voice</code> → sunucu sabiti) + <code>GET /health</code>.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s84"><span class="body"><span class="no">Step 84</span><span class="txt">Shared dikişi: <code>transcriptionService.ts</code> ve <code>ttsService.ts</code>'e opsiyonel <code>baseUrl</code> parametresi (default <code>https://api.openai.com/v1</code> — masaüstü davranışı değişmez); <code>errorMessages.ts</code>'e üç yeni durum metni: 401 kimlik, 403 abonelik gerekli (istemcide paywall tetikleyecek), 429 kota.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s85"><span class="body"><span class="no">Step 85</span><span class="txt">Sırlar + deploy: <code>wrangler secret put OPENAI_API_KEY</code> ve <code>wrangler secret put REVENUECAT_API_KEY</code>; yerel geliştirme için gitignore'lu <code>.dev.vars</code> (+ commit'lenen <code>.dev.vars.example</code>); <code>pnpm deploy:backend</code> → workers.dev adresi.</span></span></label></li>
+        <li>
+          <label class="step"><input type="checkbox" data-track id="s86"><span class="body"><span class="tag verify">Kontrol listesi</span><span class="no">Step 86</span><span class="txt">Backend smoke-test kontrol listesi (curl ile, gerçek deploy üzerinde):</span></span></label>
+          <ul>
+            <li><label class="step sub"><input type="checkbox" data-track id="s86a"><span class="body"><span class="txt">Auth'suz istek → 401</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-track id="s86b"><span class="body"><span class="txt">Rastgele UUID → 403 <code>subscription_required</code></span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-track id="s86c"><span class="body"><span class="txt">RC dashboard'dan test UUID'sine <b>promosyonel entitlement</b> ver → chat isteği gerçek token stream'i döndürüyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-track id="s86d"><span class="body"><span class="txt">Kısa bir WAV ile transkripsiyon → metin dönüyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-track id="s86e"><span class="body"><span class="txt">TTS isteği → çalınabilir ses baytları dönüyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-track id="s86f"><span class="body"><span class="txt">Art arda hızlı istekler → dakikalık limit aşımında 429</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-track id="s86g"><span class="body"><span class="txt">Günlük sayaç KV'de artıyor (<code>wrangler kv key list</code>)</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-track id="s86h"><span class="body"><span class="txt"><code>wrangler tail</code> spot kontrolü: loglarda mesaj içeriği yok (D17)</span></span></label></li>
+          </ul>
+        </li>
+        <li><label class="step"><input type="checkbox" data-track id="s87"><span class="body"><span class="tag verify">Doğrulama</span><span class="no">Step 87</span><span class="txt">Masaüstü etkilenmedi: <code>pnpm dev:web</code> ile sesli akış (kayıt → transkripsiyon → TTS) hâlâ doğrudan OpenAI'a gidiyor (Step 84'ün default'ları sayesinde).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s88"><span class="body"><span class="tag commit">Commit</span><span class="no">Step 88</span><span class="txt"><code>feat(backend): add Cloudflare Worker AI proxy with subscription gating</code></span></span></label></li>
+      </ul>
+      <div class="note">
+        <b>Bu faz 2026-08-17 revizyonuyla eklendi (D13–D17).</b> Adım numaraları (78–88) kronolojik — mevcut işaret ilerlemesini korumak için araya numara sıkıştırılmadı. Mobil istemcinin Worker'a bağlanması (<code>customBaseUrl</code> = Worker, <code>apiKey</code> = appUserID, paywall, <code>react-native-purchases</code>) bu planın değil, mobil UI planının işi — bu faz yalnızca backend'i canlıya alır ve curl ile kanıtlar.
+      </div>
+    </div>
+  </details>
+
+  <details class="phase" id="phase-10" data-phase="10" data-name="Faz 10" data-title="Mobil smoke test">
+    <summary>
+      <span class="caret">▶</span>
+      <span class="ph-title">Faz 10 — <em>Mobil smoke test (Expo + <code>expoSqliteAdapter</code>)</em></span>
+      <span class="ph-badge" data-badge></span>
+    </summary>
+    <div class="ph-body">
+      <ul class="steps">
+        <li><label class="step"><input type="checkbox" data-track id="s61"><span class="body"><span class="no">Step 61</span><span class="txt">Kökten: <code>cd apps &amp;&amp; pnpm create expo-app mobile --template blank-typescript</code> (alternatif: <code>npx create-expo-app@latest mobile --template</code>).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s62"><span class="body"><span class="no">Step 62</span><span class="txt"><code>apps/mobile/package.json</code>: ad <code>@opengnothia/mobile</code>, sürüm <code>0.1.0</code>, <code>"private": true</code>.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s63"><span class="body"><span class="no">Step 63</span><span class="txt">Bağımlılıklara <code>"@opengnothia/shared": "workspace:*"</code> ekle, kökten <code>pnpm install</code>.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s64"><span class="body"><span class="no">Step 64</span><span class="txt">Metro'yu monorepo için ayarla — <code>apps/mobile/metro.config.js</code>:<pre><code>const { getDefaultConfig } = require("expo/metro-config");
+const path = require("path");
+
+const config = getDefaultConfig(__dirname);
+config.watchFolders = [path.resolve(__dirname, "../..")];
+config.resolver.nodeModulesPaths = [
+  path.resolve(__dirname, "node_modules"),
+  path.resolve(__dirname, "../../node_modules"),
+];
+config.resolver.disableHierarchicalLookup = true;
+module.exports = config;</code></pre></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s65"><span class="body"><span class="no">Step 65</span><span class="txt"><code>cd apps/mobile &amp;&amp; npx expo install expo-sqlite</code></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s66"><span class="body"><span class="no">Step 66</span><span class="txt"><code>apps/mobile/src/adapters/expoSqliteAdapter.ts</code>'i yaz:<pre><code>import * as SQLite from "expo-sqlite";
+import type { DatabasePort } from "@opengnothia/shared/db/port";
+
+export function createExpoSqliteAdapter(db: SQLite.SQLiteDatabase): DatabasePort {
+  return {
+    select: &lt;T&gt;(sql: string, params?: unknown[]) =&gt;
+      db.getAllAsync&lt;T&gt;(sql, params ?? []) as Promise&lt;T[]&gt;,
+    execute: async (sql, params) =&gt; {
+      const r = await db.runAsync(sql, params ?? []);
+      return { lastInsertId: r.lastInsertRowId, rowsAffected: r.changes };
+    },
+  };
+}</code></pre></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s67"><span class="body"><span class="no">Step 67</span><span class="txt">Mobil için migration paketleme yöntemini karara bağla (<a href="#questions">Açık Soru 3</a> — öneri: codegen). Smoke test için 1-2 migration'ı <code>App.tsx</code>'te satır içi yazmak ya da migration'ları tamamen atlayıp boş DB'de sorgu çalıştırmak yeterli.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s68"><span class="body"><span class="no">Step 68</span><span class="txt"><code>apps/mobile/App.tsx</code>'i yaz: expo-sqlite DB'yi aç → adapter'a sar → migration'ları çalıştır (veya Step 67 gereği atla) → <code>createQueries(adapter).getCheckInCount()</code> gibi basit bir sorgu çağır → sonucu bir <code>&lt;Text&gt;</code> içinde göster.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s69"><span class="body"><span class="no">Step 69</span><span class="txt">Simülatörde çalıştır: <code>cd apps/mobile &amp;&amp; pnpm start</code>, iOS simülatörü veya cihazda Expo Go ile aç.</span></span></label></li>
+        <li>
+          <label class="step"><input type="checkbox" data-track id="s70"><span class="body"><span class="tag verify">Kontrol listesi</span><span class="no">Step 70</span><span class="txt">Mobil smoke-test kontrol listesi:</span></span></label>
+          <ul>
+            <li><label class="step sub"><input type="checkbox" data-track id="s70a"><span class="body"><span class="txt">Metro bundler çözümleme hatası olmadan başlıyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-track id="s70b"><span class="body"><span class="txt">iOS simülatörü veya Expo Go bağlanıyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-track id="s70c"><span class="body"><span class="txt"><code>@opengnothia/shared</code> import'u çözülüyor (kırmızı hata ekranı yok)</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-track id="s70d"><span class="body"><span class="txt">expo-sqlite adapter'ı hatasız kuruluyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-track id="s70e"><span class="body"><span class="txt">Paylaşılan sorgu bir değer döndürüyor (muhtemelen <code>0</code>)</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-track id="s70f"><span class="body"><span class="txt">Değer ekranda görünüyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-track id="s70g"><span class="body"><span class="txt">Metro loglarında <code>crypto.randomUUID</code> vb. polyfill hatası yok</span></span></label></li>
+          </ul>
+        </li>
+        <li><label class="step"><input type="checkbox" data-track id="s71"><span class="body"><span class="no">Step 71</span><span class="txt">Minimal <code>apps/mobile/README.md</code>'yi yaz.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s72"><span class="body"><span class="tag commit">Commit</span><span class="no">Step 72</span><span class="txt"><code>feat(mobile): scaffold Expo app, validate shared package via smoke test</code></span></span></label></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="phase" id="phase-11" data-phase="11" data-name="Faz 11" data-title="Final doğrulama + PR">
+    <summary>
+      <span class="caret">▶</span>
+      <span class="ph-title">Faz 11 — <em>Son UI regresyonu + PR</em></span>
+      <span class="ph-badge" data-badge></span>
+    </summary>
+    <div class="ph-body">
+      <ul class="steps">
+        <li><label class="step"><input type="checkbox" data-track id="s73"><span class="body"><span class="tag reg">UI Regresyonu</span><span class="no">Step 73</span><span class="txt">Temiz kurulumda son kez: <code>node_modules/</code>'ı sil, kökten <code>pnpm install</code>, <code>pnpm dev:web</code> ve her sayfayı bir kez daha dolaş. <a href="#regression">Tam liste</a>.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s74"><span class="body"><span class="no">Step 74</span><span class="txt">Mobil smoke test'i tekrar çalıştır (Faz 10 kontrol listesi).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s75"><span class="body"><span class="no">Step 75</span><span class="txt">Branch'i push'la: <code>git push -u origin restructure/monorepo</code></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s76"><span class="body"><span class="no">Step 76</span><span class="txt">PR aç: <i>Restructure: pnpm monorepo with apps/web + apps/mobile + apps/backend + packages/shared</i>. Gövde fazları özetler, bu plana link verir, merge sonrası test edilecekleri listeler.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s77"><span class="body"><span class="no">Step 77</span><span class="txt">Merge sonrası <code>master</code>'dan <code>v1.7.0</code> tag'ini kes — güncellenmiş workflow masaüstü installer'larını yayınlar.</span></span></label></li>
+      </ul>
+    </div>
+  </details>
+
+  <h3 class="sec" id="regression">Tam UI Regresyon Listesi (Masaüstü — apps/web)</h3>
+  <div class="card">
+    <div style="padding:16px 16px 0;color:var(--text-2);font-size:13.8px">
+      Faz 2 (Step 16), Faz 4 (Step 34), Faz 5 (Step 44), Faz 6 (Step 49) ve Faz 11 (Step 73) sonrası çalıştırılır. Bu liste <b>masaüstü (apps/web) uygulamasını</b> doğrular — masaüstü kalıcı olarak ücretsiz + BYOK kaldığı için (D1 revizyonu) ExpensesPage, API anahtarı ve sağlayıcı/model ayarları bilinçli olarak buradadır; bunlar yalnızca <i>mobilde</i> olmayacak (D13) ve mobilin kendi kontrol listesi mobil UI planında yazılacak. Her sayfa konsol hatası olmadan açılmalı ve listelenen ana akış çalışmalı. <b>Her tik = "bu sayfayı derlenmiş bir dev uygulamada bizzat açtım ve akış başarılı oldu."</b> Aşağıdaki sekmelerden geçişi seç; her geçiş kendi durumunu ayrı saklar.
+    </div>
+    <div class="passbar" id="passBar"></div>
+
+    <div class="reg-group">
+      <h4>Onboarding &amp; Auth</h4>
+      <ul class="reg">
+        <li><label class="step"><input type="checkbox" data-reg="lockscreen"><span class="body"><span class="no">LockScreen</span><span class="txt">(<code>lockEnabled === true</code> ise) — açılışta parola sorulur, doğruyu kabul eder, yanlışı reddeder, macOS'ta biyometrik yedek çalışır</span></span></label></li>
+        <li>
+          <label class="step"><input type="checkbox" data-reg="onboarding"><span class="body"><span class="no">OnboardingPage</span><span class="txt">— ilk açılış akışının tamamı</span></span></label>
+          <ul>
+            <li><label class="step sub"><input type="checkbox" data-reg="ob-welcome"><span class="body"><span class="txt">WelcomeStep görüntüleniyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="ob-lang"><span class="body"><span class="txt">LanguageStep — TR/EN geçişi, arayüz etiketleri değişiyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="ob-school"><span class="body"><span class="txt">SchoolSelectionStep — bir ekol seçilebiliyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="ob-interview"><span class="body"><span class="txt">InterviewStep — AI görüşmesi tamamlanıyor, intake kaydediliyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="ob-api"><span class="body"><span class="txt">ApiSetupStep — sağlayıcı seçimi, API anahtarı, test başarılı</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="ob-security"><span class="body"><span class="txt">SecuritySetupStep — parola belirleme (opsiyonel) ve onay</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="ob-ready"><span class="body"><span class="txt">ReadyStep — Dashboard'a geçiyor</span></span></label></li>
+          </ul>
+        </li>
+      </ul>
+
+      <h4>Ana Sayfalar</h4>
+      <ul class="reg">
+        <li>
+          <label class="step"><input type="checkbox" data-reg="dashboard"><span class="body"><span class="no">DashboardPage</span><span class="txt">— açılıyor</span></span></label>
+          <ul>
+            <li><label class="step sub"><input type="checkbox" data-reg="db-mood"><span class="body"><span class="txt">MoodChart çiziliyor (veriyle veya veri olmadan)</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="db-hero"><span class="body"><span class="txt">TodaySessionHero çiziliyor, "seans başlat" CTA'sı bağlı</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="db-ritual"><span class="body"><span class="txt">RitualCard çiziliyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="db-spend"><span class="body"><span class="txt">SpendingChart + SpendingStrip çiziliyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="db-picker"><span class="body"><span class="txt">MoodPickerScale modalı — ruh hâli seçiliyor, kaydediliyor, grafik güncelleniyor</span></span></label></li>
+          </ul>
+        </li>
+        <li>
+          <label class="step"><input type="checkbox" data-reg="session"><span class="body"><span class="no">SessionPage</span><span class="txt">— uçtan uca bir seans</span></span></label>
+          <ul>
+            <li><label class="step sub"><input type="checkbox" data-reg="se-moodbefore"><span class="body"><span class="txt">Seans öncesi ruh hâli değeri kabul ediliyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="se-chat"><span class="body"><span class="txt">ChatContainer çiziliyor, ChatInput metin kabul ediyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="se-stream"><span class="body"><span class="txt">Mesaj gönderiliyor — asistan yanıtı akış hâlinde geliyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="se-thinking"><span class="body"><span class="txt">Düşünme göstergesi çalışıyor (ayarlarda açıksa)</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="se-timer"><span class="body"><span class="txt">SessionTimer geri sayıyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="se-context"><span class="body"><span class="txt">ContextUsageIndicator token sayısıyla güncelleniyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="se-intake"><span class="body"><span class="txt">Intake yoksa IntakeFormCTA görünüyor; IntakeFormModal kaydediyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="se-insights"><span class="body"><span class="txt">SessionInsightsPanel — içgörü çıkarılıyor, gruba kaydediliyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="se-end"><span class="body"><span class="txt">SessionControlsBar seans sonu — sonrası ruh hâli, özet akıyor, anlatı çiziliyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="se-endsummary"><span class="body"><span class="txt">SessionEndPrompt → SessionEndSummary akışı</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="se-voice"><span class="body"><span class="txt">VoiceConversationView (sesli modda) — kayıt, transkripsiyon, TTS oynatma</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="se-past"><span class="body"><span class="txt">PastSessionsList geçmiş seansları listeliyor; PastSessionDetail açılıyor</span></span></label></li>
+          </ul>
+        </li>
+        <li><label class="step"><input type="checkbox" data-reg="journal"><span class="body"><span class="no">JournalPage</span><span class="txt">— liste çiziliyor, yeni kayıt oluştur / düzenle / sil, AI analizi dönüyor</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-reg="dreams"><span class="body"><span class="no">DreamsPage</span><span class="txt">— liste çiziliyor, tarihli rüya oluşturuluyor, AI rüya analizi tetikleniyor</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-reg="analyses"><span class="body"><span class="no">AnalysesPage</span><span class="txt">— haftalık özetler listeleniyor; varsa milestone analizleri çiziliyor</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-reg="insights"><span class="body"><span class="no">InsightsPage</span><span class="txt">— InsightGroups çiziliyor; yeni grup; içgörü taşıma; InlineCreateGroupForm + InlineGroupPicker</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-reg="courses"><span class="body"><span class="no">CoursesPage</span><span class="txt">— kurs listesi; kurs açılıyor; adım ilerlemesi kaydediliyor; kurs notu editörü kaydediyor</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-reg="schools"><span class="body"><span class="no">SchoolsPage</span><span class="txt">— yerleşik ekoller çiziliyor; özel ekol eklenip seçilebiliyor</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-reg="tools"><span class="body"><span class="no">ToolsPage</span><span class="txt">— araç listesi; BreathingSetup üzerinden BreathingExercise açılıyor ve döngüleri tamamlıyor</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-reg="expenses"><span class="body"><span class="no">ExpensesPage</span><span class="txt">— token kullanım geçmişi çiziliyor; toplam maliyet doğru hesaplanıyor</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-reg="programs"><span class="body"><span class="no">ProgramsPage</span><span class="txt">— açılıyor (muhtemelen yer tutucu içerik, çökmemeli)</span></span></label></li>
+      </ul>
+
+      <h4>Ayarlar &amp; Veri</h4>
+      <ul class="reg">
+        <li>
+          <label class="step"><input type="checkbox" data-reg="settings"><span class="body"><span class="no">SettingsPage</span><span class="txt">— her bölüm çalışıyor</span></span></label>
+          <ul>
+            <li><label class="step sub"><input type="checkbox" data-reg="st-lang"><span class="body"><span class="txt">Dil değişimi — arayüz anında güncelleniyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="st-provider"><span class="body"><span class="txt">Sağlayıcı değişimi — model listesi güncelleniyor, o sağlayıcının API anahtarı kalıcı</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="st-apitest"><span class="body"><span class="txt">API anahtarı testi — geçerli anahtarla başarılı</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="st-thinking"><span class="body"><span class="txt">Düşünme anahtarı + seviye + tür — kaydediliyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="st-memory"><span class="body"><span class="txt">Hafıza modeli ayarları — kaydediliyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="st-tts"><span class="body"><span class="txt">TTS modeli + sesi — kaydediliyor, varsa önizleme çalışıyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="st-transcript"><span class="body"><span class="txt">Transkript API anahtarı — kaydediliyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="st-lock"><span class="body"><span class="txt">Parola kilidi — aç/kapa, parola değiştir, parola ipucu</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="st-bio"><span class="body"><span class="txt">Biyometrik anahtarı (macOS) — aç/kapa</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="st-time"><span class="body"><span class="txt">Tercih edilen seans saati + süresi — kaydediliyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="st-school"><span class="body"><span class="txt">Terapi ekolü seçimi — kaydediliyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="st-approach"><span class="body"><span class="txt">Yaklaşım seçimi — kaydediliyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="st-prompts"><span class="body"><span class="txt">Özel prompt geçersiz kılma — kaydediliyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="st-export"><span class="body"><span class="txt"><b>Veriyi dışa aktar</b> — kaydetme diyaloğu açılıyor, JSON yazılıyor, 16 tablo + ayarlar dahil</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="st-import"><span class="body"><span class="txt"><b>Veriyi içe aktar</b> — açma diyaloğu, JSON geri yükleniyor, şema uyuşuyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-reg="st-clear"><span class="body"><span class="txt"><b>Tüm veriyi sil</b> — onay modalı, DB temizleniyor</span></span></label></li>
+          </ul>
+        </li>
+      </ul>
+
+      <h4>UI Primitifleri (görsel regresyon kontrolü)</h4>
+      <ul class="reg">
+        <li><label class="step"><input type="checkbox" data-reg="ui-prims"><span class="body"><span class="txt">Button, Input, Select, Slider, Toggle, Tab bileşenleri tüm sayfalarda doğru çiziliyor</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-reg="ui-toast"><span class="body"><span class="txt">Kaydetme işlemlerinde toast görünüyor</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-reg="ui-error"><span class="body"><span class="txt">AI hatalarında ErrorModal görünüyor</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-reg="ui-nav"><span class="body"><span class="txt">Sidebar tüm sayfalar arasında geziniyor; aktif durum doğru</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-reg="ui-theme"><span class="body"><span class="txt">Tema anahtarı (sistem/açık/koyu) tüm sayfalarda uygulanıyor</span></span></label></li>
+      </ul>
+    </div>
+    <div style="padding:6px 16px 16px">
+      <button class="btn" id="regReset" type="button">Bu geçişi temizle</button>
+    </div>
+  </div>
+
+  <h3 class="sec" id="questions">Açık Sorular</h3>
+  <div class="dlist">
+    <details class="d">
+      <summary><span class="dk">1</span><span class="dt">Web paket adı: <code>opengnothia</code> mı <code>@opengnothia/web</code> mi? <span style="color:var(--accent);font-weight:600">— Faz 2'de kapatıldı</span></span></summary>
+      <div class="d-body">
+        <p>Plan, <code>@opengnothia/shared</code> ve <code>@opengnothia/mobile</code> ile tutarlılık için <code>@opengnothia/web</code>'i varsayıyordu. Karşı argüman: <code>opengnothia</code> hem crate adı (<code>src-tauri/Cargo.toml</code>) hem uygulama tanımlayıcısı (<code>com.opengnothia.app</code>). npm paket adını değiştirmek Tauri içselleriyle çakışmıyor.</p>
+        <p><b>Karar:</b> <code>@opengnothia/web</code> (Faz 2, Step 14).</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">2</span><span class="dt">Bayat <code>courses</code> branch'i <span style="color:var(--accent);font-weight:600">— Faz 0'da kapatıldı</span></span></summary>
+      <div class="d-body"><p>Kullanıcı onayıyla <code>origin/courses</code> diğer <code>claude/*</code> branch'leriyle birlikte silindi.</p></div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">3</span><span class="dt">Mobilde migration paketleme <span style="color:var(--warn);font-weight:600">— açık, Faz 9'da karara bağlanacak</span></span></summary>
+      <div class="d-body">
+        <p>Mobil, 17 <code>.sql</code> dosyasına string olarak ihtiyaç duyuyor. Üç seçenek:</p>
+        <ul class="plain">
+          <li><b>(a)</b> <code>.sql</code> dosyalarına paralel, elle yazılmış bir TS dizisi — manuel senkron, kötü.</li>
+          <li><b>(b)</b> Metro asset/raw-text eklentisi (<code>.sql</code> için özel transformer).</li>
+          <li><b>(c)</b> Build-zamanı codegen: küçük bir script <code>packages/shared/migrations/*.sql</code>'i okur ve <code>export const MIGRATIONS = [...]</code> içeren bir dosya üretir; <code>apps/mobile</code>'ın pre-build adımı olarak çalışır. <b>Öneri: (c)</b> — temiz, Metro hack'i yok, tek doğruluk kaynağı.</li>
+        </ul>
+        <p>Smoke test'in kendisi için 1-2 migration'ı <code>App.tsx</code>'te satır içi yazmak kabul edilebilir.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">4</span><span class="dt">Mobilde <code>crypto.randomUUID()</code> ve Web Crypto <span style="color:var(--warn);font-weight:600">— açık, smoke test ortaya çıkarınca</span></span></summary>
+      <div class="d-body"><p>Birkaç shared modül (veya shared'dan import eden store'lar) <code>crypto.randomUUID()</code> kullanıyor. Yeni Expo SDK'ları bunu Hermes üzerinde sunuyor. Smoke test runtime hatası gösterirse <code>react-native-get-random-values</code> polyfill'i veya <code>expo-crypto</code> kurulur. Ertelendi.</p></div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">5</span><span class="dt"><code>DatabasePort.execute</code> dönüş şekli <span style="color:var(--warn);font-weight:600">— açık, Faz 5'te doğrulanacak</span></span></summary>
+      <div class="d-body"><p>Tauri <code>db.execute</code> → <code>{ lastInsertId, rowsAffected }</code>; expo-sqlite <code>runAsync</code> → <code>{ lastInsertRowId, changes }</code>. Plan <code>{ lastInsertId, rowsAffected }</code>'e normalize ediyor. Hiçbir paylaşılan sorgunun ek alanlara dayanmadığını doğrula (<code>node_modules/@tauri-apps/plugin-sql/dist/index.d.ts</code>).</p></div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">6</span><span class="dt">Taşımadan sonra <code>tauri.conf.json</code> <code>$schema</code> yolu <span style="color:var(--accent);font-weight:600">— Faz 1/2'de doğrulandı</span></span></summary>
+      <div class="d-body"><p><code>"../node_modules/@tauri-apps/cli/config.schema.json"</code>, <code>apps/web/src-tauri/</code>'ye göreli olduğundan <code>apps/web/node_modules/…</code>'ı gösteriyor. pnpm paket başına <code>node_modules/</code> symlink'leri oluşturduğu için erişilebilir (Faz 2 notunda 17 symlink doğrulandı). Yalnızca editör ipucu olduğundan sorun çıkarsa <code>../../../node_modules/…</code>'a çevrilebilir veya kaldırılabilir.</p></div>
+    </details>
+  </div>
+
+  <h3 class="sec">Kapsam Dışı</h3>
+  <div class="card" style="padding:16px 18px">
+    <ul class="plain">
+      <li><b>Gerçek mobil özellik/UI geliştirmesi.</b> Smoke test bu planın sonu; tüm gerçek mobil iş ayrı planlanacak — paywall ekranı ve <code>react-native-purchases</code> entegrasyonu dahil (native modül: Expo Go'da çalışmaz, EAS dev build gerektirir).</li>
+      <li><b>Masaüstü ↔ mobil bulut senkronizasyonu.</b> D1 ile açıkça dışlandı.</li>
+      <li><b>Backend'in mobil plana kalan kısımları.</b> Backend'in kendisi artık kapsam <b>içinde</b> (Faz 9, D13–D17). Ertelenenler: custom domain bağlama, token bazlı kota, RevenueCat webhook'ları, Worker için CI deploy, gizlilik politikası URL'i + App Store beyanları, Android lansmanı. Kullanıcı verisi backend'e uğramaz — senkron/depolama yine yok (D17).</li>
+      <li><b>Drizzle / ORM.</b> D2'de değerlendirilip ertelendi; port + adapter ileride ORM'e geçiş için zemin.</li>
+      <li><b>Platformlar arası ayar deposu soyutlaması.</b> Her uygulama kendi çözümünü kullanır; <code>SettingsPort</code> yok.</li>
+      <li><b>Platformlar arası dosya dışa/içe aktarım soyutlaması.</b> <code>FilePort</code> yok.</li>
+      <li><b>Platformlar arası parola hash'leme soyutlaması.</b> Her uygulamanın kendi <code>lib/security.ts</code>'i.</li>
+      <li><b>Turborepo / Nx / build cache.</b> D5; pnpm-only kurulum yavaş hissettirene kadar ertelendi.</li>
+      <li><b>Zustand store'larını UI/domain diye ayırmak.</b> D3 erteliyor; mobil özellikler geldikçe organik olarak yapılacak.</li>
+      <li><b>Uygulamayı veya depoyu yeniden adlandırmak.</b></li>
+      <li><b>Mevcut i18n'in ötesinde yerelleştirme.</b> Mobil <code>@opengnothia/shared/i18n</code>'i olduğu gibi kullanır.</li>
+    </ul>
+  </div>
+
+  <footer class="f">
+    <span>Tek yaşayan plan dokümanı bu HTML'dir; eski <code>monorepo-restructure.md</code> kaldırıldı.</span>
+    <span>·</span>
+    <span>İşaretler bu tarayıcının <code>localStorage</code>'ında saklanır.</span>
+    <span class="saved" id="savedNote">kaydedildi</span>
+  </footer>
+
+<script>
+(function () {
+  "use strict";
+
+  var KEY = "og-monorepo-plan-v1";
+  var PASSES = [
+    { key: "p2", label: "Faz 2 · Step 16" },
+    { key: "p4", label: "Faz 4 · Step 34" },
+    { key: "p5", label: "Faz 5 · Step 44" },
+    { key: "p6", label: "Faz 6 · Step 49" },
+    { key: "p10", label: "Faz 11 · Step 73" }
+  ];
+
+  var steps = Array.prototype.slice.call(document.querySelectorAll("input[data-track]"));
+  var regBoxes = Array.prototype.slice.call(document.querySelectorAll("input[data-reg]"));
+  var phases = Array.prototype.slice.call(document.querySelectorAll("details.phase"));
+  var grid = document.getElementById("phaseGrid");
+  var passBar = document.getElementById("passBar");
+  var savedNote = document.getElementById("savedNote");
+
+  var state = load();
+
+  function load() {
+    var raw = null;
+    try { raw = localStorage.getItem(KEY); } catch (e) { /* storage disabled */ }
+    if (raw) {
+      try {
+        var parsed = JSON.parse(raw);
+        return {
+          steps: parsed.steps || {},
+          reg: parsed.reg || {},
+          pass: parsed.pass || "p5",
+          open: parsed.open || {}
+        };
+      } catch (e) { /* corrupt — fall through to a fresh seed */ }
+    }
+    var seeded = {};
+    steps.forEach(function (box) { if (box.hasAttribute("data-seed")) seeded[box.id] = true; });
+    return { steps: seeded, reg: {}, pass: "p5", open: {} };
+  }
+
+  var saveTimer = null;
+  function save() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(state));
+    } catch (e) {
+      document.getElementById("storageWarn").classList.add("on");
+      return;
+    }
+    if (!savedNote) return;
+    savedNote.classList.add("on");
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function () { savedNote.classList.remove("on"); }, 1200);
+  }
+
+  /* ---------- phase overview cards ---------- */
+  phases.forEach(function (ph) {
+    var card = document.createElement("a");
+    card.className = "pcard";
+    card.href = "#" + ph.id;
+    card.dataset.for = ph.id;
+    card.innerHTML =
+      '<div class="pc-top"><span class="pc-name">' + ph.dataset.name + '</span><span class="dot"></span></div>' +
+      '<div class="pc-title">' + ph.dataset.title + "</div>" +
+      '<div class="bar"><i></i></div>' +
+      '<div class="pc-count"></div>';
+    card.addEventListener("click", function () {
+      ph.open = true;
+      state.open[ph.id] = true;
+      save();
+    });
+    grid.appendChild(card);
+  });
+
+  /* ---------- regression pass tabs ---------- */
+  PASSES.forEach(function (p) {
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "pass-btn";
+    btn.dataset.pass = p.key;
+    btn.innerHTML = p.label + " <small></small>";
+    btn.addEventListener("click", function () {
+      state.pass = p.key;
+      save();
+      renderRegression();
+      renderPasses();
+    });
+    passBar.appendChild(btn);
+  });
+
+  function currentReg() {
+    if (!state.reg[state.pass]) state.reg[state.pass] = {};
+    return state.reg[state.pass];
+  }
+
+  function renderRegression() {
+    var bag = currentReg();
+    regBoxes.forEach(function (box) { box.checked = !!bag[box.dataset.reg]; });
+  }
+
+  function renderPasses() {
+    Array.prototype.forEach.call(passBar.children, function (btn) {
+      var bag = state.reg[btn.dataset.pass] || {};
+      var done = regBoxes.filter(function (b) { return bag[b.dataset.reg]; }).length;
+      btn.setAttribute("aria-selected", btn.dataset.pass === state.pass ? "true" : "false");
+      btn.querySelector("small").textContent = done + "/" + regBoxes.length;
+    });
+  }
+
+  /* ---------- progress ---------- */
+  function render() {
+    steps.forEach(function (box) { box.checked = !!state.steps[box.id]; });
+
+    var totalDone = 0;
+    var firstOpen = null;
+
+    phases.forEach(function (ph) {
+      var boxes = Array.prototype.slice.call(ph.querySelectorAll("input[data-track]"));
+      var done = boxes.filter(function (b) { return b.checked; }).length;
+      var pct = boxes.length ? Math.round((done / boxes.length) * 100) : 0;
+      totalDone += done;
+
+      var st = done === 0 ? "idle" : (done === boxes.length ? "done" : "active");
+      if (st !== "done" && !firstOpen) firstOpen = ph;
+
+      var badge = ph.querySelector("[data-badge]");
+      badge.textContent = done + "/" + boxes.length;
+      badge.dataset.state = st;
+
+      var card = grid.querySelector('[data-for="' + ph.id + '"]');
+      card.dataset.state = st;
+      card.querySelector(".bar > i").style.width = pct + "%";
+      card.querySelector(".pc-count").textContent = done + "/" + boxes.length + " adım · " + pct + "%";
+    });
+
+    var pct = Math.round((totalDone / steps.length) * 100);
+    document.getElementById("totalDone").textContent = totalDone;
+    document.getElementById("totalAll").textContent = steps.length;
+    document.getElementById("totalPct").textContent = pct + "%";
+    document.getElementById("totalBar").style.width = pct + "%";
+
+    return firstOpen;
+  }
+
+  steps.forEach(function (box) {
+    box.addEventListener("change", function () {
+      if (box.checked) state.steps[box.id] = true;
+      else delete state.steps[box.id];
+      save();
+      render();
+    });
+  });
+
+  regBoxes.forEach(function (box) {
+    box.addEventListener("change", function () {
+      var bag = currentReg();
+      if (box.checked) bag[box.dataset.reg] = true;
+      else delete bag[box.dataset.reg];
+      save();
+      renderPasses();
+    });
+  });
+
+  phases.forEach(function (ph) {
+    ph.addEventListener("toggle", function () {
+      state.open[ph.id] = ph.open;
+      save();
+    });
+  });
+
+  /* ---------- header buttons ---------- */
+  var expandBtn = document.getElementById("expandAll");
+  expandBtn.addEventListener("click", function () {
+    var anyClosed = phases.some(function (ph) { return !ph.open; });
+    phases.forEach(function (ph) { ph.open = anyClosed; state.open[ph.id] = anyClosed; });
+    expandBtn.textContent = anyClosed ? "Tümünü kapat" : "Tümünü aç";
+    save();
+  });
+
+  document.getElementById("resetAll").addEventListener("click", function () {
+    if (!confirm("Tüm işaretler silinecek ve plan baştaki hâline (Faz 0–4 tamamlanmış) dönecek. Devam edilsin mi?")) return;
+    try { localStorage.removeItem(KEY); } catch (e) { /* ignore */ }
+    state = load();
+    render();
+    renderRegression();
+    renderPasses();
+  });
+
+  document.getElementById("regReset").addEventListener("click", function () {
+    var label = PASSES.filter(function (p) { return p.key === state.pass; })[0].label;
+    if (!confirm(label + " geçişinin tüm işaretleri silinsin mi?")) return;
+    state.reg[state.pass] = {};
+    save();
+    renderRegression();
+    renderPasses();
+  });
+
+  /* ---------- boot ---------- */
+  try {
+    localStorage.setItem(KEY + ":probe", "1");
+    localStorage.removeItem(KEY + ":probe");
+  } catch (e) {
+    document.getElementById("storageWarn").classList.add("on");
+  }
+
+  var firstIncomplete = render();
+  renderRegression();
+  renderPasses();
+
+  var hasStoredOpen = Object.keys(state.open).length > 0;
+  phases.forEach(function (ph) {
+    if (hasStoredOpen) ph.open = !!state.open[ph.id];
+    else ph.open = ph === firstIncomplete;
+  });
+
+  if (location.hash) {
+    var target = document.querySelector(location.hash);
+    if (target && target.tagName === "DETAILS") {
+      target.open = true;
+      target.scrollIntoView();
+    }
+  }
+})();
+</script>
+
+</div>
+</body>
+</html>

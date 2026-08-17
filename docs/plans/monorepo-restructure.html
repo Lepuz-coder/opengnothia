@@ -774,9 +774,9 @@ export async function getQueries(): Promise&lt;Queries&gt; {
     </summary>
     <div class="ph-body">
       <ul class="steps">
-        <li><label class="step"><input type="checkbox" data-track id="s46"><span class="body"><span class="no">Step 46</span><span class="txt"><code>mkdir -p packages/shared/migrations</code> ve <code>git mv apps/desktop/src-tauri/migrations/*.sql packages/shared/migrations/</code>. Boşalan <code>src-tauri/migrations/</code> dizinini kaldır.</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s47"><span class="body"><span class="no">Step 47</span><span class="txt"><code>apps/desktop/src-tauri/src/lib.rs</code>'deki 17 <code>include_str!</code> yolunu <code>"../migrations/NNN_*.sql"</code> → <code>"../../../../packages/shared/migrations/NNN_*.sql"</code> olarak güncelle (~satır 294+).</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s48"><span class="body"><span class="no">Step 48</span><span class="txt"><code>packages/shared/src/db/runMigrations.ts</code>'i yaz:<pre><code>import type { DatabasePort } from "./port";
+        <li><label class="step"><input type="checkbox" data-track id="s46" data-seed><span class="body"><span class="no">Step 46</span><span class="txt"><code>mkdir -p packages/shared/migrations</code> ve <code>git mv apps/desktop/src-tauri/migrations/*.sql packages/shared/migrations/</code>. Boşalan <code>src-tauri/migrations/</code> dizinini kaldır.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s47" data-seed><span class="body"><span class="no">Step 47</span><span class="txt"><code>apps/desktop/src-tauri/src/lib.rs</code>'deki 17 <code>include_str!</code> yolunu <code>"../migrations/NNN_*.sql"</code> → <code>"../../../../packages/shared/migrations/NNN_*.sql"</code> olarak güncelle (~satır 294+).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s48" data-seed><span class="body"><span class="no">Step 48</span><span class="txt"><code>packages/shared/src/db/runMigrations.ts</code>'i yaz:<pre><code>import type { DatabasePort } from "./port";
 
 export interface MigrationDef { version: number; sql: string; }
 
@@ -790,8 +790,17 @@ export async function runMigrations(db: DatabasePort, migrations: MigrationDef[]
   }
 }</code></pre>Mobil, her <code>.sql</code>'i string olarak alacak — mekanizma <a href="#questions">Açık Soru 3</a>'te.</span></span></label></li>
         <li><label class="step"><input type="checkbox" data-track id="s49"><span class="body"><span class="tag reg">UI Regresyonu</span><span class="no">Step 49</span><span class="txt"><b>Temiz DB açılışı:</b> <code>pnpm --filter @opengnothia/desktop tauri build</code> Rust'ı derlemeli. Ardından DB'yi silip (macOS: <code>~/Library/Application Support/com.opengnothia.app/opengnothia.db</code>) uygulamayı çalıştır — Onboarding akışı görünmeli, sonra <a href="#regression">tam liste</a>.</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s50"><span class="body"><span class="tag commit">Commit</span><span class="no">Step 50</span><span class="txt"><code>refactor(db): migrations to shared, runMigrations helper</code></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s50" data-seed><span class="body"><span class="tag commit">Commit</span><span class="no">Step 50</span><span class="txt"><code>refactor(db): migrations to shared, runMigrations helper</code></span></span></label></li>
       </ul>
+      <div class="note">
+        <b>Faz 6 notu — 2026-08-17'de kod tarafı tamamlandı.</b> 17 <code>.sql</code> dosyası <code>git mv</code> ile <code>packages/shared/migrations/</code>'a taşındı (R, %100 benzerlik), boşalan <code>src-tauri/migrations/</code> kaldırıldı. <code>lib.rs</code>'teki 17 <code>include_str!</code> yolu tek <code>replace_all</code> ile <code>../../../../packages/shared/migrations/…</code> yapıldı. <code>runMigrations.ts</code> plandaki şablonla yazıldı; <code>./db/runMigrations</code> subpath'i exports haritasında zaten hazırdı, ayrıca <code>./db</code> index'inden re-export edildi. Başlık yorumu iş bölümünü netliyor: masaüstü bu yardımcıyı <b>kullanmaz</b> — Tauri plugin-sql aynı dosyaları <code>include_str!</code> ile gömüp ilerlemeyi kendi <code>_sqlx_migrations</code> tablosunda izler (binary'de doğrulandı); <code>runMigrations</code> yalnızca mobil için, <code>PRAGMA user_version</code> tabanlı. Yorum ayrıca portun <code>execute()</code>'unun çok-ifadeli SQL script'i kabul etmesi gerektiğini söylüyor (expo-sqlite adapter'ı <code>runAsync</code> değil <code>execAsync</code> kullanmalı) — Açık Soru 3'ün paketleme kararı (codegen vs satır içi) Faz 10 Step 67'de duruyor.
+      </div>
+      <div class="note">
+        <b>Doğrulama (statik):</b> <code>tsc --noEmit</code> temiz; <code>pnpm build:desktop</code> temiz (~2.0s); <code>cargo check</code> 1.81s; <code>pnpm build:desktop:tauri</code> release 48.41s'de derledi ve iki bundle üretti (<code>OpenGnothia.app</code> + <code>OpenGnothia_1.8.1_aarch64.dmg</code>). <code>strings</code> süpürmesi release binary'sinde 38 <code>CREATE TABLE</code> ve geç migration tablo adlarını (<code>patient_intake_form</code> dahil) buldu — yeni yollar derleme anında gerçek SQL'i gömüyor. Grep süpürmesi: repoda <code>src-tauri/migrations</code> referansı kalmadı (yalnızca <code>.claude/plans/</code> tarihsel oturum notlarında, bilinçli bırakıldı). <b>Step 49 interaktif kısmı kullanıcıda</b> — DB silinip (<code>~/Library/Application Support/com.opengnothia.app/opengnothia.db</code>) temiz açılışta Onboarding + regresyon listesi doğrulanmalı; bu yüzden s49 işaretsiz.
+      </div>
+      <div class="note" style="border-left-color:var(--warn)">
+        <b>Dev döngüsü ayrıntısı:</b> migration'lar artık <code>src-tauri/</code> dışında olduğundan <code>tauri dev</code>'in dosya izleyicisi bir <code>.sql</code> düzenlemesini görmez (cargo, <code>include_str!</code> bağımlılığını dep-info'da izlediği için bir sonraki derleme değişikliği alır). Pratik etkisi düşük: yeni migration eklemek zaten <code>lib.rs</code>'e kayıt eklemeyi gerektirir, o da izlenen dizinde.
+      </div>
     </div>
   </details>
 

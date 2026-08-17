@@ -3,10 +3,10 @@
   "private": true,
   "packageManager": "pnpm@10.18.2",
   "scripts": {
-    "dev:web": "pnpm --filter @opengnothia/web tauri dev",
-    "dev:web:vite": "pnpm --filter @opengnothia/web dev",
-    "build:web": "pnpm --filter @opengnothia/web build",
-    "build:web:tauri": "pnpm --filter @opengnothia/web tauri build",
+    "dev:desktop": "pnpm --filter @opengnothia/desktop tauri dev",
+    "dev:desktop:vite": "pnpm --filter @opengnothia/desktop dev",
+    "build:desktop": "pnpm --filter @opengnothia/desktop build",
+    "build:desktop:tauri": "pnpm --filter @opengnothia/desktop tauri build",
     "dev:mobile": "pnpm --filter @opengnothia/mobile start"
   }
 }

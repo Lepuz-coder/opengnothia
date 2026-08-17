@@ -8,7 +8,7 @@ importers:
 
   .: {}
 
-  apps/web:
+  apps/desktop:
     dependencies:
       '@opengnothia/shared':
         specifier: workspace:*

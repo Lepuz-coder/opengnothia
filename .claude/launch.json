@@ -4,7 +4,7 @@
     {
       "name": "vite",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@opengnothia/web", "dev", "--", "--port", "5174"],
+      "runtimeArgs": ["--filter", "@opengnothia/desktop", "dev", "--", "--port", "5174"],
       "port": 5174
     }
   ]

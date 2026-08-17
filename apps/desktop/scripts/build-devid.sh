@@ -9,7 +9,7 @@
 #       --password "<your-app-specific-password>"
 #
 # Usage:
-#   ./apps/web/scripts/build-devid.sh (from apps/web: ./scripts/build-devid.sh)
+#   ./apps/desktop/scripts/build-devid.sh (from apps/desktop: ./scripts/build-devid.sh)
 
 set -euo pipefail
 

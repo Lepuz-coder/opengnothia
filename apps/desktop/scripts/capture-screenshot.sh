@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Take an App Store ready screenshot of the running OpenGnothia window.
 # Output: 2880x1800 PNG (Retina) — guaranteed accepted by App Store Connect.
-# Usage: ./scripts/capture-screenshot.sh (run from apps/web)
+# Usage: ./scripts/capture-screenshot.sh (run from apps/desktop)
 
 set -e
 

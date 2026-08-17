@@ -163,7 +163,7 @@ OpenGnothia includes carefully crafted therapeutic prompts for six different app
 ```
 opengnothia/
 ├── apps/
-│   └── web/                    # Desktop app (Tauri + React)
+│   └── desktop/                # Desktop app (Tauri + React)
 │       ├── src/                # React frontend
 │       │   ├── components/     # UI components (ui, chat, breathing, session, onboarding)
 │       │   ├── pages/          # Route pages (Dashboard, Session, Journal, etc.)

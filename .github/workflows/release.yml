@@ -54,7 +54,7 @@ jobs:
       - name: Cache Rust build
         uses: swatinem/rust-cache@v2
         with:
-          workspaces: './apps/web/src-tauri -> target'
+          workspaces: './apps/desktop/src-tauri -> target'
 
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
@@ -103,7 +103,7 @@ jobs:
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
         with:
-          projectPath: apps/web
+          projectPath: apps/desktop
           tagName: ${{ env.RELEASE_TAG }}
           releaseName: '${{ env.RELEASE_TAG }}'
           releaseBody: 'Download the signed and notarized macOS DMG or the Windows installer from the assets below.'
@@ -117,7 +117,7 @@ jobs:
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          dmg_path="$(find "$GITHUB_WORKSPACE/apps/web/src-tauri/target/universal-apple-darwin/release/bundle/dmg" -type f -name '*.dmg' -print -quit)"
+          dmg_path="$(find "$GITHUB_WORKSPACE/apps/desktop/src-tauri/target/universal-apple-darwin/release/bundle/dmg" -type f -name '*.dmg' -print -quit)"
 
           if [[ -z "$dmg_path" ]]; then
             echo "No macOS DMG was produced."
@@ -217,7 +217,7 @@ jobs:
       - name: Cache Rust build
         uses: swatinem/rust-cache@v2
         with:
-          workspaces: './apps/web/src-tauri -> target'
+          workspaces: './apps/desktop/src-tauri -> target'
 
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
@@ -227,7 +227,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          projectPath: apps/web
+          projectPath: apps/desktop
           tagName: ${{ env.RELEASE_TAG }}
           releaseName: '${{ env.RELEASE_TAG }}'
           releaseBody: 'Download the signed and notarized macOS DMG or the Windows installer from the assets below.'

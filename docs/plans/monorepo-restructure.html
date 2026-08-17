@@ -248,13 +248,14 @@
 
   <section class="hero">
     <h2>Monorepo Restructure: Tauri Desktop + Expo Mobile + Shared</h2>
-    <p>Mevcut tek paketli Tauri masaüstü uygulamasını <code>apps/web</code>, <code>apps/mobile</code>, <code>apps/backend</code> ve <code>packages/shared</code> olmak üzere dört paketli bir pnpm monorepo'suna dönüştürme planı. Başarı ölçütü: masaüstü uygulaması birebir aynı çalışır, release workflow installer üretmeye devam eder, mobil smoke test paylaşılan bir sorguyu expo-sqlite üzerinden çalıştırır, backend smoke testi workers.dev üzerindeki abonelik-korumalı AI proxy'sini curl ile doğrular.</p>
+    <p>Mevcut tek paketli Tauri masaüstü uygulamasını <code>apps/desktop</code>, <code>apps/mobile</code>, <code>apps/backend</code> ve <code>packages/shared</code> olmak üzere dört paketli bir pnpm monorepo'suna dönüştürme planı. Başarı ölçütü: masaüstü uygulaması birebir aynı çalışır, release workflow installer üretmeye devam eder, mobil smoke test paylaşılan bir sorguyu expo-sqlite üzerinden çalıştırır, backend smoke testi workers.dev üzerindeki abonelik-korumalı AI proxy'sini curl ile doğrular.</p>
     <div class="meta">
       <span class="chip">Branch <b>restructure/monorepo</b></span>
       <span class="chip">Baz sürüm <b>v1.6.0</b> → <b>v1.8.1</b> (master sync sonrası)</span>
       <span class="chip">12 faz · 88 adım</span>
       <span class="chip">Revizyon <b>2026-08-17</b> — mobil abonelik + backend (D13–D17)</span>
       <span class="chip">Master sync <b>2026-08-17</b> — v1.8.1 + imzalı release altyapısı alındı</span>
+      <span class="chip">Yeniden adlandırma <b>2026-08-17</b> — <code>apps/web</code> → <code>apps/desktop</code> (paket: <code>@opengnothia/desktop</code>)</span>
     </div>
   </section>
 
@@ -298,7 +299,7 @@
       <li>Codemod, hangi <code>@/</code> önekinin <code>@opengnothia/shared/*</code>'a gideceği, hangisinin uygulama-yerel kalacağı konusunda kesin olmalı.</li>
       <li><code>pnpm-lock.yaml</code> otoritedir; kökte kalmış <code>package-lock.json</code> silinmeli.</li>
       <li><code>release.yml</code> <code>pnpm install --frozen-lockfile</code> kullanıyor — yapı değişikliği, lockfile ve workflow yol referanslarını aynı anda güncellemeyi gerektirir.</li>
-      <li><b><code>apps/web/</code>'de kalması gereken Tauri-bağımlı yüzey:</b> <code>hooks/useAudioRecorder.ts</code>, <code>hooks/useCloseGuard.ts</code>, <code>components/LockScreen.tsx</code>, <code>components/onboarding/SecuritySetupStep.tsx</code>, <code>components/onboarding/ApiSetupStep.tsx</code>, <code>pages/SettingsPage.tsx</code>, <code>lib/store.ts</code>, <code>services/db/database.ts</code>, <code>services/data/dataPortService.ts</code>.</li>
+      <li><b><code>apps/desktop/</code>'de kalması gereken Tauri-bağımlı yüzey:</b> <code>hooks/useAudioRecorder.ts</code>, <code>hooks/useCloseGuard.ts</code>, <code>components/LockScreen.tsx</code>, <code>components/onboarding/SecuritySetupStep.tsx</code>, <code>components/onboarding/ApiSetupStep.tsx</code>, <code>pages/SettingsPage.tsx</code>, <code>lib/store.ts</code>, <code>services/db/database.ts</code>, <code>services/data/dataPortService.ts</code>.</li>
     </ul>
   </div>
 
@@ -316,7 +317,7 @@
     <details class="d">
       <summary><span class="dk">D2</span><span class="dt">Veritabanı katmanı için port &amp; adapter (hexagonal)</span></summary>
       <div class="d-body">
-        <p><b>Karar:</b> <code>packages/shared</code> bir <code>DatabasePort</code> arayüzü (<code>select</code>, <code>execute</code>) sunar. Her uygulama kendi adapter'ını verir — <code>apps/web</code> <code>@tauri-apps/plugin-sql</code>'i, <code>apps/mobile</code> <code>expo-sqlite</code>'ı sarar. Tüm sorgu mantığı shared'da yaşar ve portu tüketir.</p>
+        <p><b>Karar:</b> <code>packages/shared</code> bir <code>DatabasePort</code> arayüzü (<code>select</code>, <code>execute</code>) sunar. Her uygulama kendi adapter'ını verir — <code>apps/desktop</code> <code>@tauri-apps/plugin-sql</code>'i, <code>apps/mobile</code> <code>expo-sqlite</code>'ı sarar. Tüm sorgu mantığı shared'da yaşar ve portu tüketir.</p>
         <p><b>Neden:</b> 16 tablo ve ~1000 satır SQL en büyük tekrar riski. Tauri SQL ile expo-sqlite'ın yüzeyi neredeyse aynı, dolayısıyla port ~30 satır. Settings/fs/dialog kendi portlarını hak edecek kadar büyük değil.</p>
         <p><b>Reddedilen:</b> (a) Sorguları kopyala-yapıştır — kaçınılmaz kayma. (b) Drizzle gibi ORM — 16 tabloluk ham SQL'i taşımak çok daha büyük yatırım; port düzeni ileride ORM'e geçişi engellemiyor.</p>
       </div>
@@ -324,7 +325,7 @@
     <details class="d">
       <summary><span class="dk">D3</span><span class="dt">Hibrit <code>packages/shared</code> kapsamı — sorgular içeride, store'lar dışarıda</span></summary>
       <div class="d-body">
-        <p><b>Karar:</b> Shared: types, i18n, saf util'ler (<code>lib/cn.ts</code>, <code>formatTokens.ts</code>, <code>createBufferedTextStream.ts</code>, <code>createMarkerStrippedStream.ts</code>), AI servisleri, constants, DB port arayüzü, DB sorguları ve <code>runMigrations</code>. Zustand store'ları şimdilik <code>apps/web/src/stores/</code>'da kalır.</p>
+        <p><b>Karar:</b> Shared: types, i18n, saf util'ler (<code>lib/cn.ts</code>, <code>formatTokens.ts</code>, <code>createBufferedTextStream.ts</code>, <code>createMarkerStrippedStream.ts</code>), AI servisleri, constants, DB port arayüzü, DB sorguları ve <code>runMigrations</code>. Zustand store'ları şimdilik <code>apps/desktop/src/stores/</code>'da kalır.</p>
         <p><b>Neden:</b> Sorgular paylaşılmalı (D2). Store'lar şu an domain state (<code>messages</code>, <code>sessionId</code>) ile UI state'i (<code>insightsPanelOpen</code>, <code>pendingInsightDraft</code>) karıştırıyor; mobil UX tasarlanmadan ayırma yapmak erken olur.</p>
         <p><b>Reddedilen:</b> (a) Yalın shared — sorgu tekrarı riskini erteler. (b) Store'ları da içeren iddialı shared — mobil UX belirsizken erken.</p>
       </div>
@@ -348,7 +349,7 @@
       <summary><span class="dk">D6</span><span class="dt">Tek feature branch, tek PR, fazlara bölünmüş commit'ler</span></summary>
       <div class="d-body">
         <p><b>Karar:</b> Tüm iş <code>master</code>'dan çıkan <code>restructure/monorepo</code> üzerinde. Commit'ler faz bazlı. Tek PR ile birleştirme.</p>
-        <p><b>Neden:</b> Faz 1 (her şeyi <code>apps/web/</code>'e taşımak) doğası gereği atomik — Tauri config, Vite config, tsconfig path'leri birlikte değişir. Hem çalışır hem commit'lenebilir bir "yarı yapılandırılmış" durum yok.</p>
+        <p><b>Neden:</b> Faz 1 (her şeyi <code>apps/desktop/</code>'e taşımak) doğası gereği atomik — Tauri config, Vite config, tsconfig path'leri birlikte değişir. Hem çalışır hem commit'lenebilir bir "yarı yapılandırılmış" durum yok.</p>
         <p><b>Reddedilen:</b> (a) master'a artımlı PR'lar — atomiklik nedeniyle imkânsız. (b) Doğrudan master'a commit — canlı release workflow'unu kırma riski.</p>
       </div>
     </details>
@@ -370,14 +371,14 @@
     <details class="d">
       <summary><span class="dk">D9</span><span class="dt">Bağımsız uygulama sürümleri; kök ve shared private</span></summary>
       <div class="d-body">
-        <p><b>Karar:</b> <code>apps/web/package.json</code> + <code>tauri.conf.json</code> + <code>Cargo.toml</code> sürüm-senkron kalır (master sync sonrası <code>1.8.1</code>; plan yazılırken hedef 1.7.0 idi). <code>apps/mobile</code> <code>0.1.0</code>'dan başlar. <code>packages/shared</code> private, <code>0.0.0</code>, hiç bump edilmez. Kök <code>package.json</code> de private ve sürümsüz.</p>
+        <p><b>Karar:</b> <code>apps/desktop/package.json</code> + <code>tauri.conf.json</code> + <code>Cargo.toml</code> sürüm-senkron kalır (master sync sonrası <code>1.8.1</code>; plan yazılırken hedef 1.7.0 idi). <code>apps/mobile</code> <code>0.1.0</code>'dan başlar. <code>packages/shared</code> private, <code>0.0.0</code>, hiç bump edilmez. Kök <code>package.json</code> de private ve sürümsüz.</p>
         <p><b>Neden:</b> Web ve mobil bağımsız yayınlanacak. Mobil <code>0.1.0</code>'dayken web <code>1.8.1</code> ise tek monorepo sürümü yapay olur.</p>
       </div>
     </details>
     <details class="d">
       <summary><span class="dk">D10</span><span class="dt">Kök README birincil kalır; uygulama README'leri minimal</span></summary>
       <div class="d-body">
-        <p><b>Karar:</b> Mevcut kök <code>README.md</code> ana ürün README'si olarak kalır. Sonuna <code>apps/web/README.md</code> ve <code>apps/mobile/README.md</code>'ye işaret eden kısa bir "Development" bölümü eklenir.</p>
+        <p><b>Karar:</b> Mevcut kök <code>README.md</code> ana ürün README'si olarak kalır. Sonuna <code>apps/desktop/README.md</code> ve <code>apps/mobile/README.md</code>'ye işaret eden kısa bir "Development" bölümü eklenir.</p>
         <p><b>Neden:</b> Yıldız momentumu ve keşfedilebilirlik kökteki README'den geliyor; içeriği alt klasörlere dağıtmak projeyi yeni gelenlerden gizler.</p>
       </div>
     </details>
@@ -441,7 +442,7 @@
       <summary><span class="dk">YENİ</span><span class="dt">Kök seviyesi yeni dosyalar</span></summary>
       <div class="d-body">
         <table class="files">
-          <tr><td><code>package.json</code></td><td>workspace kökü, <code>"private": true</code>, script'ler (<code>dev:web</code>, <code>build:web</code> …), <code>packageManager</code> pin'i</td></tr>
+          <tr><td><code>package.json</code></td><td>workspace kökü, <code>"private": true</code>, script'ler (<code>dev:desktop</code>, <code>build:desktop</code> …), <code>packageManager</code> pin'i</td></tr>
           <tr><td><code>pnpm-workspace.yaml</code></td><td><code>apps/*</code>, <code>packages/*</code></td></tr>
           <tr><td><code>tsconfig.json</code></td><td>her pakete <code>references</code> veren orkestratör</td></tr>
           <tr><td><code>.gitignore</code></td><td>mevcut girdiler korunur; Expo'ya özgü olanlar Faz 9'da eklenir</td></tr>
@@ -449,22 +450,22 @@
       </div>
     </details>
     <details class="d">
-      <summary><span class="dk">TAŞI</span><span class="dt">Kök → <code>apps/web/</code></span></summary>
+      <summary><span class="dk">TAŞI</span><span class="dt">Kök → <code>apps/desktop/</code></span></summary>
       <div class="d-body">
         <table class="files">
-          <tr><td><code>src/</code>, <code>src-tauri/</code>, <code>assets/</code>, <code>dist/</code></td><td>olduğu gibi <code>apps/web/</code> altına</td></tr>
-          <tr><td><code>index.html</code>, <code>vite.config.ts</code></td><td>değişiklik gerekmez (<code>__dirname</code> <code>apps/web/</code> olur)</td></tr>
+          <tr><td><code>src/</code>, <code>src-tauri/</code>, <code>assets/</code>, <code>dist/</code></td><td>olduğu gibi <code>apps/desktop/</code> altına</td></tr>
+          <tr><td><code>index.html</code>, <code>vite.config.ts</code></td><td>değişiklik gerekmez (<code>__dirname</code> <code>apps/desktop/</code> olur)</td></tr>
           <tr><td><code>tsconfig.json</code>, <code>tsconfig.node.json</code>, <code>package.json</code></td><td>taşınır ve düzenlenir</td></tr>
         </table>
         <p style="margin-top:10px">Kökte kalanlar: <code>node_modules/</code>, <code>pnpm-lock.yaml</code>, <code>README.md</code>, <code>LICENSE</code>, <code>.gitignore</code>, <code>.github/</code>, <code>.claude/</code>.</p>
       </div>
     </details>
     <details class="d">
-      <summary><span class="dk">DÜZENLE</span><span class="dt"><code>apps/web/</code> içi değişiklikler</span></summary>
+      <summary><span class="dk">DÜZENLE</span><span class="dt"><code>apps/desktop/</code> içi değişiklikler</span></summary>
       <div class="d-body">
         <table class="files">
-          <tr><td><code>apps/web/package.json</code></td><td>ad <code>@opengnothia/web</code>, <code>@opengnothia/shared</code> workspace bağımlılığı, sürüm <code>1.8.1</code> (master sync)</td></tr>
-          <tr><td><code>apps/web/tsconfig.json</code></td><td><code>@/*</code> path'leri korunur; shared çözümü <code>exports</code> haritası üzerinden</td></tr>
+          <tr><td><code>apps/desktop/package.json</code></td><td>ad <code>@opengnothia/desktop</code>, <code>@opengnothia/shared</code> workspace bağımlılığı, sürüm <code>1.8.1</code> (master sync)</td></tr>
+          <tr><td><code>apps/desktop/tsconfig.json</code></td><td><code>@/*</code> path'leri korunur; shared çözümü <code>exports</code> haritası üzerinden</td></tr>
           <tr><td><code>src-tauri/tauri.conf.json</code></td><td><code>$schema</code> yolu doğrulanır; sürüm <code>1.8.1</code> (master sync)</td></tr>
           <tr><td><code>src-tauri/Cargo.toml</code></td><td>sürüm <code>1.8.1</code> (master sync)</td></tr>
           <tr><td><code>src-tauri/src/lib.rs</code></td><td>17 <code>include_str!</code> yolu <code>../../../../packages/shared/migrations/…</code> olur</td></tr>
@@ -480,13 +481,13 @@
           <tr><td><code>src/db/port.ts</code></td><td><code>DatabasePort</code> arayüzü</td></tr>
           <tr><td><code>src/db/queries.ts</code></td><td><code>src/services/db/queries.ts</code>'den taşınır, factory'ye çevrilir</td></tr>
           <tr><td><code>src/db/runMigrations.ts</code></td><td><code>PRAGMA user_version</code> ile bekleyen migration'ları uygular</td></tr>
-          <tr><td><code>migrations/*.sql</code></td><td><code>apps/web/src-tauri/migrations/</code>'dan taşınan 17 dosya</td></tr>
-          <tr><td><code>src/types/</code>, <code>src/i18n/</code>, <code>src/constants/</code>, <code>src/ai/</code>, <code>src/lib/</code></td><td><code>apps/web/src/</code>'den taşınan saf modüller</td></tr>
+          <tr><td><code>migrations/*.sql</code></td><td><code>apps/desktop/src-tauri/migrations/</code>'dan taşınan 17 dosya</td></tr>
+          <tr><td><code>src/types/</code>, <code>src/i18n/</code>, <code>src/constants/</code>, <code>src/ai/</code>, <code>src/lib/</code></td><td><code>apps/desktop/src/</code>'den taşınan saf modüller</td></tr>
         </table>
       </div>
     </details>
     <details class="d">
-      <summary><span class="dk">KALIR</span><span class="dt"><code>apps/web/src/</code>'de kalanlar + yeni dosyalar</span></summary>
+      <summary><span class="dk">KALIR</span><span class="dt"><code>apps/desktop/src/</code>'de kalanlar + yeni dosyalar</span></summary>
       <div class="d-body">
         <p><b>Kalır:</b> <code>components/</code> (51), <code>pages/</code> (13), <code>hooks/</code>, <code>stores/</code> (7, D3 gereği), <code>App.tsx</code>, <code>main.tsx</code>, <code>styles.css</code>, <code>vite-env.d.ts</code>, <code>lib/security.ts</code>, <code>lib/store.ts</code>, <code>services/data/dataPortService.ts</code>. Bunların yalnızca import'ları yeniden yazılır.</p>
         <p><b>Yeni:</b> <code>src/adapters/tauriSqlAdapter.ts</code> (<code>DatabasePort</code> implementasyonu) ve <code>src/db/index.ts</code> (bootstrap: Tauri DB yükle, adapter'a sar, <code>createQueries(adapter)</code>, tekil <code>queries</code> dışa ver). <code>services/db/database.ts</code> bunlarla <b>değiştirilir</b>.</p>
@@ -510,8 +511,8 @@
       <summary><span class="dk">MOBIL</span><span class="dt"><code>apps/mobile/</code> + CI + dokümantasyon + silinenler</span></summary>
       <div class="d-body">
         <p><b>Mobil:</b> <code>package.json</code> (Expo TS, <code>@opengnothia/shared</code> + <code>expo-sqlite</code>), <code>app.json</code>, <code>tsconfig.json</code>, <code>babel.config.js</code>, monorepo'ya ayarlı <code>metro.config.js</code>, smoke test <code>App.tsx</code>, <code>src/adapters/expoSqliteAdapter.ts</code>, <code>README.md</code>.</p>
-        <p><b>CI:</b> <code>.github/workflows/release.yml</code> — <code>swatinem/rust-cache</code> <code>workspaces</code> yolu <code>./apps/web/src-tauri -> target</code>, Tauri action'a <code>projectPath: apps/web</code>; <code>pnpm install</code> kökten çalışmaya devam eder.</p>
-        <p><b>Dokümantasyon:</b> kök <code>README.md</code>'ye "Development" bölümü; yeni <code>apps/web/README.md</code>.</p>
+        <p><b>CI:</b> <code>.github/workflows/release.yml</code> — <code>swatinem/rust-cache</code> <code>workspaces</code> yolu <code>./apps/desktop/src-tauri -> target</code>, Tauri action'a <code>projectPath: apps/desktop</code>; <code>pnpm install</code> kökten çalışmaya devam eder.</p>
+        <p><b>Dokümantasyon:</b> kök <code>README.md</code>'ye "Development" bölümü; yeni <code>apps/desktop/README.md</code>.</p>
         <p><b>Silinenler:</b> kök <code>package-lock.json</code>; bayat <code>claude/*</code> uzak branch'leri; onaylanırsa <code>courses</code> branch'i.</p>
       </div>
     </details>
@@ -553,23 +554,23 @@
     </div>
   </details>
 
-  <details class="phase" id="phase-1" data-phase="1" data-name="Faz 1" data-title="apps/web taşıması">
+  <details class="phase" id="phase-1" data-phase="1" data-name="Faz 1" data-title="apps/desktop taşıması">
     <summary>
       <span class="caret">▶</span>
-      <span class="ph-title">Faz 1 — <em>Web kodunu <code>apps/web/</code> altına taşı (atomik, tek commit)</em></span>
+      <span class="ph-title">Faz 1 — <em>Web kodunu <code>apps/desktop/</code> altına taşı (atomik, tek commit)</em></span>
       <span class="ph-badge" data-badge></span>
     </summary>
     <div class="ph-body">
       <ul class="steps">
-        <li><label class="step"><input type="checkbox" data-track id="s5" data-seed><span class="body"><span class="no">Step 5</span><span class="txt"><code>mkdir -p apps/web</code> (ve gerekirse <code>apps/mobile</code>, <code>packages/shared</code> için <code>.gitkeep</code> yer tutucuları).</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s6" data-seed><span class="body"><span class="no">Step 6</span><span class="txt"><code>git mv</code> ile taşı: <code>src/</code>, <code>src-tauri/</code>, <code>index.html</code>, <code>vite.config.ts</code>, <code>tsconfig.json</code>, <code>tsconfig.node.json</code>, <code>package.json</code>, <code>assets/</code> → <code>apps/web/</code>.</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s7" data-seed><span class="body"><span class="no">Step 7</span><span class="txt">Verify <code>tauri.conf.json</code> paths still resolve: <code>frontendDist: "../dist"</code> → <code>apps/web/dist</code> ✓; <code>$schema</code> → <code>apps/web/node_modules/…</code>, works once Phase 2's pnpm install creates per-package symlinks.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s5" data-seed><span class="body"><span class="no">Step 5</span><span class="txt"><code>mkdir -p apps/desktop</code> (ve gerekirse <code>apps/mobile</code>, <code>packages/shared</code> için <code>.gitkeep</code> yer tutucuları).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s6" data-seed><span class="body"><span class="no">Step 6</span><span class="txt"><code>git mv</code> ile taşı: <code>src/</code>, <code>src-tauri/</code>, <code>index.html</code>, <code>vite.config.ts</code>, <code>tsconfig.json</code>, <code>tsconfig.node.json</code>, <code>package.json</code>, <code>assets/</code> → <code>apps/desktop/</code>.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s7" data-seed><span class="body"><span class="no">Step 7</span><span class="txt">Verify <code>tauri.conf.json</code> paths still resolve: <code>frontendDist: "../dist"</code> → <code>apps/desktop/dist</code> ✓; <code>$schema</code> → <code>apps/desktop/node_modules/…</code>, works once Phase 2's pnpm install creates per-package symlinks.</span></span></label></li>
         <li><label class="step"><input type="checkbox" data-track id="s8" data-seed><span class="body"><span class="no">Step 8</span><span class="txt">Verify <code>vite.config.ts</code>'in <code>path.resolve(__dirname, "./src")</code> ifadesi hâlâ doğru çözülüyor.</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s9" data-seed><span class="body"><span class="tag verify">Doğrulama</span><span class="no">Step 9</span><span class="txt"><code>cd apps/web &amp;&amp; pnpm install &amp;&amp; pnpm tauri dev</code>. Masaüstü uygulaması birebir açılmalı. En az Dashboard ve Settings açılarak smoke test yapılır; tam regresyon Faz 2 sonrası.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s9" data-seed><span class="body"><span class="tag verify">Doğrulama</span><span class="no">Step 9</span><span class="txt"><code>cd apps/desktop &amp;&amp; pnpm install &amp;&amp; pnpm tauri dev</code>. Masaüstü uygulaması birebir açılmalı. En az Dashboard ve Settings açılarak smoke test yapılır; tam regresyon Faz 2 sonrası.</span></span></label></li>
         <li><label class="step"><input type="checkbox" data-track id="s10" data-seed><span class="body"><span class="tag commit">Commit</span><span class="no">Step 10</span><span class="txt"><code>feat(monorepo): move web code into apps/web</code></span></span></label></li>
       </ul>
       <div class="note">
-        <b>Faz 1 notu — 2026-05-20'de tamamlandı.</b> 8 girdi <code>git mv</code> ile taşındı (232 yol değişikliği, 0 içerik değişikliği). <code>apps/web/</code> içinden <code>pnpm install</code>, <code>apps/web/node_modules/</code> ve mükerrer bir <code>apps/web/pnpm-lock.yaml</code> üretti — Faz 2'nin lockfile konsolidasyonu için yerinde bırakıldı. <code>pnpm build</code> (tsc + vite) başarılı. <code>cargo check</code> ilk denemede patladı: <code>target/</code> cache'i fiziksel olarak taşınsa da içinde eski <code>src-tauri/target/…</code> mutlak yolları vardı; tek seferlik <code>cargo clean</code> (12 GiB) sonrası tam yeniden derleme temiz geçti. İnteraktif smoke test (<code>pnpm tauri dev</code>) geçti.
+        <b>Faz 1 notu — 2026-05-20'de tamamlandı.</b> 8 girdi <code>git mv</code> ile taşındı (232 yol değişikliği, 0 içerik değişikliği). <i>2026-08-17: dizin <code>apps/web</code> → <code>apps/desktop</code>, paket <code>@opengnothia/desktop</code> olarak yeniden adlandırıldı (uygulama web değil Tauri masaüstü); plandaki tüm yollar yeni ada güncellendi, yalnızca yukarıdaki tarihsel commit mesajı orijinal haliyle duruyor.</i> <code>apps/desktop/</code> içinden <code>pnpm install</code>, <code>apps/desktop/node_modules/</code> ve mükerrer bir <code>apps/desktop/pnpm-lock.yaml</code> üretti — Faz 2'nin lockfile konsolidasyonu için yerinde bırakıldı. <code>pnpm build</code> (tsc + vite) başarılı. <code>cargo check</code> ilk denemede patladı: <code>target/</code> cache'i fiziksel olarak taşınsa da içinde eski <code>src-tauri/target/…</code> mutlak yolları vardı; tek seferlik <code>cargo clean</code> (12 GiB) sonrası tam yeniden derleme temiz geçti. İnteraktif smoke test (<code>pnpm tauri dev</code>) geçti.
       </div>
     </div>
   </details>
@@ -582,7 +583,7 @@
     </summary>
     <div class="ph-body">
       <ul class="steps">
-        <li><label class="step"><input type="checkbox" data-track id="s11" data-seed><span class="body"><span class="no">Step 11</span><span class="txt">Kökten <code>node_modules/</code> ve <code>package-lock.json</code>'ı sil. <code>pnpm-lock.yaml</code>'ı kökte konsolide et (Faz 1'deki <code>apps/web</code> install'ı ikinci bir lockfile üretmiş olabilir).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s11" data-seed><span class="body"><span class="no">Step 11</span><span class="txt">Kökten <code>node_modules/</code> ve <code>package-lock.json</code>'ı sil. <code>pnpm-lock.yaml</code>'ı kökte konsolide et (Faz 1'deki <code>apps/desktop</code> install'ı ikinci bir lockfile üretmiş olabilir).</span></span></label></li>
         <li><label class="step"><input type="checkbox" data-track id="s12" data-seed><span class="body"><span class="no">Step 12</span><span class="txt">Kökte <code>pnpm-workspace.yaml</code> oluştur:<pre><code>packages:
   - "apps/*"
   - "packages/*"</code></pre></span></span></label></li>
@@ -591,20 +592,20 @@
   "private": true,
   "packageManager": "pnpm@9.15.0",
   "scripts": {
-    "dev:web": "pnpm --filter @opengnothia/web tauri dev",
-    "dev:web:vite": "pnpm --filter @opengnothia/web dev",
-    "build:web": "pnpm --filter @opengnothia/web build",
-    "build:web:tauri": "pnpm --filter @opengnothia/web tauri build",
+    "dev:desktop": "pnpm --filter @opengnothia/desktop tauri dev",
+    "dev:desktop:vite": "pnpm --filter @opengnothia/desktop dev",
+    "build:desktop": "pnpm --filter @opengnothia/desktop build",
+    "build:desktop:tauri": "pnpm --filter @opengnothia/desktop tauri build",
     "dev:mobile": "pnpm --filter @opengnothia/mobile start"
   }
 }</code></pre></span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s14" data-seed><span class="body"><span class="no">Step 14</span><span class="txt"><code>apps/web/package.json</code> adını <code>@opengnothia/web</code> yap. <code>packageManager</code> yalnızca kökte.</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s15" data-seed><span class="body"><span class="no">Step 15</span><span class="txt">Kökten <code>pnpm install</code>. Tek bir kök <code>node_modules/</code> + <code>.pnpm/</code> ve doğru <code>apps/web/node_modules/</code> symlink'leri oluşmalı.</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s16" data-seed><span class="body"><span class="tag reg">UI Regresyonu</span><span class="no">Step 16</span><span class="txt"><code>pnpm dev:web</code> masaüstü uygulamasını açmalı ve <a href="#regression">tam UI regresyon listesi</a> geçmeli.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s14" data-seed><span class="body"><span class="no">Step 14</span><span class="txt"><code>apps/desktop/package.json</code> adını <code>@opengnothia/desktop</code> yap. <code>packageManager</code> yalnızca kökte.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s15" data-seed><span class="body"><span class="no">Step 15</span><span class="txt">Kökten <code>pnpm install</code>. Tek bir kök <code>node_modules/</code> + <code>.pnpm/</code> ve doğru <code>apps/desktop/node_modules/</code> symlink'leri oluşmalı.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s16" data-seed><span class="body"><span class="tag reg">UI Regresyonu</span><span class="no">Step 16</span><span class="txt"><code>pnpm dev:desktop</code> masaüstü uygulamasını açmalı ve <a href="#regression">tam UI regresyon listesi</a> geçmeli.</span></span></label></li>
         <li><label class="step"><input type="checkbox" data-track id="s17" data-seed><span class="body"><span class="tag commit">Commit</span><span class="no">Step 17</span><span class="txt"><code>chore(monorepo): set up pnpm workspace</code></span></span></label></li>
       </ul>
       <div class="note">
-        <b>Faz 2 notu — 2026-05-20'de tamamlandı.</b> Açık Soru #1, <code>@opengnothia/shared</code>/<code>@opengnothia/mobile</code> ile tutarlılık için <code>@opengnothia/web</code> lehine kapatıldı. <code>packageManager</code> <code>pnpm@10.18.2</code>'ye sabitlendi (Step 13'teki <code>9.15.0</code> planlama anındaki yer tutucuydu). Temizlik: <code>git rm package-lock.json</code>, kök ve <code>apps/web/node_modules/</code> silindi, mükerrer <code>apps/web/pnpm-lock.yaml</code> silindi. Kurulum sonrası kök <code>node_modules/</code> yalnızca <code>.pnpm/</code> + meta dosyaları tutuyor; <code>apps/web/node_modules/</code> sanal mağazaya 17 symlink veriyor. Doğrulama: <code>pnpm build:web</code> ~1.8s, <code>cargo check</code> 0.62s; Dashboard, Sessions (<code>plugin-sql</code>), Settings (<code>plugin-store</code>) ve Export (<code>plugin-fs</code> + <code>plugin-dialog</code>) elle denendi — dört native binding de çalışıyor.
+        <b>Faz 2 notu — 2026-05-20'de tamamlandı.</b> Açık Soru #1, <code>@opengnothia/shared</code>/<code>@opengnothia/mobile</code> ile tutarlılık için <code>@opengnothia/desktop</code> lehine kapatıldı. <code>packageManager</code> <code>pnpm@10.18.2</code>'ye sabitlendi (Step 13'teki <code>9.15.0</code> planlama anındaki yer tutucuydu). Temizlik: <code>git rm package-lock.json</code>, kök ve <code>apps/desktop/node_modules/</code> silindi, mükerrer <code>apps/desktop/pnpm-lock.yaml</code> silindi. Kurulum sonrası kök <code>node_modules/</code> yalnızca <code>.pnpm/</code> + meta dosyaları tutuyor; <code>apps/desktop/node_modules/</code> sanal mağazaya 17 symlink veriyor. Doğrulama: <code>pnpm build:desktop</code> ~1.8s, <code>cargo check</code> 0.62s; Dashboard, Sessions (<code>plugin-sql</code>), Settings (<code>plugin-store</code>) ve Export (<code>plugin-fs</code> + <code>plugin-dialog</code>) elle denendi — dört native binding de çalışıyor.
         <br><br><b>Sapma:</b> Faz 2 sıfır uygulama kodu değiştirdiği için 30 maddelik tam regresyon çalıştırılmadı; kapsamlı regresyon gerçek refactor'ların indiği Faz 4–5'e ertelendi.
       </div>
     </div>
@@ -639,18 +640,18 @@
 }</code></pre></span></span></label></li>
         <li><label class="step"><input type="checkbox" data-track id="s19" data-seed><span class="body"><span class="no">Step 19</span><span class="txt"><code>packages/shared/tsconfig.json</code>'ı oluştur; web tsconfig'iyle uyumlu derleyici seçenekleri, <code>"composite": true</code>.</span></span></label></li>
         <li><label class="step"><input type="checkbox" data-track id="s20" data-seed><span class="body"><span class="no">Step 20</span><span class="txt">Yer tutucu <code>packages/shared/src/index.ts</code>: <code>export const __sharedLoaded = true;</code></span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s21" data-seed><span class="body"><span class="no">Step 21</span><span class="txt"><code>apps/web/package.json</code> bağımlılıklarına <code>"@opengnothia/shared": "workspace:*"</code> ekle, <code>pnpm install</code> çalıştır.</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s22" data-seed><span class="body"><span class="no">Step 22</span><span class="txt">Doğrulama için <code>apps/web/src/main.tsx</code>'e geçici import ekle: <code>import { __sharedLoaded } from "@opengnothia/shared";</code></span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s23" data-seed><span class="body"><span class="no">Step 23</span><span class="txt"><code>apps/web/tsconfig.json</code>'a <code>"references": [{ "path": "../../packages/shared" }]</code> ekle ve kök <code>tsconfig.json</code>'ı referanslarla oluştur.</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s24" data-seed><span class="body"><span class="tag verify">Doğrulama</span><span class="no">Step 24</span><span class="txt"><code>pnpm --filter @opengnothia/web dev</code> hatasız derlenir, geçici import çözülür, Dashboard konsol hatasız açılır.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s21" data-seed><span class="body"><span class="no">Step 21</span><span class="txt"><code>apps/desktop/package.json</code> bağımlılıklarına <code>"@opengnothia/shared": "workspace:*"</code> ekle, <code>pnpm install</code> çalıştır.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s22" data-seed><span class="body"><span class="no">Step 22</span><span class="txt">Doğrulama için <code>apps/desktop/src/main.tsx</code>'e geçici import ekle: <code>import { __sharedLoaded } from "@opengnothia/shared";</code></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s23" data-seed><span class="body"><span class="no">Step 23</span><span class="txt"><code>apps/desktop/tsconfig.json</code>'a <code>"references": [{ "path": "../../packages/shared" }]</code> ekle ve kök <code>tsconfig.json</code>'ı referanslarla oluştur.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s24" data-seed><span class="body"><span class="tag verify">Doğrulama</span><span class="no">Step 24</span><span class="txt"><code>pnpm --filter @opengnothia/desktop dev</code> hatasız derlenir, geçici import çözülür, Dashboard konsol hatasız açılır.</span></span></label></li>
         <li><label class="step"><input type="checkbox" data-track id="s25" data-seed><span class="body"><span class="tag commit">Commit</span><span class="no">Step 25</span><span class="txt">Geçici import'u kaldır, yer tutucu dosya kalsın. <code>chore(shared): scaffold @opengnothia/shared package</code></span></span></label></li>
       </ul>
       <div class="note">
         <b>Faz 3 notu — 2026-05-20'de tamamlandı.</b> <code>packages/shared</code> composite <code>tsconfig.json</code> ile kuruldu; <code>exports</code> haritasına Step 18 spesifikasyonunun ötesinde bir <code>"."</code> kök girdisi eklendi (Step 22'nin çıplak import'u bunu gerektiriyor). Kök <code>tsconfig.json</code> yalnızca <code>./packages/shared</code>'a referans veren bir solution dosyası.
       </div>
       <div class="note" style="border-left-color:var(--warn)">
-        <b>Sapma (Step 23).</b> <code>apps/web/tsconfig.json</code> → <code>packages/shared</code> project reference'ı düşürüldü: <code>tsc --noEmit</code> TS6305 verdi ("Output file dist/src/index.d.ts has not been built from source file src/index.ts") — composite project reference'lar referans verilen projenin emit'ini şart koşuyor, oysa kaynak-modu shared (D8) hiç build almıyor. <code>apps/web</code>, <code>@opengnothia/shared</code>'ı tamamen <code>package.json</code> <code>exports</code> + <code>moduleResolution: "bundler"</code> üzerinden çözüyor; TS ve Vite bunu doğal olarak destekliyor.
-        <br><br><b>Doğrulama:</b> <code>tsc --noEmit</code> temiz; <code>pnpm build:web</code> temiz, 2117 modül; runtime smoke <code>[shared] loaded: true</code> bastı; geçici import geri alındı, <code>main.tsx</code> orijinal 11 satırlık hâline döndü.
+        <b>Sapma (Step 23).</b> <code>apps/desktop/tsconfig.json</code> → <code>packages/shared</code> project reference'ı düşürüldü: <code>tsc --noEmit</code> TS6305 verdi ("Output file dist/src/index.d.ts has not been built from source file src/index.ts") — composite project reference'lar referans verilen projenin emit'ini şart koşuyor, oysa kaynak-modu shared (D8) hiç build almıyor. <code>apps/desktop</code>, <code>@opengnothia/shared</code>'ı tamamen <code>package.json</code> <code>exports</code> + <code>moduleResolution: "bundler"</code> üzerinden çözüyor; TS ve Vite bunu doğal olarak destekliyor.
+        <br><br><b>Doğrulama:</b> <code>tsc --noEmit</code> temiz; <code>pnpm build:desktop</code> temiz, 2117 modül; runtime smoke <code>[shared] loaded: true</code> bastı; geçici import geri alındı, <code>main.tsx</code> orijinal 11 satırlık hâline döndü.
       </div>
     </div>
   </details>
@@ -663,36 +664,36 @@
     </summary>
     <div class="ph-body">
       <ul class="steps">
-        <li><label class="step"><input type="checkbox" data-track id="s26" data-seed><span class="body"><span class="no">Step 26</span><span class="txt"><code>git mv apps/web/src/types packages/shared/src/types</code></span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s27" data-seed><span class="body"><span class="no">Step 27</span><span class="txt"><code>git mv apps/web/src/i18n packages/shared/src/i18n</code></span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s28" data-seed><span class="body"><span class="no">Step 28</span><span class="txt"><code>git mv apps/web/src/constants packages/shared/src/constants</code></span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s29" data-seed><span class="body"><span class="no">Step 29</span><span class="txt"><code>git mv apps/web/src/services/ai packages/shared/src/ai</code></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s26" data-seed><span class="body"><span class="no">Step 26</span><span class="txt"><code>git mv apps/desktop/src/types packages/shared/src/types</code></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s27" data-seed><span class="body"><span class="no">Step 27</span><span class="txt"><code>git mv apps/desktop/src/i18n packages/shared/src/i18n</code></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s28" data-seed><span class="body"><span class="no">Step 28</span><span class="txt"><code>git mv apps/desktop/src/constants packages/shared/src/constants</code></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s29" data-seed><span class="body"><span class="no">Step 29</span><span class="txt"><code>git mv apps/desktop/src/services/ai packages/shared/src/ai</code></span></span></label></li>
         <li><label class="step"><input type="checkbox" data-track id="s30" data-seed><span class="body"><span class="no">Step 30</span><span class="txt"><code>git mv</code> ile 4 saf util: <code>lib/cn.ts</code>, <code>lib/formatTokens.ts</code>, <code>lib/createBufferedTextStream.ts</code>, <code>lib/createMarkerStrippedStream.ts</code> → <code>packages/shared/src/lib/</code></span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s31" data-seed><span class="body"><span class="no">Step 31</span><span class="txt"><code>apps/web/src/</code> genelinde import'ları yeniden yaz (<code>sed -i '' -E</code> veya <code>grep -rl … | xargs sed -i</code>): <code>@/types</code>, <code>@/i18n</code>, <code>@/constants</code>, <code>@/services/ai/*</code>, dört <code>@/lib/*</code> → <code>@opengnothia/shared/…</code>. <code>@/lib/security</code>, <code>@/lib/store</code>, <code>@/services/data/*</code>, <code>@/services/db/*</code> dokunulmaz.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s31" data-seed><span class="body"><span class="no">Step 31</span><span class="txt"><code>apps/desktop/src/</code> genelinde import'ları yeniden yaz (<code>sed -i '' -E</code> veya <code>grep -rl … | xargs sed -i</code>): <code>@/types</code>, <code>@/i18n</code>, <code>@/constants</code>, <code>@/services/ai/*</code>, dört <code>@/lib/*</code> → <code>@opengnothia/shared/…</code>. <code>@/lib/security</code>, <code>@/lib/store</code>, <code>@/services/data/*</code>, <code>@/services/db/*</code> dokunulmaz.</span></span></label></li>
         <li><label class="step"><input type="checkbox" data-track id="s32" data-seed><span class="body"><span class="no">Step 32</span><span class="txt">Taşınan dosyaların <b>kendi içindeki</b> import'ları düzelt: <code>packages/shared/src/</code> içindeki her <code>@/…</code> göreli yola çevrilmeli. <code>grep -rn "from \"@/" packages/shared/</code> ile süpür.</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s33" data-seed><span class="body"><span class="tag verify">Doğrulama</span><span class="no">Step 33</span><span class="txt"><code>pnpm --filter @opengnothia/web build</code> tip kontrolünden temiz geçer.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s33" data-seed><span class="body"><span class="tag verify">Doğrulama</span><span class="no">Step 33</span><span class="txt"><code>pnpm --filter @opengnothia/desktop build</code> tip kontrolünden temiz geçer.</span></span></label></li>
         <li><label class="step"><input type="checkbox" data-track id="s34" data-seed><span class="body"><span class="tag reg">UI Regresyonu</span><span class="no">Step 34</span><span class="txt"><a href="#regression">Tam UI regresyon listesi</a>. Özellikle taşınan modülleri yoğun kullanan sayfalar: AI (SessionPage, OnboardingPage interview, AnalysesPage), i18n (tümü), types (tümü).</span></span></label></li>
         <li><label class="step"><input type="checkbox" data-track id="s35" data-seed><span class="body"><span class="tag commit">Commit</span><span class="no">Step 35</span><span class="txt"><code>refactor(monorepo): extract pure modules into @opengnothia/shared</code></span></span></label></li>
       </ul>
       <div class="note">
-        <b>Faz 4 notu — 2026-05-21'de tamamlandı.</b> 46 dosya <code>git mv</code> ile taşındı (types/, i18n/, constants/ dizinleri; 11 <code>ai/*</code> dosyasından 8'i; 4 saf <code>lib/*</code>); codemod 75 dosyayı değiştirdi. <code>apps/web/src/</code>'deki 178 <code>@/…</code> import'u <code>@opengnothia/shared/…</code>'a çevrildi; shared içindeki tüm <code>@/</code> import'ları göreli yola döndü. Step 31 seçici uygulandı — codemod yalnızca gerçekten taşınan 8 ai dosyasıyla sınırlandı.
+        <b>Faz 4 notu — 2026-05-21'de tamamlandı.</b> 46 dosya <code>git mv</code> ile taşındı (types/, i18n/, constants/ dizinleri; 11 <code>ai/*</code> dosyasından 8'i; 4 saf <code>lib/*</code>); codemod 75 dosyayı değiştirdi. <code>apps/desktop/src/</code>'deki 178 <code>@/…</code> import'u <code>@opengnothia/shared/…</code>'a çevrildi; shared içindeki tüm <code>@/</code> import'ları göreli yola döndü. Step 31 seçici uygulandı — codemod yalnızca gerçekten taşınan 8 ai dosyasıyla sınırlandı.
       </div>
       <div class="note" style="border-left-color:var(--warn)">
-        <b>Sapma #1 — i18n bağımlılık enjeksiyonu.</b> <code>packages/shared/src/i18n/index.ts</code> <code>apps/web</code>'den <code>useSettingsStore</code> import ediyordu (D3 ihlali). <code>setLanguageBindings({ useLanguage, getLanguage })</code> sunacak şekilde yeniden yazıldı; <code>apps/web/src/main.tsx</code> Zustand destekli binding'leri <code>ReactDOM.render</code>'dan önce bağlıyor. Tüm <code>getCurrentLanguage</code>/<code>useTranslation</code> çağrıları fonksiyon gövdelerinin içinde (grep ile doğrulandı), dolayısıyla import sonrası binding güvenli; binding öncesi pencere için <code>() =&gt; "tr"</code> fallback'i var.
+        <b>Sapma #1 — i18n bağımlılık enjeksiyonu.</b> <code>packages/shared/src/i18n/index.ts</code> <code>apps/desktop</code>'den <code>useSettingsStore</code> import ediyordu (D3 ihlali). <code>setLanguageBindings({ useLanguage, getLanguage })</code> sunacak şekilde yeniden yazıldı; <code>apps/desktop/src/main.tsx</code> Zustand destekli binding'leri <code>ReactDOM.render</code>'dan önce bağlıyor. Tüm <code>getCurrentLanguage</code>/<code>useTranslation</code> çağrıları fonksiyon gövdelerinin içinde (grep ile doğrulandı), dolayısıyla import sonrası binding güvenli; binding öncesi pencere için <code>() =&gt; "tr"</code> fallback'i var.
       </div>
       <div class="note" style="border-left-color:var(--warn)">
-        <b>Sapma #2 — üç <code>services/ai/*</code> dosyası ertelendi.</b> <code>backgroundNotes.ts</code>, <code>courseNotes.ts</code> ve <code>promptBuilder.ts</code>, D3'ün uygulama-yerel tuttuğu modülleri (<code>useAppStore</code>, <code>useSchoolsStore.getSchoolById</code>, <code>services/db/queries</code>) import ettikleri için <code>apps/web/src/services/ai/</code>'de kaldı. Faz 5 sorguları shared'a taşıyıp bir schools-accessor deseni kararlaştırıldığında taşınacaklar. Taşınan kardeşlerine (<code>aiService</code>, <code>costCalculator</code>) yaptıkları import'lar yine de <code>@opengnothia/shared/ai/*</code>'a çevrildi, böylece derleniyorlar.
+        <b>Sapma #2 — üç <code>services/ai/*</code> dosyası ertelendi.</b> <code>backgroundNotes.ts</code>, <code>courseNotes.ts</code> ve <code>promptBuilder.ts</code>, D3'ün uygulama-yerel tuttuğu modülleri (<code>useAppStore</code>, <code>useSchoolsStore.getSchoolById</code>, <code>services/db/queries</code>) import ettikleri için <code>apps/desktop/src/services/ai/</code>'de kaldı. Faz 5 sorguları shared'a taşıyıp bir schools-accessor deseni kararlaştırıldığında taşınacaklar. Taşınan kardeşlerine (<code>aiService</code>, <code>costCalculator</code>) yaptıkları import'lar yine de <code>@opengnothia/shared/ai/*</code>'a çevrildi, böylece derleniyorlar.
       </div>
       <div class="note" style="border-left-color:var(--warn)">
-        <b>Sapma #3 — TEST sabitleri satır içine alındı.</b> Yalnızca <code>aiService.testApiKey</code> tarafından kullanılan <code>TEST_MESSAGE</code> / <code>TEST_SYSTEM_PROMPT</code>, shared <code>ai/aiService.ts</code> içine gömüldü; orijinalleri ertelenen <code>promptBuilder.ts</code>'den silindi. Taşınan aiService'i <code>apps/web</code>'e geri referans vermekten kurtarır.
+        <b>Sapma #3 — TEST sabitleri satır içine alındı.</b> Yalnızca <code>aiService.testApiKey</code> tarafından kullanılan <code>TEST_MESSAGE</code> / <code>TEST_SYSTEM_PROMPT</code>, shared <code>ai/aiService.ts</code> içine gömüldü; orijinalleri ertelenen <code>promptBuilder.ts</code>'den silindi. Taşınan aiService'i <code>apps/desktop</code>'e geri referans vermekten kurtarır.
       </div>
       <div class="note">
         <b>Bu commit'teki diğer değişiklikler:</b>
         <ul>
           <li><code>packages/shared/package.json</code> — runtime bağımlılıkları <code>clsx</code>, <code>lucide-react</code>, <code>tailwind-merge</code> eklendi (<code>lib/cn.ts</code> ve <code>constants/navigation.ts</code> kullanıyor); <code>./i18n/therapySchools</code> exports girdisi eklendi (shared içinde dışarıdan import edilen tek index'li dizin — <code>useSchoolsStore.ts</code> ve <code>SchoolsPage.tsx</code>).</li>
-          <li><code>.claude/launch.json</code> — <code>npm run dev</code> → <code>pnpm --filter @opengnothia/web dev</code> (Faz 1'in taşımasından sonra sessizce bozulmuştu, kökte <code>dev</code> script'i yok).</li>
+          <li><code>.claude/launch.json</code> — <code>npm run dev</code> → <code>pnpm --filter @opengnothia/desktop dev</code> (Faz 1'in taşımasından sonra sessizce bozulmuştu, kökte <code>dev</code> script'i yok).</li>
         </ul>
-        <b>Doğrulama:</b> <code>tsc --noEmit</code> temiz; <code>pnpm build:web</code> temiz, 2116 modül / 1.92s. Son grep, <code>apps/web/src/</code>'de taşınan modüllere ait sıfır <code>@/</code> import'u ve <code>packages/shared/src/</code>'de sıfır <code>@/</code> import'u doğruluyor. Kullanıcı destekli UI regresyonu: dil değişimi, Dashboard, tam seans turu, API anahtarı testi, sağlayıcı değişimi, nefes egzersizi, schools sayfası, journal/dream analizleri.
+        <b>Doğrulama:</b> <code>tsc --noEmit</code> temiz; <code>pnpm build:desktop</code> temiz, 2116 modül / 1.92s. Son grep, <code>apps/desktop/src/</code>'de taşınan modüllere ait sıfır <code>@/</code> import'u ve <code>packages/shared/src/</code>'de sıfır <code>@/</code> import'u doğruluyor. Kullanıcı destekli UI regresyonu: dil değişimi, Dashboard, tam seans turu, API anahtarı testi, sağlayıcı değişimi, nefes egzersizi, schools sayfası, journal/dream analizleri.
       </div>
     </div>
   </details>
@@ -709,7 +710,7 @@
   select&lt;T&gt;(sql: string, params?: unknown[]): Promise&lt;T[]&gt;;
   execute(sql: string, params?: unknown[]): Promise&lt;{ lastInsertId?: number; rowsAffected: number }&gt;;
 }</code></pre>Tauri <code>db.execute</code> ile expo-sqlite <code>runAsync</code>'in dönüş şekilleri biraz farklı — en küçük ortak paydayı seç.</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s37" data-seed><span class="body"><span class="no">Step 37</span><span class="txt"><code>git mv apps/web/src/services/db/queries.ts packages/shared/src/db/queries.ts</code></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s37" data-seed><span class="body"><span class="no">Step 37</span><span class="txt"><code>git mv apps/desktop/src/services/db/queries.ts packages/shared/src/db/queries.ts</code></span></span></label></li>
         <li><label class="step"><input type="checkbox" data-track id="s38" data-seed><span class="body"><span class="no">Step 38</span><span class="txt"><code>queries.ts</code>'i factory desenine çevir — <b>bu fazın en büyük mekanik refactor'ı, fonksiyon fonksiyon ilerle</b>. Her <code>const db = await getDatabase()</code> closure'daki <code>db</code> parametresiyle değişir.<pre><code>export function createQueries(db: DatabasePort) {
   return {
     getUserProfile: async (): Promise&lt;UserProfile | null&gt; =&gt; { /* uses db.select */ },
@@ -718,7 +719,7 @@
 }
 export type Queries = ReturnType&lt;typeof createQueries&gt;;</code></pre></span></span></label></li>
         <li><label class="step"><input type="checkbox" data-track id="s39" data-seed><span class="body"><span class="no">Step 39</span><span class="txt"><code>queries.ts</code> içindeki <code>@/types</code> import'larını göreli <code>../types</code>'a çevir.</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s40" data-seed><span class="body"><span class="no">Step 40</span><span class="txt"><code>apps/web/src/adapters/tauriSqlAdapter.ts</code>'i oluştur:<pre><code>import type Database from "@tauri-apps/plugin-sql";
+        <li><label class="step"><input type="checkbox" data-track id="s40" data-seed><span class="body"><span class="no">Step 40</span><span class="txt"><code>apps/desktop/src/adapters/tauriSqlAdapter.ts</code>'i oluştur:<pre><code>import type Database from "@tauri-apps/plugin-sql";
 import type { DatabasePort } from "@opengnothia/shared/db/port";
 
 export function createTauriSqlAdapter(db: Database): DatabasePort {
@@ -730,7 +731,7 @@ export function createTauriSqlAdapter(db: Database): DatabasePort {
     },
   };
 }</code></pre></span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s41" data-seed><span class="body"><span class="no">Step 41</span><span class="txt"><code>services/db/database.ts</code>'in yerine <code>apps/web/src/db/index.ts</code>:<pre><code>import Database from "@tauri-apps/plugin-sql";
+        <li><label class="step"><input type="checkbox" data-track id="s41" data-seed><span class="body"><span class="no">Step 41</span><span class="txt"><code>services/db/database.ts</code>'in yerine <code>apps/desktop/src/db/index.ts</code>:<pre><code>import Database from "@tauri-apps/plugin-sql";
 import { createQueries, type Queries } from "@opengnothia/shared/db/queries";
 import { createTauriSqlAdapter } from "@/adapters/tauriSqlAdapter";
 
@@ -742,13 +743,13 @@ export async function getQueries(): Promise&lt;Queries&gt; {
   }
   return queries;
 }</code></pre></span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s42" data-seed><span class="body"><span class="no">Step 42</span><span class="txt">Eski <code>getDatabase()</code> çağrı noktalarını <code>getQueries()</code>'e çevir (<code>grep -rn "@/services/db" apps/web/src</code>). <b>Not:</b> <code>dataPortService.ts</code> ham tablo dökümü için <code>getDatabase</code>'i doğrudan kullanıyor — ya queries nesnesine bir <code>select</code> geçişi eklenir ya da adapter doğrudan import edilir. <b>Öneri:</b> kasıtlı olarak jenerik olduğu için <code>dataPortService</code>'e doğrudan <code>DatabasePort</code> enjekte et.</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s43" data-seed><span class="body"><span class="no">Step 43</span><span class="txt"><code>apps/web/src/services/db/database.ts</code>'i sil.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s42" data-seed><span class="body"><span class="no">Step 42</span><span class="txt">Eski <code>getDatabase()</code> çağrı noktalarını <code>getQueries()</code>'e çevir (<code>grep -rn "@/services/db" apps/desktop/src</code>). <b>Not:</b> <code>dataPortService.ts</code> ham tablo dökümü için <code>getDatabase</code>'i doğrudan kullanıyor — ya queries nesnesine bir <code>select</code> geçişi eklenir ya da adapter doğrudan import edilir. <b>Öneri:</b> kasıtlı olarak jenerik olduğu için <code>dataPortService</code>'e doğrudan <code>DatabasePort</code> enjekte et.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s43" data-seed><span class="body"><span class="no">Step 43</span><span class="txt"><code>apps/desktop/src/services/db/database.ts</code>'i sil.</span></span></label></li>
         <li><label class="step"><input type="checkbox" data-track id="s44"><span class="body"><span class="tag reg">UI Regresyonu</span><span class="no">Step 44</span><span class="txt"><b>En yüksek riskli faz</b> — DB'ye dokunan her akış doğrulanmalı: seans kaydet/devam ettir, journal/dream CRUD, insights, kurs ilerlemesi, haftalık özet, Settings'te dışa/içe aktarım. <a href="#regression">Tam liste</a>.</span></span></label></li>
         <li><label class="step"><input type="checkbox" data-track id="s45" data-seed><span class="body"><span class="tag commit">Commit</span><span class="no">Step 45</span><span class="txt"><code>refactor(db): introduce DatabasePort + Tauri adapter, queries in shared</code></span></span></label></li>
       </ul>
       <div class="note">
-        <b>Faz 5 notu — 2026-08-17'de kod tarafı tamamlandı.</b> <code>queries.ts</code> <code>git mv</code> ile shared'a taşındı ve script destekli mekanik dönüşümle <code>createQueries(db: DatabasePort)</code> factory'sine çevrildi: <b>71 sorgu fonksiyonu</b> closure'a alındı, her <code>const db = await getDatabase()</code> satırı düşürüldü, tüm <code>db.select&lt;X[]&gt;</code> jenerikleri port imzasına uygun <code>db.select&lt;X&gt;</code> yapıldı. Saf yardımcılar (<code>intakeFormHasContent</code>, <code>countFilledIntakeFields</code>, <code>INTAKE_FORM_TOTAL_FIELDS</code>) factory dışında bağımsız export kaldı. <code>apps/web/src/db/index.ts</code> plandaki gibi <code>Database.load</code> tabanlı asenkron <code>getQueries()</code> singleton'ı sunuyor; ek olarak Step 42 önerisi doğrultusunda <code>dataPortService</code> için ham <code>getDbPort()</code> erişimi var (jenerik tablo dökümü/geri yükleme port üzerinden). <b>23 çağrı noktası dosyası</b> güncellendi (10 sayfa, 7 session bileşeni, 3 hook, 2 AI servisi, dataPortService); awaited çağrılar <code>const queries = await getQueries()</code> desenine, async olmayan callback'lerdeki fire-and-forget çağrılar <code>getQueries().then((q) =&gt; q.fn(...))</code> desenine çevrildi — await/no-await anlambilimi her noktada korundu.
+        <b>Faz 5 notu — 2026-08-17'de kod tarafı tamamlandı.</b> <code>queries.ts</code> <code>git mv</code> ile shared'a taşındı ve script destekli mekanik dönüşümle <code>createQueries(db: DatabasePort)</code> factory'sine çevrildi: <b>71 sorgu fonksiyonu</b> closure'a alındı, her <code>const db = await getDatabase()</code> satırı düşürüldü, tüm <code>db.select&lt;X[]&gt;</code> jenerikleri port imzasına uygun <code>db.select&lt;X&gt;</code> yapıldı. Saf yardımcılar (<code>intakeFormHasContent</code>, <code>countFilledIntakeFields</code>, <code>INTAKE_FORM_TOTAL_FIELDS</code>) factory dışında bağımsız export kaldı. <code>apps/desktop/src/db/index.ts</code> plandaki gibi <code>Database.load</code> tabanlı asenkron <code>getQueries()</code> singleton'ı sunuyor; ek olarak Step 42 önerisi doğrultusunda <code>dataPortService</code> için ham <code>getDbPort()</code> erişimi var (jenerik tablo dökümü/geri yükleme port üzerinden). <b>23 çağrı noktası dosyası</b> güncellendi (10 sayfa, 7 session bileşeni, 3 hook, 2 AI servisi, dataPortService); awaited çağrılar <code>const queries = await getQueries()</code> desenine, async olmayan callback'lerdeki fire-and-forget çağrılar <code>getQueries().then((q) =&gt; q.fn(...))</code> desenine çevrildi — await/no-await anlambilimi her noktada korundu.
       </div>
       <div class="note" style="border-left-color:var(--warn)">
         <b>Açık Soru 5 kapandı — <code>Database.get</code> tuzağıyla birlikte.</b> Tauri <code>execute</code> dönüşü (<code>QueryResult { rowsAffected, lastInsertId? }</code>) port şekliyle birebir uyumlu; hiçbir sorgu <code>execute</code> dönüşüne veya ek alana dayanmıyor (ID'ler <code>crypto.randomUUID()</code> ile istemcide üretiliyor). Tek fark <code>select</code> jeneriğinde: Tauri <code>select&lt;T&gt;</code> = tüm dizi tipi, port <code>select&lt;T&gt;</code> = satır tipi; adapter bu yüzden <code>db.select&lt;T[]&gt;</code> çağırıyor. Ayrıca değerlendirilen sync-lazy <code>Database.get</code> alternatifi bilinçli reddedildi: plugin-sql 2.3.2'nin Rust tarafı (<code>commands.rs</code>) tembel bağlanmıyor — <code>load</code> çağrılmadan <code>select</code>/<code>execute</code> <code>DatabaseNotLoaded</code> hatası veriyor (JS dokümanındaki "deferred connection" vaadi bu kurulumda geçersiz). <code>Database.load</code> + async accessor korundu; <code>useDatabase</code> kapısı artık <code>getQueries()</code> ile aynı anlamda çalışıyor.
@@ -757,7 +758,7 @@ export async function getQueries(): Promise&lt;Queries&gt; {
         <b>Faz 4 devri kararı — üçlü şimdilik uygulama-yerel kalıyor.</b> Sorgular shared'a taşındıktan sonra yeniden değerlendirildi: <code>backgroundNotes.ts</code> hem <code>useAppStore</code>'a (D3: store'lar uygulama-yerel) hem uygulamanın queries singleton'ına, <code>courseNotes.ts</code> queries singleton'ına bağımlı — shared'a taşınmaları ya modül-seviyesi enjeksiyon deseni ya da tüm çağrı noktalarında API değişikliği gerektirirdi. <code>promptBuilder.ts</code>'in tek uygulama bağımlılığı <code>getSchoolById</code>; i18n'in <code>setLanguageBindings</code> emsaliyle bir schools-accessor enjeksiyonu teknik olarak mümkün, ancak henüz ikinci bir tüketici (mobil) yokken dikişi körlemesine tasarlamak yerine karar mobil UI planına ertelendi — mobil, prompt üretimine ihtiyaç duyduğunda <code>setSchoolsBindings</code> aynı emsalle eklenecek. Üç dosya da bu fazın <code>getQueries()</code> geçişine dahil edildi, yani derleniyor ve çalışıyorlar; sadece pakette yer değiştirmediler.
       </div>
       <div class="note">
-        <b>Doğrulama (statik):</b> <code>tsc --noEmit</code> temiz; <code>pnpm build:web</code> temiz, 2117 modül / ~2.0s; grep süpürmeleri <code>apps/web</code> ve <code>packages/shared</code>'da sıfır <code>services/db</code> kalıntısı ve shared içinde sıfır <code>@/</code> importu doğruluyor. Rust tarafına dokunulmadı (migration yolları Faz 6'nın işi). <b>Step 44 interaktif UI regresyonu kullanıcıda</b> — DB'ye dokunan her akış derlenmiş dev uygulamada elle doğrulanmalı; bu yüzden s44 işaretsiz bırakıldı.
+        <b>Doğrulama (statik):</b> <code>tsc --noEmit</code> temiz; <code>pnpm build:desktop</code> temiz, 2117 modül / ~2.0s; grep süpürmeleri <code>apps/desktop</code> ve <code>packages/shared</code>'da sıfır <code>services/db</code> kalıntısı ve shared içinde sıfır <code>@/</code> importu doğruluyor. Rust tarafına dokunulmadı (migration yolları Faz 6'nın işi). <b>Step 44 interaktif UI regresyonu kullanıcıda</b> — DB'ye dokunan her akış derlenmiş dev uygulamada elle doğrulanmalı; bu yüzden s44 işaretsiz bırakıldı.
       </div>
       <div class="note" style="border-left-color:var(--border-strong)">
         <b>Faz 4'ten devreden:</b> <code>backgroundNotes.ts</code>, <code>courseNotes.ts</code>, <code>promptBuilder.ts</code> bu fazda sorgular shared'a taşındıktan sonra yeniden değerlendirilecek (schools-accessor deseni kararlaştırılmalı). <i>→ Yukarıdaki devir kararıyla kapandı.</i>
@@ -773,8 +774,8 @@ export async function getQueries(): Promise&lt;Queries&gt; {
     </summary>
     <div class="ph-body">
       <ul class="steps">
-        <li><label class="step"><input type="checkbox" data-track id="s46"><span class="body"><span class="no">Step 46</span><span class="txt"><code>mkdir -p packages/shared/migrations</code> ve <code>git mv apps/web/src-tauri/migrations/*.sql packages/shared/migrations/</code>. Boşalan <code>src-tauri/migrations/</code> dizinini kaldır.</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s47"><span class="body"><span class="no">Step 47</span><span class="txt"><code>apps/web/src-tauri/src/lib.rs</code>'deki 17 <code>include_str!</code> yolunu <code>"../migrations/NNN_*.sql"</code> → <code>"../../../../packages/shared/migrations/NNN_*.sql"</code> olarak güncelle (~satır 294+).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s46"><span class="body"><span class="no">Step 46</span><span class="txt"><code>mkdir -p packages/shared/migrations</code> ve <code>git mv apps/desktop/src-tauri/migrations/*.sql packages/shared/migrations/</code>. Boşalan <code>src-tauri/migrations/</code> dizinini kaldır.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s47"><span class="body"><span class="no">Step 47</span><span class="txt"><code>apps/desktop/src-tauri/src/lib.rs</code>'deki 17 <code>include_str!</code> yolunu <code>"../migrations/NNN_*.sql"</code> → <code>"../../../../packages/shared/migrations/NNN_*.sql"</code> olarak güncelle (~satır 294+).</span></span></label></li>
         <li><label class="step"><input type="checkbox" data-track id="s48"><span class="body"><span class="no">Step 48</span><span class="txt"><code>packages/shared/src/db/runMigrations.ts</code>'i yaz:<pre><code>import type { DatabasePort } from "./port";
 
 export interface MigrationDef { version: number; sql: string; }
@@ -788,7 +789,7 @@ export async function runMigrations(db: DatabasePort, migrations: MigrationDef[]
     await db.execute(`PRAGMA user_version = ${m.version}`);
   }
 }</code></pre>Mobil, her <code>.sql</code>'i string olarak alacak — mekanizma <a href="#questions">Açık Soru 3</a>'te.</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s49"><span class="body"><span class="tag reg">UI Regresyonu</span><span class="no">Step 49</span><span class="txt"><b>Temiz DB açılışı:</b> <code>pnpm --filter @opengnothia/web tauri build</code> Rust'ı derlemeli. Ardından DB'yi silip (macOS: <code>~/Library/Application Support/com.opengnothia.app/opengnothia.db</code>) uygulamayı çalıştır — Onboarding akışı görünmeli, sonra <a href="#regression">tam liste</a>.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s49"><span class="body"><span class="tag reg">UI Regresyonu</span><span class="no">Step 49</span><span class="txt"><b>Temiz DB açılışı:</b> <code>pnpm --filter @opengnothia/desktop tauri build</code> Rust'ı derlemeli. Ardından DB'yi silip (macOS: <code>~/Library/Application Support/com.opengnothia.app/opengnothia.db</code>) uygulamayı çalıştır — Onboarding akışı görünmeli, sonra <a href="#regression">tam liste</a>.</span></span></label></li>
         <li><label class="step"><input type="checkbox" data-track id="s50"><span class="body"><span class="tag commit">Commit</span><span class="no">Step 50</span><span class="txt"><code>refactor(db): migrations to shared, runMigrations helper</code></span></span></label></li>
       </ul>
     </div>
@@ -802,13 +803,13 @@ export async function runMigrations(db: DatabasePort, migrations: MigrationDef[]
     </summary>
     <div class="ph-body">
       <ul class="steps">
-        <li><label class="step"><input type="checkbox" data-track id="s51" data-seed><span class="body"><span class="no">Step 51</span><span class="txt"><code>.github/workflows/release.yml</code>'i düzenle: <code>swatinem/rust-cache</code> <code>workspaces</code> değerini <code>'./src-tauri -> target'</code> → <code>'./apps/web/src-tauri -> target'</code>; <code>tauri-apps/tauri-action@v0</code> adımına <code>projectPath: apps/web</code> ekle; <code>pnpm install --frozen-lockfile</code> kökte kalsın (workspace-aware). <b>Master sync'te yapıldı</b> — master'ın elden geçirilmiş workflow'u üzerine uygulandı, ayrıca pinli pnpm 9 kaldırıldı (kök <code>packageManager</code>: pnpm 10 geçerli).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s51" data-seed><span class="body"><span class="no">Step 51</span><span class="txt"><code>.github/workflows/release.yml</code>'i düzenle: <code>swatinem/rust-cache</code> <code>workspaces</code> değerini <code>'./src-tauri -> target'</code> → <code>'./apps/desktop/src-tauri -> target'</code>; <code>tauri-apps/tauri-action@v0</code> adımına <code>projectPath: apps/desktop</code> ekle; <code>pnpm install --frozen-lockfile</code> kökte kalsın (workspace-aware). <b>Master sync'te yapıldı</b> — master'ın elden geçirilmiş workflow'u üzerine uygulandı, ayrıca pinli pnpm 9 kaldırıldı (kök <code>packageManager</code>: pnpm 10 geçerli).</span></span></label></li>
         <li><label class="step"><input type="checkbox" data-track id="s52"><span class="body"><span class="no">Step 52</span><span class="txt">Gerçek release kesmeden workflow'u test et: master'dan gelen <code>workflow_dispatch</code> tetikleyicisi hazır (<code>release_tag</code> + <code>windows_only</code> girdileri; mevcut bir tag/taslak release'i yeniden build eder). Ya geçici bir <code>v1.8.2-rc1</code> tag'i at (tag push normal tetikler) ve başarılıysa taslağı + tag'i sil, ya da geçici bir taslak release üzerinde <code>workflow_dispatch</code> ile dene.</span></span></label></li>
         <li><label class="step"><input type="checkbox" data-track id="s53"><span class="body"><span class="tag verify">Doğrulama</span><span class="no">Step 53</span><span class="txt">İki job'ın da geçtiğini doğrula: macOS (imzalı + noter onaylı + staple'lı universal DMG, workflow içi codesign/spctl doğrulamaları dahil) ve Windows (MSI + setup EXE). Master'ın yeni workflow'unda Ubuntu build'i yok.</span></span></label></li>
         <li><label class="step"><input type="checkbox" data-track id="s54" data-seed><span class="body"><span class="tag commit">Commit</span><span class="no">Step 54</span><span class="txt"><code>chore(monorepo): adapt release workflow and README to monorepo layout</code> (master sync'te atıldı; planlanan mesaj <code>ci: update release workflow paths for monorepo</code> idi)</span></span></label></li>
       </ul>
       <div class="note">
-        <b>Faz 7 notu — 2026-08-17 master sync ile büyük ölçüde kapandı.</b> Master, release workflow'unu baştan yazdı: imzalı + noter onaylı (notarytool + stapler) universal macOS DMG, ayrı bir Windows MSI/setup-EXE job'ı, <code>workflow_dispatch</code> ile yeniden build. Bu workflow cherry-pick'le alındı ve monorepo'ya uyarlandı: rust-cache <code>workspaces</code> → <code>apps/web/src-tauri</code>, her iki <code>tauri-action</code> adımına <code>projectPath: apps/web</code>, DMG arama yolu <code>apps/web/src-tauri/target/...</code>, pinli pnpm 9 kaldırıldı (kök <code>packageManager: pnpm@10.18.2</code>; v9, pnpm 10 lockfile'ını okuyamazdı). <code>--config src-tauri/tauri.devid.conf.json</code> argümanı <code>projectPath</code>'e göre çözüldüğünden değişmedi. Yeni imzalama varlıkları <code>apps/web/src-tauri/</code>'de (Entitlements.DevID/MAS.plist, tauri.devid/mas.conf.json); <code>build-devid.sh</code> / <code>build-mas.sh</code> / <code>capture-screenshot.sh</code> / <code>resize-window.sh</code> script'leri <code>apps/web/scripts/</code>'e taşındı — <code>PROJECT_ROOT</code>'u kendi konumundan türettikleri için içerik değişmedi. Master'ın kısa ömürlü <code>ios.yml</code>'i yine master'da kaldırılmıştı; mobil plan Expo tabanlı olduğundan alınacak bir şey yok. Kalan iş: workflow'u gerçek bir çalıştırmayla doğrulamak (s52–s53).
+        <b>Faz 7 notu — 2026-08-17 master sync ile büyük ölçüde kapandı.</b> Master, release workflow'unu baştan yazdı: imzalı + noter onaylı (notarytool + stapler) universal macOS DMG, ayrı bir Windows MSI/setup-EXE job'ı, <code>workflow_dispatch</code> ile yeniden build. Bu workflow cherry-pick'le alındı ve monorepo'ya uyarlandı: rust-cache <code>workspaces</code> → <code>apps/desktop/src-tauri</code>, her iki <code>tauri-action</code> adımına <code>projectPath: apps/desktop</code>, DMG arama yolu <code>apps/desktop/src-tauri/target/...</code>, pinli pnpm 9 kaldırıldı (kök <code>packageManager: pnpm@10.18.2</code>; v9, pnpm 10 lockfile'ını okuyamazdı). <code>--config src-tauri/tauri.devid.conf.json</code> argümanı <code>projectPath</code>'e göre çözüldüğünden değişmedi. Yeni imzalama varlıkları <code>apps/desktop/src-tauri/</code>'de (Entitlements.DevID/MAS.plist, tauri.devid/mas.conf.json); <code>build-devid.sh</code> / <code>build-mas.sh</code> / <code>capture-screenshot.sh</code> / <code>resize-window.sh</code> script'leri <code>apps/desktop/scripts/</code>'e taşındı — <code>PROJECT_ROOT</code>'u kendi konumundan türettikleri için içerik değişmedi. Master'ın kısa ömürlü <code>ios.yml</code>'i yine master'da kaldırılmıştı; mobil plan Expo tabanlı olduğundan alınacak bir şey yok. Kalan iş: workflow'u gerçek bir çalıştırmayla doğrulamak (s52–s53).
       </div>
     </div>
   </details>
@@ -821,15 +822,15 @@ export async function runMigrations(db: DatabasePort, migrations: MigrationDef[]
     </summary>
     <div class="ph-body">
       <ul class="steps">
-        <li><label class="step"><input type="checkbox" data-track id="s55" data-seed><span class="body"><span class="no">Step 55</span><span class="txt"><code>apps/web/package.json</code> sürümü — master sync ile <code>1.8.1</code> geldi (1.7.0 hedefi geçersiz; bump commit'leri cherry-pick'lendi).</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s56" data-seed><span class="body"><span class="no">Step 56</span><span class="txt"><code>apps/web/src-tauri/tauri.conf.json</code> sürümü — master sync ile <code>1.8.1</code>.</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s57" data-seed><span class="body"><span class="no">Step 57</span><span class="txt"><code>apps/web/src-tauri/Cargo.toml</code> sürümü — master sync ile <code>1.8.1</code> (Cargo.lock dahil).</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s58"><span class="body"><span class="no">Step 58</span><span class="txt">Kök <code>README.md</code>'ye "Development" bölümü: <code>apps/web/</code> (Tauri masaüstü) ve <code>apps/mobile/</code> (Expo, geliştirme aşamasında); <code>cd apps/web &amp;&amp; pnpm tauri dev</code> ve <code>cd apps/mobile &amp;&amp; pnpm start</code>.</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s59"><span class="body"><span class="no">Step 59</span><span class="txt"><code>apps/web/README.md</code>'yi yaz — minimal: ön koşullar, install, dev, build.</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s60"><span class="body"><span class="tag commit">Commit</span><span class="no">Step 60</span><span class="txt"><code>docs: add Development section and apps/web README</code> (sürüm ayağı master sync ile geldiği için commit README'lere daraldı)</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s55" data-seed><span class="body"><span class="no">Step 55</span><span class="txt"><code>apps/desktop/package.json</code> sürümü — master sync ile <code>1.8.1</code> geldi (1.7.0 hedefi geçersiz; bump commit'leri cherry-pick'lendi).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s56" data-seed><span class="body"><span class="no">Step 56</span><span class="txt"><code>apps/desktop/src-tauri/tauri.conf.json</code> sürümü — master sync ile <code>1.8.1</code>.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s57" data-seed><span class="body"><span class="no">Step 57</span><span class="txt"><code>apps/desktop/src-tauri/Cargo.toml</code> sürümü — master sync ile <code>1.8.1</code> (Cargo.lock dahil).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s58"><span class="body"><span class="no">Step 58</span><span class="txt">Kök <code>README.md</code>'ye "Development" bölümü: <code>apps/desktop/</code> (Tauri masaüstü) ve <code>apps/mobile/</code> (Expo, geliştirme aşamasında); <code>cd apps/desktop &amp;&amp; pnpm tauri dev</code> ve <code>cd apps/mobile &amp;&amp; pnpm start</code>.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s59"><span class="body"><span class="no">Step 59</span><span class="txt"><code>apps/desktop/README.md</code>'yi yaz — minimal: ön koşullar, install, dev, build.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s60"><span class="body"><span class="tag commit">Commit</span><span class="no">Step 60</span><span class="txt"><code>docs: add Development section and apps/desktop README</code> (sürüm ayağı master sync ile geldiği için commit README'lere daraldı)</span></span></label></li>
       </ul>
       <div class="note">
-        <b>Faz 8 notu — sürüm ayağı 2026-08-17 master sync ile kapandı.</b> Master'daki 1.7.0 → 1.8.0 → 1.8.1 bump'ları cherry-pick'lendi; <code>apps/web/package.json</code>, <code>tauri.conf.json</code>, <code>Cargo.toml</code> ve <code>Cargo.lock</code> dördü de <code>1.8.1</code>. Kök <code>package.json</code> sürümsüz workspace manifesti olarak kaldı — sürümün tek sahibi <code>apps/web</code> (bump çakışmaları her seferinde bu yönde çözüldü). Kök README'nin Architecture şeması master sync uyarlamasında monorepo düzenine (<code>apps/</code> + <code>packages/</code>) güncellendi; master'ın kaldırdığı "macOS hasarlı" uyarı bölümü de gitti (DMG'ler artık imzalı + noter onaylı). Kalan iş: kök README "Development" bölümü (s58) ve <code>apps/web/README.md</code> (s59).
+        <b>Faz 8 notu — sürüm ayağı 2026-08-17 master sync ile kapandı.</b> Master'daki 1.7.0 → 1.8.0 → 1.8.1 bump'ları cherry-pick'lendi; <code>apps/desktop/package.json</code>, <code>tauri.conf.json</code>, <code>Cargo.toml</code> ve <code>Cargo.lock</code> dördü de <code>1.8.1</code>. Kök <code>package.json</code> sürümsüz workspace manifesti olarak kaldı — sürümün tek sahibi <code>apps/desktop</code> (bump çakışmaları her seferinde bu yönde çözüldü). Kök README'nin Architecture şeması master sync uyarlamasında monorepo düzenine (<code>apps/</code> + <code>packages/</code>) güncellendi; master'ın kaldırdığı "macOS hasarlı" uyarı bölümü de gitti (DMG'ler artık imzalı + noter onaylı). Kalan iş: kök README "Development" bölümü (s58) ve <code>apps/desktop/README.md</code> (s59).
       </div>
     </div>
   </details>
@@ -863,7 +864,7 @@ export async function runMigrations(db: DatabasePort, migrations: MigrationDef[]
             <li><label class="step sub"><input type="checkbox" data-track id="s86h"><span class="body"><span class="txt"><code>wrangler tail</code> spot kontrolü: loglarda mesaj içeriği yok (D17)</span></span></label></li>
           </ul>
         </li>
-        <li><label class="step"><input type="checkbox" data-track id="s87"><span class="body"><span class="tag verify">Doğrulama</span><span class="no">Step 87</span><span class="txt">Masaüstü etkilenmedi: <code>pnpm dev:web</code> ile sesli akış (kayıt → transkripsiyon → TTS) hâlâ doğrudan OpenAI'a gidiyor (Step 84'ün default'ları sayesinde).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s87"><span class="body"><span class="tag verify">Doğrulama</span><span class="no">Step 87</span><span class="txt">Masaüstü etkilenmedi: <code>pnpm dev:desktop</code> ile sesli akış (kayıt → transkripsiyon → TTS) hâlâ doğrudan OpenAI'a gidiyor (Step 84'ün default'ları sayesinde).</span></span></label></li>
         <li><label class="step"><input type="checkbox" data-track id="s88"><span class="body"><span class="tag commit">Commit</span><span class="no">Step 88</span><span class="txt"><code>feat(backend): add Cloudflare Worker AI proxy with subscription gating</code></span></span></label></li>
       </ul>
       <div class="note">
@@ -937,19 +938,19 @@ export function createExpoSqliteAdapter(db: SQLite.SQLiteDatabase): DatabasePort
     </summary>
     <div class="ph-body">
       <ul class="steps">
-        <li><label class="step"><input type="checkbox" data-track id="s73"><span class="body"><span class="tag reg">UI Regresyonu</span><span class="no">Step 73</span><span class="txt">Temiz kurulumda son kez: <code>node_modules/</code>'ı sil, kökten <code>pnpm install</code>, <code>pnpm dev:web</code> ve her sayfayı bir kez daha dolaş. <a href="#regression">Tam liste</a>.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s73"><span class="body"><span class="tag reg">UI Regresyonu</span><span class="no">Step 73</span><span class="txt">Temiz kurulumda son kez: <code>node_modules/</code>'ı sil, kökten <code>pnpm install</code>, <code>pnpm dev:desktop</code> ve her sayfayı bir kez daha dolaş. <a href="#regression">Tam liste</a>.</span></span></label></li>
         <li><label class="step"><input type="checkbox" data-track id="s74"><span class="body"><span class="no">Step 74</span><span class="txt">Mobil smoke test'i tekrar çalıştır (Faz 10 kontrol listesi).</span></span></label></li>
         <li><label class="step"><input type="checkbox" data-track id="s75"><span class="body"><span class="no">Step 75</span><span class="txt">Branch'i push'la: <code>git push -u origin restructure/monorepo</code></span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s76"><span class="body"><span class="no">Step 76</span><span class="txt">PR aç: <i>Restructure: pnpm monorepo with apps/web + apps/mobile + apps/backend + packages/shared</i>. Gövde fazları özetler, bu plana link verir, merge sonrası test edilecekleri listeler.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s76"><span class="body"><span class="no">Step 76</span><span class="txt">PR aç: <i>Restructure: pnpm monorepo with apps/desktop + apps/mobile + apps/backend + packages/shared</i>. Gövde fazları özetler, bu plana link verir, merge sonrası test edilecekleri listeler.</span></span></label></li>
         <li><label class="step"><input type="checkbox" data-track id="s77"><span class="body"><span class="no">Step 77</span><span class="txt">Merge sonrası <code>master</code>'dan yeni sürüm tag'ini kes (baz artık <code>v1.8.1</code>; ör. <code>v1.9.0</code>) — güncellenmiş workflow imzalı DMG + Windows installer'larını yayınlar.</span></span></label></li>
       </ul>
     </div>
   </details>
 
-  <h3 class="sec" id="regression">Tam UI Regresyon Listesi (Masaüstü — apps/web)</h3>
+  <h3 class="sec" id="regression">Tam UI Regresyon Listesi (Masaüstü — apps/desktop)</h3>
   <div class="card">
     <div style="padding:16px 16px 0;color:var(--text-2);font-size:13.8px">
-      Faz 2 (Step 16), Faz 4 (Step 34), Faz 5 (Step 44), Faz 6 (Step 49) ve Faz 11 (Step 73) sonrası çalıştırılır. Bu liste <b>masaüstü (apps/web) uygulamasını</b> doğrular — masaüstü kalıcı olarak ücretsiz + BYOK kaldığı için (D1 revizyonu) ExpensesPage, API anahtarı ve sağlayıcı/model ayarları bilinçli olarak buradadır; bunlar yalnızca <i>mobilde</i> olmayacak (D13) ve mobilin kendi kontrol listesi mobil UI planında yazılacak. Her sayfa konsol hatası olmadan açılmalı ve listelenen ana akış çalışmalı. <b>Her tik = "bu sayfayı derlenmiş bir dev uygulamada bizzat açtım ve akış başarılı oldu."</b> Aşağıdaki sekmelerden geçişi seç; her geçiş kendi durumunu ayrı saklar.
+      Faz 2 (Step 16), Faz 4 (Step 34), Faz 5 (Step 44), Faz 6 (Step 49) ve Faz 11 (Step 73) sonrası çalıştırılır. Bu liste <b>masaüstü (apps/desktop) uygulamasını</b> doğrular — masaüstü kalıcı olarak ücretsiz + BYOK kaldığı için (D1 revizyonu) ExpensesPage, API anahtarı ve sağlayıcı/model ayarları bilinçli olarak buradadır; bunlar yalnızca <i>mobilde</i> olmayacak (D13) ve mobilin kendi kontrol listesi mobil UI planında yazılacak. Her sayfa konsol hatası olmadan açılmalı ve listelenen ana akış çalışmalı. <b>Her tik = "bu sayfayı derlenmiş bir dev uygulamada bizzat açtım ve akış başarılı oldu."</b> Aşağıdaki sekmelerden geçişi seç; her geçiş kendi durumunu ayrı saklar.
     </div>
     <div class="passbar" id="passBar"></div>
 
@@ -1053,10 +1054,10 @@ export function createExpoSqliteAdapter(db: SQLite.SQLiteDatabase): DatabasePort
   <h3 class="sec" id="questions">Açık Sorular</h3>
   <div class="dlist">
     <details class="d">
-      <summary><span class="dk">1</span><span class="dt">Web paket adı: <code>opengnothia</code> mı <code>@opengnothia/web</code> mi? <span style="color:var(--accent);font-weight:600">— Faz 2'de kapatıldı</span></span></summary>
+      <summary><span class="dk">1</span><span class="dt">Web paket adı: <code>opengnothia</code> mı <code>@opengnothia/desktop</code> mi? <span style="color:var(--accent);font-weight:600">— Faz 2'de kapatıldı</span></span></summary>
       <div class="d-body">
-        <p>Plan, <code>@opengnothia/shared</code> ve <code>@opengnothia/mobile</code> ile tutarlılık için <code>@opengnothia/web</code>'i varsayıyordu. Karşı argüman: <code>opengnothia</code> hem crate adı (<code>src-tauri/Cargo.toml</code>) hem uygulama tanımlayıcısı (<code>com.opengnothia.app</code>). npm paket adını değiştirmek Tauri içselleriyle çakışmıyor.</p>
-        <p><b>Karar:</b> <code>@opengnothia/web</code> (Faz 2, Step 14).</p>
+        <p>Plan, <code>@opengnothia/shared</code> ve <code>@opengnothia/mobile</code> ile tutarlılık için <code>@opengnothia/desktop</code>'i varsayıyordu. Karşı argüman: <code>opengnothia</code> hem crate adı (<code>src-tauri/Cargo.toml</code>) hem uygulama tanımlayıcısı (<code>com.opengnothia.app</code>). npm paket adını değiştirmek Tauri içselleriyle çakışmıyor.</p>
+        <p><b>Karar:</b> <code>@opengnothia/desktop</code> (Faz 2, Step 14).</p>
       </div>
     </details>
     <details class="d">
@@ -1086,7 +1087,7 @@ export function createExpoSqliteAdapter(db: SQLite.SQLiteDatabase): DatabasePort
     </details>
     <details class="d">
       <summary><span class="dk">6</span><span class="dt">Taşımadan sonra <code>tauri.conf.json</code> <code>$schema</code> yolu <span style="color:var(--accent);font-weight:600">— Faz 1/2'de doğrulandı</span></span></summary>
-      <div class="d-body"><p><code>"../node_modules/@tauri-apps/cli/config.schema.json"</code>, <code>apps/web/src-tauri/</code>'ye göreli olduğundan <code>apps/web/node_modules/…</code>'ı gösteriyor. pnpm paket başına <code>node_modules/</code> symlink'leri oluşturduğu için erişilebilir (Faz 2 notunda 17 symlink doğrulandı). Yalnızca editör ipucu olduğundan sorun çıkarsa <code>../../../node_modules/…</code>'a çevrilebilir veya kaldırılabilir.</p></div>
+      <div class="d-body"><p><code>"../node_modules/@tauri-apps/cli/config.schema.json"</code>, <code>apps/desktop/src-tauri/</code>'ye göreli olduğundan <code>apps/desktop/node_modules/…</code>'ı gösteriyor. pnpm paket başına <code>node_modules/</code> symlink'leri oluşturduğu için erişilebilir (Faz 2 notunda 17 symlink doğrulandı). Yalnızca editör ipucu olduğundan sorun çıkarsa <code>../../../node_modules/…</code>'a çevrilebilir veya kaldırılabilir.</p></div>
     </details>
   </div>
 

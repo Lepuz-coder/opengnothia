@@ -1132,20 +1132,20 @@ export function createExpoSqliteAdapter(db: SQLite.SQLiteDatabase): DatabasePort
   function load() {
     var raw = null;
     try { raw = localStorage.getItem(KEY); } catch (e) { /* storage disabled */ }
+    var st = { steps: {}, reg: {}, pass: "p5", open: {} };
     if (raw) {
       try {
         var parsed = JSON.parse(raw);
-        return {
-          steps: parsed.steps || {},
-          reg: parsed.reg || {},
-          pass: parsed.pass || "p5",
-          open: parsed.open || {}
-        };
-      } catch (e) { /* corrupt — fall through to a fresh seed */ }
+        st.steps = parsed.steps || {};
+        st.reg = parsed.reg || {};
+        st.pass = parsed.pass || "p5";
+        st.open = parsed.open || {};
+      } catch (e) { /* corrupt — continue with fresh state, seeds below */ }
     }
-    var seeded = {};
-    steps.forEach(function (box) { if (box.hasAttribute("data-seed")) seeded[box.id] = true; });
-    return { steps: seeded, reg: {}, pass: "p5", open: {} };
+    // data-seed = "bu adım projede tamamlandı" kaydı; kayıtlı durumun üzerine de uygulanır,
+    // böylece plan dosyasındaki yeni faz işaretleri mevcut localStorage'ı olan tarayıcılarda da görünür.
+    steps.forEach(function (box) { if (box.hasAttribute("data-seed")) st.steps[box.id] = true; });
+    return st;
   }
 
   var saveTimer = null;

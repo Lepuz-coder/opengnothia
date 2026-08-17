@@ -1,6 +1,6 @@
 import { sendMessage } from "@opengnothia/shared/ai/aiService";
 import { calculateCost } from "@opengnothia/shared/ai/costCalculator";
-import { upsertCourseNotes, saveTokenUsage } from "@/services/db/queries";
+import { getQueries } from "@/db";
 import type { AIProvider, ChatMessage, ThinkingLevel, ThinkingType, TokenUsage } from "@opengnothia/shared/types";
 
 interface UpdateCourseNotesParams {
@@ -17,7 +17,7 @@ interface UpdateCourseNotesParams {
   callType: string;
 }
 
-function trackUsage(
+async function trackUsage(
   provider: AIProvider,
   model: string,
   callType: string,
@@ -25,7 +25,8 @@ function trackUsage(
 ) {
   if (!usage) return;
   const cost = calculateCost(provider, model, usage.inputTokens, usage.outputTokens);
-  saveTokenUsage({
+  const queries = await getQueries();
+  queries.saveTokenUsage({
     session_id: null,
     provider,
     model,
@@ -51,7 +52,8 @@ export async function updateCourseNotes(params: UpdateCourseNotesParams): Promis
   });
 
   if (result.content && result.content.trim().length > 0) {
-    await upsertCourseNotes(params.courseId, result.content.trim());
+    const queries = await getQueries();
+    await queries.upsertCourseNotes(params.courseId, result.content.trim());
   }
 
   trackUsage(params.provider, params.model, params.callType, result.usage);

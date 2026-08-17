@@ -12,17 +12,7 @@ import { getErrorDisplayInfo, type ErrorDisplayInfo } from "@opengnothia/shared/
 import { calculateCost } from "@opengnothia/shared/ai/costCalculator";
 import { buildDreamAnalysisPrompt, buildPatientNotesUpdatePrompt, dreamPatientNotesMessage } from "@/services/ai/promptBuilder";
 import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
-import {
-  getDreamsByDateRange,
-  getDreamById,
-  saveDream,
-  updateDreamAnalysis,
-  updateDreamContent,
-  deleteDream,
-  getPatientNotes,
-  getPatientNotesUpdatedAt,
-  saveTokenUsage,
-} from "@/services/db/queries";
+import { getQueries } from "@/db";
 import { ErrorModal } from "@/components/ui/ErrorModal";
 import { Plus, ArrowLeft, Sparkles, Trash2, Loader2, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -76,7 +66,8 @@ async function trackUsage(
 ) {
   if (!usage) return;
   const cost = calculateCost(provider, model, usage.inputTokens, usage.outputTokens);
-  await saveTokenUsage({
+  const queries = await getQueries();
+  await queries.saveTokenUsage({
     session_id: null,
     provider,
     model,
@@ -139,7 +130,8 @@ export default function DreamsPage() {
     const days = getCalendarDays(currentYear, currentMonth);
     const startDate = formatYMD(days[0]);
     const endDate = formatYMD(days[days.length - 1]);
-    const data = await getDreamsByDateRange(startDate, endDate);
+    const queries = await getQueries();
+    const data = await queries.getDreamsByDateRange(startDate, endDate);
     setDreams(data);
     setLoading(false);
   }, [currentYear, currentMonth]);
@@ -194,14 +186,15 @@ export default function DreamsPage() {
     if (!newContent.trim()) return;
     setSaving(true);
     try {
+      const queries = await getQueries();
       if (editingDreamId) {
-        await updateDreamContent(editingDreamId, newContent.trim());
-        const updated = await getDreamById(editingDreamId);
+        await queries.updateDreamContent(editingDreamId, newContent.trim());
+        const updated = await queries.getDreamById(editingDreamId);
         if (updated) setSelectedDream(updated);
         setEditingDreamId(null);
       } else {
-        const id = await saveDream(newContent.trim(), selectedDate ?? undefined);
-        const dream = await getDreamById(id);
+        const id = await queries.saveDream(newContent.trim(), selectedDate ?? undefined);
+        const dream = await queries.getDreamById(id);
         if (dream) setSelectedDream(dream);
       }
       setNewContent("");
@@ -220,7 +213,8 @@ export default function DreamsPage() {
     setAnalysisModalOpen(true);
 
     try {
-      const patientNotes = await getPatientNotes();
+      const queries = await getQueries();
+      const patientNotes = await queries.getPatientNotes();
 
       // 1. Dream analysis (streaming)
       const analysisPrompt = buildDreamAnalysisPrompt(patientNotes, language);
@@ -264,11 +258,11 @@ export default function DreamsPage() {
       }
 
       // Save analysis to DB
-      await updateDreamAnalysis(selectedDream.id, fullAnalysis);
+      await queries.updateDreamAnalysis(selectedDream.id, fullAnalysis);
       await trackUsage(settings.provider, settings.model, "dream_analysis", streamUsage);
 
       // 2. Update patient notes in background
-      const notesUpdatedAt = await getPatientNotesUpdatedAt();
+      const notesUpdatedAt = await queries.getPatientNotesUpdatedAt();
       const notesPrompt = buildPatientNotesUpdatePrompt(patientNotes, notesUpdatedAt, language);
       takeBackgroundNotes({
         provider: settings.provider,
@@ -291,7 +285,7 @@ export default function DreamsPage() {
       });
 
       // Refresh dream data
-      const updated = await getDreamById(selectedDream.id);
+      const updated = await queries.getDreamById(selectedDream.id);
       if (updated) setSelectedDream(updated);
       await loadDreams();
     } catch (err) {
@@ -304,7 +298,8 @@ export default function DreamsPage() {
 
   const handleDelete = async () => {
     if (!selectedDream) return;
-    await deleteDream(selectedDream.id);
+    const queries = await getQueries();
+    await queries.deleteDream(selectedDream.id);
     setSelectedDream(null);
     setDeleteConfirmOpen(false);
     setView("calendar");
@@ -312,7 +307,8 @@ export default function DreamsPage() {
   };
 
   const openDetail = async (dream: Dream) => {
-    const full = await getDreamById(dream.id);
+    const queries = await getQueries();
+    const full = await queries.getDreamById(dream.id);
     if (full) {
       setSelectedDream(full);
       setErrorModalInfo(null);

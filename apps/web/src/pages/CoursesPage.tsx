@@ -5,19 +5,7 @@ import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useAppStore } from "@/stores/useAppStore";
 import { useTranslation } from "@opengnothia/shared/i18n";
 import { COURSES, type CourseDefinition } from "@opengnothia/shared/constants/courses";
-import {
-  initializeCourseProgress,
-  getCourseProgress,
-  getCourseStepProgress,
-  startCourseStep,
-  completeCourseStep,
-  updateCourseStepMessages,
-  updateCourseStepProgress,
-  getCourseNotes,
-  resetCourseProgress,
-  getCourseNotesUpdatedAt,
-  saveTokenUsage,
-} from "@/services/db/queries";
+import { getQueries } from "@/db";
 import { streamMessage, sendMessage } from "@opengnothia/shared/ai/aiService";
 import { AIError } from "@opengnothia/shared/ai/AIError";
 import { getErrorDisplayInfo, type ErrorDisplayInfo } from "@opengnothia/shared/ai/errorMessages";
@@ -200,7 +188,8 @@ async function trackUsage(
 ) {
   if (!usage) return;
   const cost = calculateCost(provider as any, model, usage.inputTokens, usage.outputTokens);
-  await saveTokenUsage({
+  const queries = await getQueries();
+  await queries.saveTokenUsage({
     session_id: null,
     provider,
     model,
@@ -245,8 +234,9 @@ function CourseListView({
     void (async () => {
       const entries = await Promise.all(
         COURSES.map(async (course) => {
-          await initializeCourseProgress(course.id, course.steps.length);
-          const progress = await getCourseProgress(course.id);
+          const queries = await getQueries();
+          await queries.initializeCourseProgress(course.id, course.steps.length);
+          const progress = await queries.getCourseProgress(course.id);
           return [
             course.id,
             {
@@ -488,9 +478,10 @@ function JourneyMapView({
   const handleResetProgress = useCallback(async () => {
     setResetting(true);
     try {
-      await resetCourseProgress(course.id);
-      await initializeCourseProgress(course.id, course.steps.length);
-      const progress = await getCourseProgress(course.id);
+      const queries = await getQueries();
+      await queries.resetCourseProgress(course.id);
+      await queries.initializeCourseProgress(course.id, course.steps.length);
+      const progress = await queries.getCourseProgress(course.id);
       setSteps(progress);
     } finally {
       setResetting(false);
@@ -499,8 +490,9 @@ function JourneyMapView({
   }, [course.id, course.steps.length]);
 
   const loadProgress = useCallback(async () => {
-    await initializeCourseProgress(course.id, course.steps.length);
-    const progress = await getCourseProgress(course.id);
+    const queries = await getQueries();
+    await queries.initializeCourseProgress(course.id, course.steps.length);
+    const progress = await queries.getCourseProgress(course.id);
     setSteps(progress);
     setLoading(false);
   }, [course.id, course.steps.length]);
@@ -896,13 +888,14 @@ function LessonView({
 
   const persistMessages = useCallback((messages: ChatMessage[]) => {
     if (messages.length === 0) return;
-    void updateCourseStepMessages(course.id, stepIndex, messages);
+    void getQueries().then((queries) => queries.updateCourseStepMessages(course.id, stepIndex, messages));
   }, [course.id, stepIndex]);
 
   const saveCourseLessonNotes = useCallback(async (completedMessages: ChatMessage[]) => {
+    const queries = await getQueries();
     const [existingNotes, notesUpdatedAt] = await Promise.all([
-      getCourseNotes(course.id),
-      getCourseNotesUpdatedAt(course.id),
+      queries.getCourseNotes(course.id),
+      queries.getCourseNotesUpdatedAt(course.id),
     ]);
 
     const systemPrompt = buildCourseNotesUpdatePrompt(existingNotes, notesUpdatedAt, language as any);
@@ -952,7 +945,8 @@ function LessonView({
     greetingSentRef.current = false;
 
     async function init() {
-      const progress = await getCourseStepProgress(course.id, stepIndex);
+      const queries = await getQueries();
+      const progress = await queries.getCourseStepProgress(course.id, stepIndex);
       if (!isLessonInstanceActive(instanceId)) return;
       const existingMessages = progress?.messages ?? [];
       const isCompleted = progress?.status === "completed";
@@ -967,7 +961,7 @@ function LessonView({
 
       // Mark step as in_progress if it was available
       if (progress?.status === "available") {
-        await startCourseStep(course.id, stepIndex);
+        await queries.startCourseStep(course.id, stepIndex);
         if (!isLessonInstanceActive(instanceId)) return;
       }
 
@@ -1003,7 +997,8 @@ function LessonView({
     state.setLessonCompleted(true);
     setIsSavingCourseNotes(true);
     try {
-      await completeCourseStep(course.id, stepIndex);
+      const queries = await getQueries();
+      await queries.completeCourseStep(course.id, stepIndex);
       try {
         await saveCourseLessonNotes(completedMessages);
       } catch {
@@ -1022,7 +1017,8 @@ function LessonView({
     const instanceId = lessonInstanceRef.current;
 
     try {
-      const courseNotes = await getCourseNotes(course.id);
+      const queries = await getQueries();
+      const courseNotes = await queries.getCourseNotes(course.id);
       if (!isLessonInstanceActive(instanceId)) return;
 
       const greetingPrompt = buildCourseLessonGreetingPrompt({
@@ -1088,7 +1084,7 @@ function LessonView({
           const progress = extractProgress(accumulatedContent);
           if (progress !== null) {
             useCourseStore.getState().setLessonProgress(progress);
-            void updateCourseStepProgress(course.id, stepIndex, progress);
+            void getQueries().then((q) => q.updateCourseStepProgress(course.id, stepIndex, progress));
           }
           const cleanContent = stripMarkers(accumulatedContent);
 
@@ -1112,7 +1108,7 @@ function LessonView({
           const currentMessages = useCourseStore.getState().messages;
           if (hasMarker) {
             useCourseStore.getState().setLessonProgress(100);
-            void updateCourseStepProgress(course.id, stepIndex, 100);
+            void getQueries().then((q) => q.updateCourseStepProgress(course.id, stepIndex, 100));
             void handleStepComplete(currentMessages);
           }
 
@@ -1158,7 +1154,8 @@ function LessonView({
 
     state.startCompaction();
     try {
-      const courseNotes = await getCourseNotes(course.id);
+      const queries = await getQueries();
+      const courseNotes = await queries.getCourseNotes(course.id);
       if (!isLessonInstanceActive(instanceId)) return;
       const systemPrompt = buildCourseLessonSystemPrompt({
         topicTitle: step.topicTitle,
@@ -1216,7 +1213,8 @@ function LessonView({
     useCourseStore.getState().addMessage(userMsg);
 
     try {
-      const courseNotes = await getCourseNotes(course.id);
+      const queries = await getQueries();
+      const courseNotes = await queries.getCourseNotes(course.id);
       if (!isLessonInstanceActive(instanceId)) return;
 
       const systemPrompt = buildCourseLessonSystemPrompt({
@@ -1289,7 +1287,7 @@ function LessonView({
           const progress = extractProgress(accumulatedContent);
           if (progress !== null) {
             useCourseStore.getState().setLessonProgress(progress);
-            void updateCourseStepProgress(course.id, stepIndex, progress);
+            void getQueries().then((q) => q.updateCourseStepProgress(course.id, stepIndex, progress));
           }
           const cleanContent = stripMarkers(accumulatedContent);
 
@@ -1313,7 +1311,7 @@ function LessonView({
           const currentMessages = useCourseStore.getState().messages;
           if (hasMarker) {
             useCourseStore.getState().setLessonProgress(100);
-            void updateCourseStepProgress(course.id, stepIndex, 100);
+            void getQueries().then((q) => q.updateCourseStepProgress(course.id, stepIndex, 100));
             void handleStepComplete(currentMessages);
           }
 

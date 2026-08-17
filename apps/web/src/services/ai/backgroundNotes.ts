@@ -1,7 +1,7 @@
 import { useAppStore } from "@/stores/useAppStore";
 import { sendMessage } from "@opengnothia/shared/ai/aiService";
 import { calculateCost } from "@opengnothia/shared/ai/costCalculator";
-import { upsertPatientNotes, saveTokenUsage } from "@/services/db/queries";
+import { getQueries } from "@/db";
 import type { AIProvider, ChatMessage, ThinkingLevel, ThinkingType, TokenUsage } from "@opengnothia/shared/types";
 
 
@@ -29,7 +29,8 @@ async function trackUsage(
 ) {
   if (!usage) return;
   const cost = calculateCost(provider, model, usage.inputTokens, usage.outputTokens);
-  await saveTokenUsage({
+  const queries = await getQueries();
+  await queries.saveTokenUsage({
     session_id: sessionId,
     provider,
     model,
@@ -62,7 +63,8 @@ export async function takeBackgroundNotes(params: BackgroundNotesParams): Promis
 
     if (result.content && result.content.trim().length > 0) {
       const notes = result.content.trim();
-      await upsertPatientNotes(notes);
+      const queries = await getQueries();
+      await queries.upsertPatientNotes(notes);
     }
     await trackUsage(
       params.provider,

@@ -1,7 +1,7 @@
 import { CheckCircle2, ClipboardList, Pencil, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useTranslation } from "@opengnothia/shared/i18n";
-import { countFilledIntakeFields, INTAKE_FORM_TOTAL_FIELDS } from "@/services/db/queries";
+import { countFilledIntakeFields, INTAKE_FORM_TOTAL_FIELDS } from "@opengnothia/shared/db/queries";
 import type { PatientIntakeForm } from "@opengnothia/shared/types";
 
 interface IntakeFormSummaryCardProps {

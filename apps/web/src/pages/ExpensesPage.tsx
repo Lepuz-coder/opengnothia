@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/Card";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
-import { getTokenUsageRecords, getTokenUsageSummaryByProvider } from "@/services/db/queries";
+import { getQueries } from "@/db";
 import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslation, getDateLocale } from "@opengnothia/shared/i18n";
 import type { TokenUsageRecord } from "@opengnothia/shared/types";
@@ -40,9 +40,10 @@ export default function ExpensesPage() {
 
   useEffect(() => {
     async function load() {
+      const queries = await getQueries();
       const [recs, sums] = await Promise.all([
-        getTokenUsageRecords(1000),
-        getTokenUsageSummaryByProvider(),
+        queries.getTokenUsageRecords(1000),
+        queries.getTokenUsageSummaryByProvider(),
       ]);
       setRecords(recs);
       setSummaries(sums);

@@ -13,18 +13,7 @@ import { getErrorDisplayInfo, type ErrorDisplayInfo } from "@opengnothia/shared/
 import { calculateCost } from "@opengnothia/shared/ai/costCalculator";
 import { buildJournalAnalysisPrompt, buildPatientNotesUpdatePrompt, JOURNAL_ANALYSIS_TRIGGER, journalPatientNotesMessage } from "@/services/ai/promptBuilder";
 import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
-import {
-  createJournalEntry,
-  getJournalEntriesByDateRange,
-  getJournalEntryById,
-  updateJournalAnalysis,
-  updateJournalEntryContent,
-  deleteJournalEntry,
-  getUserProfile,
-  getPatientNotes,
-  getPatientNotesUpdatedAt,
-  saveTokenUsage,
-} from "@/services/db/queries";
+import { getQueries } from "@/db";
 import { ErrorModal } from "@/components/ui/ErrorModal";
 import { Plus, ArrowLeft, Trash2, Sparkles, Loader2, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -78,7 +67,8 @@ async function trackUsage(
 ) {
   if (!usage) return;
   const cost = calculateCost(provider, model, usage.inputTokens, usage.outputTokens);
-  await saveTokenUsage({
+  const queries = await getQueries();
+  await queries.saveTokenUsage({
     session_id: null,
     provider,
     model,
@@ -150,7 +140,8 @@ export default function JournalPage() {
     const days = getCalendarDays(currentYear, currentMonth);
     const startDate = formatYMD(days[0]);
     const endDate = formatYMD(days[days.length - 1]);
-    const data = await getJournalEntriesByDateRange(startDate, endDate);
+    const queries = await getQueries();
+    const data = await queries.getJournalEntriesByDateRange(startDate, endDate);
     setEntries(data);
     setLoading(false);
   }, [currentYear, currentMonth]);
@@ -206,13 +197,14 @@ export default function JournalPage() {
     if (!content.trim()) return;
     setSaving(true);
     try {
+      const queries = await getQueries();
       if (editingEntryId) {
-        await updateJournalEntryContent(editingEntryId, content.trim());
-        const updated = await getJournalEntryById(editingEntryId);
+        await queries.updateJournalEntryContent(editingEntryId, content.trim());
+        const updated = await queries.getJournalEntryById(editingEntryId);
         if (updated) setSelectedEntry(updated);
         setEditingEntryId(null);
       } else {
-        const entry = await createJournalEntry({
+        const entry = await queries.createJournalEntry({
           content: content.trim(),
           mood: null,
           tags: [],
@@ -231,7 +223,8 @@ export default function JournalPage() {
 
   // View detail
   const handleViewEntry = async (id: string) => {
-    const entry = await getJournalEntryById(id);
+    const queries = await getQueries();
+    const entry = await queries.getJournalEntryById(id);
     if (entry) {
       setSelectedEntry(entry);
       setErrorModalInfo(null);
@@ -242,7 +235,8 @@ export default function JournalPage() {
   // Delete entry
   const handleDelete = async () => {
     if (!selectedEntry) return;
-    await deleteJournalEntry(selectedEntry.id);
+    const queries = await getQueries();
+    await queries.deleteJournalEntry(selectedEntry.id);
     setSelectedEntry(null);
     setDeleteModalOpen(false);
     setView("calendar");
@@ -257,9 +251,10 @@ export default function JournalPage() {
     setAnalysisModalOpen(true);
 
     try {
+      const queries = await getQueries();
       const [profile, patientNotes] = await Promise.all([
-        getUserProfile(),
-        getPatientNotes(),
+        queries.getUserProfile(),
+        queries.getPatientNotes(),
       ]);
 
       const analysisPrompt = buildJournalAnalysisPrompt({
@@ -308,11 +303,11 @@ export default function JournalPage() {
       }
 
       // Save analysis to DB
-      await updateJournalAnalysis(selectedEntry.id, fullAnalysis);
+      await queries.updateJournalAnalysis(selectedEntry.id, fullAnalysis);
       await trackUsage(settings.provider, settings.model, "journal_analysis", streamUsage);
 
       // Update patient notes in background
-      const [existingNotes, notesUpdatedAt] = await Promise.all([getPatientNotes(), getPatientNotesUpdatedAt()]);
+      const [existingNotes, notesUpdatedAt] = await Promise.all([queries.getPatientNotes(), queries.getPatientNotesUpdatedAt()]);
       const notesPrompt = buildPatientNotesUpdatePrompt(existingNotes, notesUpdatedAt, language);
       takeBackgroundNotes({
         provider: settings.provider,
@@ -328,7 +323,7 @@ export default function JournalPage() {
       });
 
       // Refresh data
-      const updated = await getJournalEntryById(selectedEntry.id);
+      const updated = await queries.getJournalEntryById(selectedEntry.id);
       if (updated) setSelectedEntry(updated);
       await loadEntries();
     } catch (err) {

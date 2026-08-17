@@ -7,17 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { cn } from "@opengnothia/shared/lib/cn";
 import { useTranslation, getDateLocale } from "@opengnothia/shared/i18n";
 import type { Translations } from "@opengnothia/shared/i18n";
-import {
-  getInsightGroups,
-  createInsightGroup,
-  updateInsightGroup,
-  deleteInsightGroup,
-  getInsightsByGroupId,
-  createInsight,
-  updateInsightContent,
-  toggleInsightPin,
-  deleteInsight,
-} from "@/services/db/queries";
+import { getQueries } from "@/db";
 import {
   Plus,
   ArrowLeft,
@@ -111,7 +101,8 @@ export default function InsightsPage() {
 
   const loadGroups = useCallback(async () => {
     try {
-      const data = await getInsightGroups();
+      const queries = await getQueries();
+      const data = await queries.getInsightGroups();
       setGroups(data);
     } catch (err) {
       console.error("Failed to load insight groups:", err);
@@ -122,7 +113,8 @@ export default function InsightsPage() {
 
   const loadInsights = useCallback(async (groupId: string) => {
     try {
-      const data = await getInsightsByGroupId(groupId);
+      const queries = await getQueries();
+      const data = await queries.getInsightsByGroupId(groupId);
       setInsights(data);
     } catch (err) {
       console.error("Failed to load insights:", err);
@@ -182,7 +174,8 @@ export default function InsightsPage() {
   const handleCreateGroupInModal = async () => {
     if (!newGroupName.trim()) return;
     try {
-      const id = await createInsightGroup({
+      const queries = await getQueries();
+      const id = await queries.createInsightGroup({
         name: newGroupName.trim(),
         emoji: newGroupEmoji,
         description: newGroupDescription.trim() || undefined,
@@ -201,14 +194,15 @@ export default function InsightsPage() {
     if (!newContent.trim() || !selectedGroupId) return;
     setSaving(true);
     try {
-      await createInsight({ group_id: selectedGroupId, content: newContent.trim() });
+      const queries = await getQueries();
+      await queries.createInsight({ group_id: selectedGroupId, content: newContent.trim() });
       setNewInsightModalOpen(false);
       setNewContent("");
       await loadGroups();
       if (view === "detail" && selectedGroup?.id === selectedGroupId) {
         await loadInsights(selectedGroupId);
         // Refresh the selected group data
-        const updatedGroups = await getInsightGroups();
+        const updatedGroups = await queries.getInsightGroups();
         const updated = updatedGroups.find((g) => g.id === selectedGroupId);
         if (updated) setSelectedGroup(updated);
       }
@@ -228,7 +222,8 @@ export default function InsightsPage() {
   const handleSaveQuickAdd = async (groupId: string) => {
     if (!quickAddContent.trim()) return;
     try {
-      await createInsight({ group_id: groupId, content: quickAddContent.trim() });
+      const queries = await getQueries();
+      await queries.createInsight({ group_id: groupId, content: quickAddContent.trim() });
       setQuickAddGroupId(null);
       setQuickAddContent("");
       await loadGroups();
@@ -241,11 +236,12 @@ export default function InsightsPage() {
   const handleSaveNewNote = async () => {
     if (!newNoteContent.trim() || !selectedGroup) return;
     try {
-      await createInsight({ group_id: selectedGroup.id, content: newNoteContent.trim() });
+      const queries = await getQueries();
+      await queries.createInsight({ group_id: selectedGroup.id, content: newNoteContent.trim() });
       setNewNoteContent("");
       setShowNewNote(false);
       await loadInsights(selectedGroup.id);
-      const updatedGroups = await getInsightGroups();
+      const updatedGroups = await queries.getInsightGroups();
       const updated = updatedGroups.find((g) => g.id === selectedGroup.id);
       if (updated) setSelectedGroup(updated);
     } catch (err) {
@@ -262,7 +258,8 @@ export default function InsightsPage() {
   const handleUpdateInsight = async (id: string) => {
     if (!editContent.trim()) return;
     try {
-      await updateInsightContent(id, editContent.trim());
+      const queries = await getQueries();
+      await queries.updateInsightContent(id, editContent.trim());
       setEditingInsightId(null);
       if (selectedGroup) await loadInsights(selectedGroup.id);
     } catch (err) {
@@ -273,7 +270,8 @@ export default function InsightsPage() {
   // Pin/unpin
   const handleTogglePin = async (insight: Insight) => {
     try {
-      await toggleInsightPin(insight.id, !insight.is_pinned);
+      const queries = await getQueries();
+      await queries.toggleInsightPin(insight.id, !insight.is_pinned);
       if (selectedGroup) await loadInsights(selectedGroup.id);
     } catch (err) {
       console.error("Failed to toggle pin:", err);
@@ -284,11 +282,12 @@ export default function InsightsPage() {
   const handleDeleteInsight = async () => {
     if (!deleteInsightId) return;
     try {
-      await deleteInsight(deleteInsightId);
+      const queries = await getQueries();
+      await queries.deleteInsight(deleteInsightId);
       setDeleteInsightId(null);
       if (selectedGroup) {
         await loadInsights(selectedGroup.id);
-        const updatedGroups = await getInsightGroups();
+        const updatedGroups = await queries.getInsightGroups();
         const updated = updatedGroups.find((g) => g.id === selectedGroup.id);
         if (updated) setSelectedGroup(updated);
       }
@@ -310,13 +309,14 @@ export default function InsightsPage() {
   const handleUpdateGroup = async () => {
     if (!selectedGroup || !editGroupName.trim()) return;
     try {
-      await updateInsightGroup(selectedGroup.id, {
+      const queries = await getQueries();
+      await queries.updateInsightGroup(selectedGroup.id, {
         name: editGroupName.trim(),
         emoji: editGroupEmoji,
         description: editGroupDescription.trim() || undefined,
         color: editGroupColor,
       });
-      const updatedGroups = await getInsightGroups();
+      const updatedGroups = await queries.getInsightGroups();
       const updated = updatedGroups.find((g) => g.id === selectedGroup.id);
       if (updated) setSelectedGroup(updated);
       setEditGroupModalOpen(false);
@@ -329,7 +329,8 @@ export default function InsightsPage() {
   const handleDeleteGroup = async () => {
     if (!selectedGroup) return;
     try {
-      await deleteInsightGroup(selectedGroup.id);
+      const queries = await getQueries();
+      await queries.deleteInsightGroup(selectedGroup.id);
       setDeleteGroupModalOpen(false);
       handleBackToGroups();
     } catch (err) {

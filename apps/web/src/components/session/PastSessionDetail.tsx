@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { ChatContainer } from "@/components/chat/ChatContainer";
 import { useTranslation, getDateLocale } from "@opengnothia/shared/i18n";
-import { getSessionById, deleteSession, getSessionTotalCost, getPatientNotes, updateSessionNarrative, saveTokenUsage } from "@/services/db/queries";
+import { getQueries } from "@/db";
 import { streamMessage } from "@opengnothia/shared/ai/aiService";
 import { buildSummaryPrompt, SESSION_SUMMARY_SYSTEM_PROMPT } from "@/services/ai/promptBuilder";
 import { calculateCost } from "@opengnothia/shared/ai/costCalculator";
@@ -36,7 +36,9 @@ export function PastSessionDetail({ sessionId, onBack }: PastSessionDetailProps)
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([getSessionById(sessionId), getSessionTotalCost(sessionId)]).then(
+    getQueries()
+      .then((queries) => Promise.all([queries.getSessionById(sessionId), queries.getSessionTotalCost(sessionId)]))
+      .then(
       ([s, cost]) => {
         setSession(s);
         setSessionCost(cost);
@@ -53,7 +55,8 @@ export function PastSessionDetail({ sessionId, onBack }: PastSessionDetailProps)
 
   const handleDelete = async () => {
     setDeleting(true);
-    await deleteSession(sessionId);
+    const queries = await getQueries();
+    await queries.deleteSession(sessionId);
     setDeleting(false);
     setDeleteConfirmOpen(false);
     onBack();
@@ -67,7 +70,8 @@ export function PastSessionDetail({ sessionId, onBack }: PastSessionDetailProps)
     setStreamContent("");
 
     try {
-      const patientNotes = await getPatientNotes();
+      const queries = await getQueries();
+      const patientNotes = await queries.getPatientNotes();
       const summaryPrompt = buildSummaryPrompt(patientNotes, language);
       const conversationForSummary: ChatMessage[] = [
         ...session.messages,
@@ -103,7 +107,7 @@ export function PastSessionDetail({ sessionId, onBack }: PastSessionDetailProps)
         onUsage: (usage) => {
           if (!usage) return;
           const cost = calculateCost(settings.provider, settings.model, usage.inputTokens, usage.outputTokens);
-          saveTokenUsage({
+          queries.saveTokenUsage({
             session_id: sessionId,
             provider: settings.provider,
             model: settings.model,
@@ -123,7 +127,7 @@ export function PastSessionDetail({ sessionId, onBack }: PastSessionDetailProps)
       });
 
       if (fullContent.trim().length > 0) {
-        await updateSessionNarrative(sessionId, fullContent);
+        await queries.updateSessionNarrative(sessionId, fullContent);
         if (!cancelledRef.current) {
           setSession((prev) => (prev ? { ...prev, summary_narrative: fullContent } : prev));
         }

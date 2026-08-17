@@ -4,7 +4,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { useTranslation } from "@opengnothia/shared/i18n";
 import { loadSettings } from "@/lib/store";
-import { upsertPatientIntakeForm, getPatientIntakeForm } from "@/services/db/queries";
+import { getQueries } from "@/db";
 import type { PatientIntakeForm, PatientIntakeFormField } from "@opengnothia/shared/types";
 
 interface IntakeFormModalProps {
@@ -128,7 +128,8 @@ export function IntakeFormModal({
     if (saving) return;
     const next = Math.min(stepIndex + 1, TOTAL_STEPS - 1);
     setStepIndex(next);
-    await upsertPatientIntakeForm(toPayload(form));
+    const queries = await getQueries();
+    await queries.upsertPatientIntakeForm(toPayload(form));
     await persistStepIndex(next);
   };
 
@@ -136,15 +137,17 @@ export function IntakeFormModal({
     if (saving) return;
     const prev = Math.max(stepIndex - 1, 0);
     setStepIndex(prev);
-    await upsertPatientIntakeForm(toPayload(form));
+    const queries = await getQueries();
+    await queries.upsertPatientIntakeForm(toPayload(form));
     await persistStepIndex(prev);
   };
 
   const handleSave = async () => {
     setSaving(true);
-    await upsertPatientIntakeForm(toPayload(form));
+    const queries = await getQueries();
+    await queries.upsertPatientIntakeForm(toPayload(form));
     await persistStepIndex(0);
-    const latest = await getPatientIntakeForm();
+    const latest = await queries.getPatientIntakeForm();
     setSaving(false);
     onSaved(latest, true);
     onClose();
@@ -152,9 +155,10 @@ export function IntakeFormModal({
 
   const handleClose = async () => {
     if (saving) return;
-    await upsertPatientIntakeForm(toPayload(form));
+    const queries = await getQueries();
+    await queries.upsertPatientIntakeForm(toPayload(form));
     await persistStepIndex(stepIndex);
-    const latest = await getPatientIntakeForm();
+    const latest = await queries.getPatientIntakeForm();
     onSaved(latest, false);
     onClose();
   };

@@ -11,17 +11,7 @@ import { AIError } from "@opengnothia/shared/ai/AIError";
 import { getErrorDisplayInfo, type ErrorDisplayInfo } from "@opengnothia/shared/ai/errorMessages";
 import { calculateCost } from "@opengnothia/shared/ai/costCalculator";
 import { buildMilestoneAnalysisPrompt } from "@/services/ai/promptBuilder";
-import {
-  getCompletedSessionCount,
-  getCompletedSessions,
-  getPatientNotes,
-  getUserProfile,
-  getDreamCount,
-  getJournalEntryCount,
-  getMilestoneAnalysis,
-  saveMilestoneAnalysis,
-  saveTokenUsage,
-} from "@/services/db/queries";
+import { getQueries } from "@/db";
 import { Sparkles, Lock, CheckCircle2, Loader2, Trophy, MessageSquare, BookOpen, Moon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -63,7 +53,8 @@ async function trackUsage(
 ) {
   if (!usage) return;
   const cost = calculateCost(provider, model, usage.inputTokens, usage.outputTokens);
-  await saveTokenUsage({
+  const queries = await getQueries();
+  await queries.saveTokenUsage({
     session_id: null,
     provider,
     model,
@@ -91,10 +82,11 @@ export default function AnalysesPage() {
 
   useEffect(() => {
     async function loadData() {
+      const queries = await getQueries();
       const [sessions, dreams, journal] = await Promise.all([
-        getCompletedSessionCount(),
-        getDreamCount(),
-        getJournalEntryCount(),
+        queries.getCompletedSessionCount(),
+        queries.getDreamCount(),
+        queries.getJournalEntryCount(),
       ]);
       setSessionCount(sessions);
       setDreamCount(dreams);
@@ -104,7 +96,7 @@ export default function AnalysesPage() {
       const cached = new Map<number, string>();
       for (const m of MILESTONES) {
         if (sessions >= m) {
-          const existing = await getMilestoneAnalysis(m);
+          const existing = await queries.getMilestoneAnalysis(m);
           if (existing) cached.set(m, existing.content);
         }
       }
@@ -137,10 +129,11 @@ export default function AnalysesPage() {
     setAnalysisModalOpen(true);
 
     try {
+      const queries = await getQueries();
       const [patientNotes, sessions, profile] = await Promise.all([
-        getPatientNotes(),
-        getCompletedSessions(),
-        getUserProfile(),
+        queries.getPatientNotes(),
+        queries.getCompletedSessions(),
+        queries.getUserProfile(),
       ]);
 
       const sessionSummaries = sessions.map((s) => ({
@@ -195,7 +188,7 @@ export default function AnalysesPage() {
         throw streamError;
       }
 
-      await saveMilestoneAnalysis(milestone, fullAnalysis);
+      await queries.saveMilestoneAnalysis(milestone, fullAnalysis);
       await trackUsage(settings.provider, settings.model, "milestone_analysis", streamUsage);
 
       setCachedAnalyses((prev) => {

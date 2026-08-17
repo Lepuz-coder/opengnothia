@@ -704,20 +704,20 @@
     </summary>
     <div class="ph-body">
       <ul class="steps">
-        <li><label class="step"><input type="checkbox" data-track id="s36"><span class="body"><span class="no">Step 36</span><span class="txt"><code>packages/shared/src/db/port.ts</code>'i yaz:<pre><code>export interface DatabasePort {
+        <li><label class="step"><input type="checkbox" data-track id="s36" data-seed><span class="body"><span class="no">Step 36</span><span class="txt"><code>packages/shared/src/db/port.ts</code>'i yaz:<pre><code>export interface DatabasePort {
   select&lt;T&gt;(sql: string, params?: unknown[]): Promise&lt;T[]&gt;;
   execute(sql: string, params?: unknown[]): Promise&lt;{ lastInsertId?: number; rowsAffected: number }&gt;;
 }</code></pre>Tauri <code>db.execute</code> ile expo-sqlite <code>runAsync</code>'in dönüş şekilleri biraz farklı — en küçük ortak paydayı seç.</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s37"><span class="body"><span class="no">Step 37</span><span class="txt"><code>git mv apps/web/src/services/db/queries.ts packages/shared/src/db/queries.ts</code></span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s38"><span class="body"><span class="no">Step 38</span><span class="txt"><code>queries.ts</code>'i factory desenine çevir — <b>bu fazın en büyük mekanik refactor'ı, fonksiyon fonksiyon ilerle</b>. Her <code>const db = await getDatabase()</code> closure'daki <code>db</code> parametresiyle değişir.<pre><code>export function createQueries(db: DatabasePort) {
+        <li><label class="step"><input type="checkbox" data-track id="s37" data-seed><span class="body"><span class="no">Step 37</span><span class="txt"><code>git mv apps/web/src/services/db/queries.ts packages/shared/src/db/queries.ts</code></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s38" data-seed><span class="body"><span class="no">Step 38</span><span class="txt"><code>queries.ts</code>'i factory desenine çevir — <b>bu fazın en büyük mekanik refactor'ı, fonksiyon fonksiyon ilerle</b>. Her <code>const db = await getDatabase()</code> closure'daki <code>db</code> parametresiyle değişir.<pre><code>export function createQueries(db: DatabasePort) {
   return {
     getUserProfile: async (): Promise&lt;UserProfile | null&gt; =&gt; { /* uses db.select */ },
     // ... all 50+ query functions
   };
 }
 export type Queries = ReturnType&lt;typeof createQueries&gt;;</code></pre></span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s39"><span class="body"><span class="no">Step 39</span><span class="txt"><code>queries.ts</code> içindeki <code>@/types</code> import'larını göreli <code>../types</code>'a çevir.</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s40"><span class="body"><span class="no">Step 40</span><span class="txt"><code>apps/web/src/adapters/tauriSqlAdapter.ts</code>'i oluştur:<pre><code>import type Database from "@tauri-apps/plugin-sql";
+        <li><label class="step"><input type="checkbox" data-track id="s39" data-seed><span class="body"><span class="no">Step 39</span><span class="txt"><code>queries.ts</code> içindeki <code>@/types</code> import'larını göreli <code>../types</code>'a çevir.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s40" data-seed><span class="body"><span class="no">Step 40</span><span class="txt"><code>apps/web/src/adapters/tauriSqlAdapter.ts</code>'i oluştur:<pre><code>import type Database from "@tauri-apps/plugin-sql";
 import type { DatabasePort } from "@opengnothia/shared/db/port";
 
 export function createTauriSqlAdapter(db: Database): DatabasePort {
@@ -729,7 +729,7 @@ export function createTauriSqlAdapter(db: Database): DatabasePort {
     },
   };
 }</code></pre></span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s41"><span class="body"><span class="no">Step 41</span><span class="txt"><code>services/db/database.ts</code>'in yerine <code>apps/web/src/db/index.ts</code>:<pre><code>import Database from "@tauri-apps/plugin-sql";
+        <li><label class="step"><input type="checkbox" data-track id="s41" data-seed><span class="body"><span class="no">Step 41</span><span class="txt"><code>services/db/database.ts</code>'in yerine <code>apps/web/src/db/index.ts</code>:<pre><code>import Database from "@tauri-apps/plugin-sql";
 import { createQueries, type Queries } from "@opengnothia/shared/db/queries";
 import { createTauriSqlAdapter } from "@/adapters/tauriSqlAdapter";
 
@@ -741,13 +741,25 @@ export async function getQueries(): Promise&lt;Queries&gt; {
   }
   return queries;
 }</code></pre></span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s42"><span class="body"><span class="no">Step 42</span><span class="txt">Eski <code>getDatabase()</code> çağrı noktalarını <code>getQueries()</code>'e çevir (<code>grep -rn "@/services/db" apps/web/src</code>). <b>Not:</b> <code>dataPortService.ts</code> ham tablo dökümü için <code>getDatabase</code>'i doğrudan kullanıyor — ya queries nesnesine bir <code>select</code> geçişi eklenir ya da adapter doğrudan import edilir. <b>Öneri:</b> kasıtlı olarak jenerik olduğu için <code>dataPortService</code>'e doğrudan <code>DatabasePort</code> enjekte et.</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s43"><span class="body"><span class="no">Step 43</span><span class="txt"><code>apps/web/src/services/db/database.ts</code>'i sil.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s42" data-seed><span class="body"><span class="no">Step 42</span><span class="txt">Eski <code>getDatabase()</code> çağrı noktalarını <code>getQueries()</code>'e çevir (<code>grep -rn "@/services/db" apps/web/src</code>). <b>Not:</b> <code>dataPortService.ts</code> ham tablo dökümü için <code>getDatabase</code>'i doğrudan kullanıyor — ya queries nesnesine bir <code>select</code> geçişi eklenir ya da adapter doğrudan import edilir. <b>Öneri:</b> kasıtlı olarak jenerik olduğu için <code>dataPortService</code>'e doğrudan <code>DatabasePort</code> enjekte et.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s43" data-seed><span class="body"><span class="no">Step 43</span><span class="txt"><code>apps/web/src/services/db/database.ts</code>'i sil.</span></span></label></li>
         <li><label class="step"><input type="checkbox" data-track id="s44"><span class="body"><span class="tag reg">UI Regresyonu</span><span class="no">Step 44</span><span class="txt"><b>En yüksek riskli faz</b> — DB'ye dokunan her akış doğrulanmalı: seans kaydet/devam ettir, journal/dream CRUD, insights, kurs ilerlemesi, haftalık özet, Settings'te dışa/içe aktarım. <a href="#regression">Tam liste</a>.</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s45"><span class="body"><span class="tag commit">Commit</span><span class="no">Step 45</span><span class="txt"><code>refactor(db): introduce DatabasePort + Tauri adapter, queries in shared</code></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s45" data-seed><span class="body"><span class="tag commit">Commit</span><span class="no">Step 45</span><span class="txt"><code>refactor(db): introduce DatabasePort + Tauri adapter, queries in shared</code></span></span></label></li>
       </ul>
+      <div class="note">
+        <b>Faz 5 notu — 2026-08-17'de kod tarafı tamamlandı.</b> <code>queries.ts</code> <code>git mv</code> ile shared'a taşındı ve script destekli mekanik dönüşümle <code>createQueries(db: DatabasePort)</code> factory'sine çevrildi: <b>71 sorgu fonksiyonu</b> closure'a alındı, her <code>const db = await getDatabase()</code> satırı düşürüldü, tüm <code>db.select&lt;X[]&gt;</code> jenerikleri port imzasına uygun <code>db.select&lt;X&gt;</code> yapıldı. Saf yardımcılar (<code>intakeFormHasContent</code>, <code>countFilledIntakeFields</code>, <code>INTAKE_FORM_TOTAL_FIELDS</code>) factory dışında bağımsız export kaldı. <code>apps/web/src/db/index.ts</code> plandaki gibi <code>Database.load</code> tabanlı asenkron <code>getQueries()</code> singleton'ı sunuyor; ek olarak Step 42 önerisi doğrultusunda <code>dataPortService</code> için ham <code>getDbPort()</code> erişimi var (jenerik tablo dökümü/geri yükleme port üzerinden). <b>23 çağrı noktası dosyası</b> güncellendi (10 sayfa, 7 session bileşeni, 3 hook, 2 AI servisi, dataPortService); awaited çağrılar <code>const queries = await getQueries()</code> desenine, async olmayan callback'lerdeki fire-and-forget çağrılar <code>getQueries().then((q) =&gt; q.fn(...))</code> desenine çevrildi — await/no-await anlambilimi her noktada korundu.
+      </div>
+      <div class="note" style="border-left-color:var(--warn)">
+        <b>Açık Soru 5 kapandı — <code>Database.get</code> tuzağıyla birlikte.</b> Tauri <code>execute</code> dönüşü (<code>QueryResult { rowsAffected, lastInsertId? }</code>) port şekliyle birebir uyumlu; hiçbir sorgu <code>execute</code> dönüşüne veya ek alana dayanmıyor (ID'ler <code>crypto.randomUUID()</code> ile istemcide üretiliyor). Tek fark <code>select</code> jeneriğinde: Tauri <code>select&lt;T&gt;</code> = tüm dizi tipi, port <code>select&lt;T&gt;</code> = satır tipi; adapter bu yüzden <code>db.select&lt;T[]&gt;</code> çağırıyor. Ayrıca değerlendirilen sync-lazy <code>Database.get</code> alternatifi bilinçli reddedildi: plugin-sql 2.3.2'nin Rust tarafı (<code>commands.rs</code>) tembel bağlanmıyor — <code>load</code> çağrılmadan <code>select</code>/<code>execute</code> <code>DatabaseNotLoaded</code> hatası veriyor (JS dokümanındaki "deferred connection" vaadi bu kurulumda geçersiz). <code>Database.load</code> + async accessor korundu; <code>useDatabase</code> kapısı artık <code>getQueries()</code> ile aynı anlamda çalışıyor.
+      </div>
+      <div class="note" style="border-left-color:var(--warn)">
+        <b>Faz 4 devri kararı — üçlü şimdilik uygulama-yerel kalıyor.</b> Sorgular shared'a taşındıktan sonra yeniden değerlendirildi: <code>backgroundNotes.ts</code> hem <code>useAppStore</code>'a (D3: store'lar uygulama-yerel) hem uygulamanın queries singleton'ına, <code>courseNotes.ts</code> queries singleton'ına bağımlı — shared'a taşınmaları ya modül-seviyesi enjeksiyon deseni ya da tüm çağrı noktalarında API değişikliği gerektirirdi. <code>promptBuilder.ts</code>'in tek uygulama bağımlılığı <code>getSchoolById</code>; i18n'in <code>setLanguageBindings</code> emsaliyle bir schools-accessor enjeksiyonu teknik olarak mümkün, ancak henüz ikinci bir tüketici (mobil) yokken dikişi körlemesine tasarlamak yerine karar mobil UI planına ertelendi — mobil, prompt üretimine ihtiyaç duyduğunda <code>setSchoolsBindings</code> aynı emsalle eklenecek. Üç dosya da bu fazın <code>getQueries()</code> geçişine dahil edildi, yani derleniyor ve çalışıyorlar; sadece pakette yer değiştirmediler.
+      </div>
+      <div class="note">
+        <b>Doğrulama (statik):</b> <code>tsc --noEmit</code> temiz; <code>pnpm build:web</code> temiz, 2117 modül / ~2.0s; grep süpürmeleri <code>apps/web</code> ve <code>packages/shared</code>'da sıfır <code>services/db</code> kalıntısı ve shared içinde sıfır <code>@/</code> importu doğruluyor. Rust tarafına dokunulmadı (migration yolları Faz 6'nın işi). <b>Step 44 interaktif UI regresyonu kullanıcıda</b> — DB'ye dokunan her akış derlenmiş dev uygulamada elle doğrulanmalı; bu yüzden s44 işaretsiz bırakıldı.
+      </div>
       <div class="note" style="border-left-color:var(--border-strong)">
-        <b>Faz 4'ten devreden:</b> <code>backgroundNotes.ts</code>, <code>courseNotes.ts</code>, <code>promptBuilder.ts</code> bu fazda sorgular shared'a taşındıktan sonra yeniden değerlendirilecek (schools-accessor deseni kararlaştırılmalı).
+        <b>Faz 4'ten devreden:</b> <code>backgroundNotes.ts</code>, <code>courseNotes.ts</code>, <code>promptBuilder.ts</code> bu fazda sorgular shared'a taşındıktan sonra yeniden değerlendirilecek (schools-accessor deseni kararlaştırılmalı). <i>→ Yukarıdaki devir kararıyla kapandı.</i>
       </div>
     </div>
   </details>
@@ -1061,8 +1073,9 @@ export function createExpoSqliteAdapter(db: SQLite.SQLiteDatabase): DatabasePort
       <div class="d-body"><p>Birkaç shared modül (veya shared'dan import eden store'lar) <code>crypto.randomUUID()</code> kullanıyor. Yeni Expo SDK'ları bunu Hermes üzerinde sunuyor. Smoke test runtime hatası gösterirse <code>react-native-get-random-values</code> polyfill'i veya <code>expo-crypto</code> kurulur. Ertelendi.</p></div>
     </details>
     <details class="d">
-      <summary><span class="dk">5</span><span class="dt"><code>DatabasePort.execute</code> dönüş şekli <span style="color:var(--warn);font-weight:600">— açık, Faz 5'te doğrulanacak</span></span></summary>
-      <div class="d-body"><p>Tauri <code>db.execute</code> → <code>{ lastInsertId, rowsAffected }</code>; expo-sqlite <code>runAsync</code> → <code>{ lastInsertRowId, changes }</code>. Plan <code>{ lastInsertId, rowsAffected }</code>'e normalize ediyor. Hiçbir paylaşılan sorgunun ek alanlara dayanmadığını doğrula (<code>node_modules/@tauri-apps/plugin-sql/dist/index.d.ts</code>).</p></div>
+      <summary><span class="dk">5</span><span class="dt"><code>DatabasePort.execute</code> dönüş şekli <span style="color:var(--accent);font-weight:600">— Faz 5'te kapatıldı</span></span></summary>
+      <div class="d-body"><p>Tauri <code>db.execute</code> → <code>{ lastInsertId, rowsAffected }</code>; expo-sqlite <code>runAsync</code> → <code>{ lastInsertRowId, changes }</code>. Plan <code>{ lastInsertId, rowsAffected }</code>'e normalize ediyor. Hiçbir paylaşılan sorgunun ek alanlara dayanmadığını doğrula (<code>node_modules/@tauri-apps/plugin-sql/dist/index.d.ts</code>).</p>
+      <p><b>Karar (Faz 5):</b> plugin-sql 2.3.2 <code>.d.ts</code> ve kod taşınmadan önce yapılan grep ile doğrulandı — 71 fonksiyonun hiçbiri <code>execute</code> dönüş değerini kullanmıyor (tüm ID'ler <code>crypto.randomUUID()</code> ile üretiliyor), port şekli aynen benimsendi. Tek uyum noktası <code>select</code> jeneriği: adapter <code>db.select&lt;T[]&gt;</code> çağırıyor (Faz 5 notundaki ayrıntı).</p></div>
     </details>
     <details class="d">
       <summary><span class="dk">6</span><span class="dt">Taşımadan sonra <code>tauri.conf.json</code> <code>$schema</code> yolu <span style="color:var(--accent);font-weight:600">— Faz 1/2'de doğrulandı</span></span></summary>

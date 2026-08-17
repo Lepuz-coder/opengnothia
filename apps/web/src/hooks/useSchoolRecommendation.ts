@@ -7,7 +7,7 @@ import { AIError } from "@opengnothia/shared/ai/AIError";
 import { getErrorDisplayInfo, type ErrorDisplayInfo } from "@opengnothia/shared/ai/errorMessages";
 import { calculateCost } from "@opengnothia/shared/ai/costCalculator";
 import { buildSchoolRecommendationPrompt } from "@/services/ai/promptBuilder";
-import { saveTokenUsage } from "@/services/db/queries";
+import { getQueries } from "@/db";
 import type { TherapySchoolDef } from "@opengnothia/shared/constants/therapySchools";
 import type { ChatMessage } from "@opengnothia/shared/types";
 
@@ -102,7 +102,7 @@ export function useSchoolRecommendation(options?: UseSchoolRecommendationOptions
         },
         onUsage: (usage) => {
           const cost = calculateCost(settings.provider, settings.model, usage.inputTokens, usage.outputTokens);
-          saveTokenUsage({
+          getQueries().then((queries) => queries.saveTokenUsage({
             session_id: null,
             provider: settings.provider,
             model: settings.model,
@@ -110,7 +110,7 @@ export function useSchoolRecommendation(options?: UseSchoolRecommendationOptions
             output_tokens: usage.outputTokens,
             cost,
             call_type: "recommendation",
-          });
+          }));
         },
         onError: (error) => {
           setRecMessages((prev) => prev.filter((m) => m.id !== assistantMsgId));

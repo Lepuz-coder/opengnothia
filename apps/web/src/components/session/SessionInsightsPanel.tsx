@@ -3,14 +3,7 @@ import { X, Plus, Loader2, Trash2, Pencil, Check } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useTranslation } from "@opengnothia/shared/i18n";
 import { useSessionStore } from "@/stores/useSessionStore";
-import {
-  createInsight,
-  createInsightGroup,
-  deleteInsight,
-  getInsightGroups,
-  getInsightsByIds,
-  updateInsightContent,
-} from "@/services/db/queries";
+import { getQueries } from "@/db";
 import type { Insight, InsightGroup } from "@opengnothia/shared/types";
 import { InlineGroupPicker } from "@/components/insights/InlineGroupPicker";
 import { InlineCreateGroupForm, type NewGroupDraft } from "@/components/insights/InlineCreateGroupForm";
@@ -39,7 +32,8 @@ export function SessionInsightsPanel({ onClose }: SessionInsightsPanelProps) {
 
   const loadGroups = useCallback(async () => {
     try {
-      const list = await getInsightGroups();
+      const queries = await getQueries();
+      const list = await queries.getInsightGroups();
       setGroups(list);
       return list;
     } catch {
@@ -53,7 +47,8 @@ export function SessionInsightsPanel({ onClose }: SessionInsightsPanelProps) {
       return;
     }
     try {
-      const list = await getInsightsByIds(ids);
+      const queries = await getQueries();
+      const list = await queries.getInsightsByIds(ids);
       const order = new Map(ids.map((id, idx) => [id, idx]));
       list.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
       setSessionInsights(list);
@@ -91,7 +86,8 @@ export function SessionInsightsPanel({ onClose }: SessionInsightsPanelProps) {
     async (draft: NewGroupDraft) => {
       try {
         setCreatingGroup(true);
-        const id = await createInsightGroup(draft);
+        const queries = await getQueries();
+        const id = await queries.createInsightGroup(draft);
         await loadGroups();
         setPendingGroupId(id);
       } catch (err) {
@@ -108,7 +104,8 @@ export function SessionInsightsPanel({ onClose }: SessionInsightsPanelProps) {
     if (!content || !pendingGroupId) return;
     try {
       setSaving(true);
-      const newId = await createInsight({ group_id: pendingGroupId, content });
+      const queries = await getQueries();
+      const newId = await queries.createInsight({ group_id: pendingGroupId, content });
       addSessionInsightId(newId);
       setPendingInsightDraft("");
     } catch (err) {
@@ -121,7 +118,8 @@ export function SessionInsightsPanel({ onClose }: SessionInsightsPanelProps) {
   const handleDelete = useCallback(
     async (id: string) => {
       try {
-        await deleteInsight(id);
+        const queries = await getQueries();
+        await queries.deleteInsight(id);
         removeSessionInsightId(id);
       } catch (err) {
         console.error("Failed to delete insight", err);
@@ -145,7 +143,8 @@ export function SessionInsightsPanel({ onClose }: SessionInsightsPanelProps) {
     const content = editContent.trim();
     if (!content) return;
     try {
-      await updateInsightContent(editingId, content);
+      const queries = await getQueries();
+      await queries.updateInsightContent(editingId, content);
       setSessionInsights((list) =>
         list.map((i) => (i.id === editingId ? { ...i, content } : i)),
       );

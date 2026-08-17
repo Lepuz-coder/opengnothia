@@ -1,12 +1,6 @@
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
-import { getDatabase } from "@/services/db/database";
-import {
-  clearAllData,
-  getCompletedSessionCount,
-  getJournalEntryCount,
-  getDreamCount,
-} from "@/services/db/queries";
+import { getDbPort, getQueries } from "@/db";
 import { loadSettings } from "@/lib/store";
 
 const TABLES = [
@@ -46,19 +40,20 @@ export interface DataStats {
 }
 
 export async function getDataStats(): Promise<DataStats> {
+  const queries = await getQueries();
   const [sessions, journals, dreams] = await Promise.all([
-    getCompletedSessionCount(),
-    getJournalEntryCount(),
-    getDreamCount(),
+    queries.getCompletedSessionCount(),
+    queries.getJournalEntryCount(),
+    queries.getDreamCount(),
   ]);
   return { sessions, journals, dreams };
 }
 
 export async function exportAllData(): Promise<ExportFile> {
-  const db = await getDatabase();
+  const port = await getDbPort();
   const database: Record<string, Record<string, unknown>[]> = {};
   for (const table of TABLES) {
-    const rows = await db.select<Record<string, unknown>[]>(`SELECT * FROM ${table}`);
+    const rows = await port.select<Record<string, unknown>>(`SELECT * FROM ${table}`);
     database[table] = rows;
   }
 
@@ -141,9 +136,10 @@ export function validateImportFile(input: unknown): ExportFile {
 }
 
 export async function importAllData(data: ExportFile): Promise<void> {
-  const db = await getDatabase();
+  const port = await getDbPort();
+  const queries = await getQueries();
 
-  await clearAllData();
+  await queries.clearAllData();
 
   for (const table of TABLES) {
     const rows = data.database[table];
@@ -154,7 +150,7 @@ export async function importAllData(data: ExportFile): Promise<void> {
       const placeholders = columns.map(() => "?").join(", ");
       const values = columns.map((c) => row[c] as unknown);
       try {
-        await db.execute(
+        await port.execute(
           `INSERT INTO ${table} (${columns.join(", ")}) VALUES (${placeholders})`,
           values,
         );

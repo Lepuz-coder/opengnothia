@@ -6,12 +6,7 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@opengnothia/shared/lib/cn";
-import {
-  saveMoodEntry, getTodayMoodEntry, getMoodEntriesByDateRange,
-  getCompletedSessionCount, getJournalEntryCount, getDreamCount,
-  getTodaySession, getJournalEntryByDate, getDreamsByDateRange,
-  getUserProfile,
-} from "@/services/db/queries";
+import { getQueries } from "@/db";
 import { useSessionStore } from "@/stores/useSessionStore";
 import { useTranslation, getDayNames, getDateLocale, type Translations } from "@opengnothia/shared/i18n";
 import type { MoodEntry, Session, UserProfile, JournalEntry, Dream } from "@opengnothia/shared/types";
@@ -132,16 +127,18 @@ export default function DashboardPage() {
     const days = getCalendarDays(currentYear, currentMonth);
     const startDate = formatYMD(days[0]);
     const endDate = formatYMD(days[days.length - 1]);
-    const data = await getMoodEntriesByDateRange(startDate, endDate);
+    const queries = await getQueries();
+    const data = await queries.getMoodEntriesByDateRange(startDate, endDate);
     setMoodEntries(data);
   }, [currentYear, currentMonth]);
 
   const loadTodayData = useCallback(async () => {
     const today = formatYMD(new Date());
+    const queries = await getQueries();
     const [session, journal, dreams] = await Promise.all([
-      getTodaySession(),
-      getJournalEntryByDate(today),
-      getDreamsByDateRange(today, today),
+      queries.getTodaySession(),
+      queries.getJournalEntryByDate(today),
+      queries.getDreamsByDateRange(today, today),
     ]);
     setTodaySession(session);
     setTodayJournal(journal);
@@ -149,13 +146,13 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    getTodayMoodEntry().then((entry) => {
+    getQueries().then((queries) => queries.getTodayMoodEntry()).then((entry) => {
       if (entry) setTodayMood(entry.mood);
     });
-    getCompletedSessionCount().then(setSessionCount);
-    getJournalEntryCount().then(setJournalCount);
-    getDreamCount().then(setDreamCount);
-    getUserProfile().then(setProfile);
+    getQueries().then((queries) => queries.getCompletedSessionCount()).then(setSessionCount);
+    getQueries().then((queries) => queries.getJournalEntryCount()).then(setJournalCount);
+    getQueries().then((queries) => queries.getDreamCount()).then(setDreamCount);
+    getQueries().then((queries) => queries.getUserProfile()).then(setProfile);
     loadTodayData();
   }, [loadTodayData]);
 
@@ -196,7 +193,8 @@ export default function DashboardPage() {
   async function handleMoodSelect(mood: number) {
     setTodayMood(mood);
     try {
-      await saveMoodEntry(mood);
+      const queries = await getQueries();
+      await queries.saveMoodEntry(mood);
       await loadMoodEntries();
     } catch (err) {
       console.error("Failed to save mood:", err);

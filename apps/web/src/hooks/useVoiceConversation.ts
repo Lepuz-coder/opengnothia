@@ -4,7 +4,7 @@ import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { synthesizeSpeech, playAudioBlob, type TTSResult } from "@opengnothia/shared/ai/ttsService";
 import { transcribeAudio } from "@opengnothia/shared/ai/transcriptionService";
-import { saveTokenUsage } from "@/services/db/queries";
+import { getQueries } from "@/db";
 
 export type VoiceLoopStatus =
   | "idle"
@@ -87,7 +87,8 @@ export function useVoiceConversation({ onTranscriptionReady, language }: UseVoic
   const trackTTSCost = useCallback(async (ttsResult: TTSResult) => {
     const settings = useSettingsStore.getState();
     const sessionId = useSessionStore.getState().sessionId;
-    await saveTokenUsage({
+    const queries = await getQueries();
+    await queries.saveTokenUsage({
       session_id: sessionId,
       provider: "openai",
       model: settings.ttsModel,
@@ -233,7 +234,8 @@ export function useVoiceConversation({ onTranscriptionReady, language }: UseVoic
 
       // Track STT cost
       const sessionId = useSessionStore.getState().sessionId;
-      await saveTokenUsage({
+      const queries = await getQueries();
+      await queries.saveTokenUsage({
         session_id: sessionId,
         provider: "openai",
         model: "whisper-1",

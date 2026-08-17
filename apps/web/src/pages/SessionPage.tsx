@@ -28,7 +28,8 @@ import { getErrorDisplayInfo, buildErrorDetails, type ErrorDisplayInfo } from "@
 import { calculateCost } from "@opengnothia/shared/ai/costCalculator";
 import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildPatientNotesUpdatePrompt, buildCompactionPrompt, buildInsightExtractionPrompt, GREETING_TRIGGER, BACKGROUND_NOTES_SYSTEM_PROMPT, SESSION_SUMMARY_SYSTEM_PROMPT, INSIGHT_EXTRACTION_SYSTEM_PROMPT, SESSION_END_MARKER } from "@/services/ai/promptBuilder";
 import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
-import { createSession, updateSessionMessages, completeSession, deleteSession, getUserProfile, getTodayCheckIn, getRecentSessions, getPatientNotes, getPatientNotesUpdatedAt, getCompletedSessionCount, saveTokenUsage, getInsightGroups, createInsightGroup, createInsight, getPatientIntakeForm, intakeFormHasContent } from "@/services/db/queries";
+import { getQueries } from "@/db";
+import { intakeFormHasContent } from "@opengnothia/shared/db/queries";
 import { getAllSchools, getSchoolById } from "@/stores/useSchoolsStore";
 import { providers, getProvider, modelSupportsThinking } from "@opengnothia/shared/constants/providers";
 import { ErrorModal } from "@/components/ui/ErrorModal";
@@ -58,7 +59,8 @@ async function trackUsage(
 ) {
   if (!usage) return;
   const cost = calculateCost(provider, model, usage.inputTokens, usage.outputTokens);
-  await saveTokenUsage({
+  const queries = await getQueries();
+  await queries.saveTokenUsage({
     session_id: sessionId,
     provider,
     model,
@@ -154,7 +156,7 @@ export default function SessionPage() {
   const pendingSessionStartRef = useRef(false);
 
   useEffect(() => {
-    getPatientIntakeForm().then(setIntakeForm).catch(() => {});
+    getQueries().then((queries) => queries.getPatientIntakeForm()).then(setIntakeForm).catch(() => {});
   }, []);
 
   // Restore sidebar when leaving session page
@@ -204,18 +206,20 @@ export default function SessionPage() {
     session.startSession(5);
     const id = useSessionStore.getState().sessionId!;
     const startedAt = useSessionStore.getState().startedAt!;
-    await createSession({ id, started_at: startedAt, mood_before: 5 });
+    const queries = await getQueries();
+    await queries.createSession({ id, started_at: startedAt, mood_before: 5 });
   }, [setSidebarHidden]);
 
   const handleGreeting = useCallback(async () => {
     try {
+      const queries = await getQueries();
       const [profile, checkIn, recentSessions, patientNotes, sessionCount, latestIntake] = await Promise.all([
-        getUserProfile(),
-        getTodayCheckIn(),
-        getRecentSessions(1),
-        getPatientNotes(),
-        getCompletedSessionCount(),
-        getPatientIntakeForm(),
+        queries.getUserProfile(),
+        queries.getTodayCheckIn(),
+        queries.getRecentSessions(1),
+        queries.getPatientNotes(),
+        queries.getCompletedSessionCount(),
+        queries.getPatientIntakeForm(),
       ]);
       const lastSummary = recentSessions[0]?.summary ?? null;
       const lastNarrative = recentSessions[0]?.summary_narrative ?? null;
@@ -272,7 +276,7 @@ export default function SessionPage() {
           useSessionStore.getState().finishStreaming();
           const sessionId = useSessionStore.getState().sessionId;
           if (sessionId) {
-            updateSessionMessages(sessionId, useSessionStore.getState().messages);
+            getQueries().then((q) => q.updateSessionMessages(sessionId, useSessionStore.getState().messages));
           }
           if (useSessionStore.getState().sessionMode === "voice") {
             voiceFlushRef.current();
@@ -325,7 +329,8 @@ export default function SessionPage() {
   }, [selectedMode, settings, handleStartSession, handleGreeting, voiceLoop]);
 
   const beginSessionStartFlow = useCallback(async () => {
-    const latestIntake = await getPatientIntakeForm();
+    const queries = await getQueries();
+    const latestIntake = await queries.getPatientIntakeForm();
     const hasSeenPrompt = useAppStore.getState().hasSeenIntakeFormPrompt;
     if (!intakeFormHasContent(latestIntake) && !hasSeenPrompt) {
       useAppStore.getState().setHasSeenIntakeFormPrompt(true);
@@ -350,13 +355,14 @@ export default function SessionPage() {
     store.startCompaction();
 
     try {
+      const queries = await getQueries();
       const [profile, checkIn, recentSessions, patientNotes, sessionCount, latestIntake] = await Promise.all([
-        getUserProfile(),
-        getTodayCheckIn(),
-        getRecentSessions(1),
-        getPatientNotes(),
-        getCompletedSessionCount(),
-        getPatientIntakeForm(),
+        queries.getUserProfile(),
+        queries.getTodayCheckIn(),
+        queries.getRecentSessions(1),
+        queries.getPatientNotes(),
+        queries.getCompletedSessionCount(),
+        queries.getPatientIntakeForm(),
       ]);
 
       const systemPrompt = buildSystemPrompt({
@@ -429,13 +435,14 @@ export default function SessionPage() {
     session.addMessage(userMsg);
 
     try {
+      const queries = await getQueries();
       const [profile, checkIn, recentSessions, patientNotes, sessionCount, latestIntake] = await Promise.all([
-        getUserProfile(),
-        getTodayCheckIn(),
-        getRecentSessions(1),
-        getPatientNotes(),
-        getCompletedSessionCount(),
-        getPatientIntakeForm(),
+        queries.getUserProfile(),
+        queries.getTodayCheckIn(),
+        queries.getRecentSessions(1),
+        queries.getPatientNotes(),
+        queries.getCompletedSessionCount(),
+        queries.getPatientIntakeForm(),
       ]);
       const lastSummary = recentSessions[0]?.summary ?? null;
       const lastNarrative = recentSessions[0]?.summary_narrative ?? null;
@@ -498,7 +505,7 @@ export default function SessionPage() {
           useSessionStore.getState().finishStreaming();
           const sessionId = useSessionStore.getState().sessionId;
           if (sessionId) {
-            updateSessionMessages(sessionId, useSessionStore.getState().messages);
+            getQueries().then((q) => q.updateSessionMessages(sessionId, useSessionStore.getState().messages));
           }
           if (useSessionStore.getState().sessionMode === "voice") {
             voiceFlushRef.current();
@@ -560,7 +567,8 @@ export default function SessionPage() {
     store.setInsightExtractionError(false);
 
     try {
-      const existingGroups = await getInsightGroups();
+      const queries = await getQueries();
+      const existingGroups = await queries.getInsightGroups();
 
       const insightPrompt = buildInsightExtractionPrompt(
         existingGroups.map((g) => ({
@@ -664,7 +672,8 @@ export default function SessionPage() {
 
     const sessionId = useSessionStore.getState().sessionId;
 
-    Promise.all([getPatientNotes(), getPatientNotesUpdatedAt()])
+    getQueries()
+      .then((queries) => Promise.all([queries.getPatientNotes(), queries.getPatientNotesUpdatedAt()]))
       .then(([existingNotes, notesUpdatedAt]) => {
         const patientNotesPrompt = buildPatientNotesUpdatePrompt(existingNotes, notesUpdatedAt, language);
         const conversationForNotes: ChatMessage[] = [
@@ -713,6 +722,7 @@ export default function SessionPage() {
 
   const handleMicStop = useCallback(async () => {
     try {
+      const queries = await getQueries();
       const audioBlob = await recorder.stopRecording();
       recorder.setState("transcribing");
 
@@ -728,7 +738,7 @@ export default function SessionPage() {
 
       // Track STT cost
       const sessionId = useSessionStore.getState().sessionId;
-      await saveTokenUsage({
+      await queries.saveTokenUsage({
         session_id: sessionId,
         provider: "openai",
         model: "whisper-1",
@@ -768,7 +778,8 @@ export default function SessionPage() {
     if (userMessageCount < 2) {
       const sessionId = useSessionStore.getState().sessionId;
       if (sessionId) {
-        await deleteSession(sessionId);
+        const queries = await getQueries();
+        await queries.deleteSession(sessionId);
       }
       session.reset();
       setSidebarHidden(false);
@@ -802,7 +813,8 @@ export default function SessionPage() {
     session.startSummaryStream();
 
     try {
-      const patientNotes = await getPatientNotes();
+      const queries = await getQueries();
+      const patientNotes = await queries.getPatientNotes();
       const summaryPrompt = buildSummaryPrompt(patientNotes, language);
       const conversationForSummary: ChatMessage[] = [
         ...messages,
@@ -864,7 +876,8 @@ export default function SessionPage() {
     setSaving(true);
     const state = useSessionStore.getState();
     if (state.sessionId) {
-      await completeSession(state.sessionId, {
+      const queries = await getQueries();
+      await queries.completeSession(state.sessionId, {
         mood_after: 5,
         summary: state.summary,
         summary_narrative: state.summaryNarrative || undefined,
@@ -879,13 +892,14 @@ export default function SessionPage() {
 
   const handleAcceptExtractedInsight = useCallback(async (insight: ExtractedInsight) => {
     let targetGroupId = insight.group_id;
+    const queries = await getQueries();
     if (!targetGroupId && insight.new_group) {
       const groupKey = insight.new_group.name;
       const cached = acceptedGroupIdMap.current.get(groupKey);
       if (cached) {
         targetGroupId = cached;
       } else {
-        targetGroupId = await createInsightGroup({
+        targetGroupId = await queries.createInsightGroup({
           name: insight.new_group.name,
           emoji: insight.new_group.emoji,
           description: insight.new_group.description,
@@ -895,7 +909,7 @@ export default function SessionPage() {
       }
     }
     if (!targetGroupId) return;
-    const newInsightId = await createInsight({
+    const newInsightId = await queries.createInsight({
       group_id: targetGroupId,
       content: insight.content,
     });

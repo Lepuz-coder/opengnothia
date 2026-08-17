@@ -8,7 +8,7 @@ import { useTranslation, getDayNames, getDateLocale } from "@opengnothia/shared/
 import { streamMessage } from "@opengnothia/shared/ai/aiService";
 import { calculateCost } from "@opengnothia/shared/ai/costCalculator";
 import { buildWeeklySummaryPrompt, WEEKLY_SUMMARY_TRIGGER } from "@/services/ai/promptBuilder";
-import { getCompletedSessions, getWeeklySummary, saveWeeklySummary, getUserProfile, getPatientNotes, saveTokenUsage } from "@/services/db/queries";
+import { getQueries } from "@/db";
 import type { Session, AIProvider, TokenUsage, WeeklySummary } from "@opengnothia/shared/types";
 
 export interface WeekSummaryInfo {
@@ -67,7 +67,8 @@ async function trackWeeklySummaryUsage(
 ) {
   if (!usage) return;
   const cost = calculateCost(provider, model, usage.inputTokens, usage.outputTokens);
-  await saveTokenUsage({
+  const queries = await getQueries();
+  await queries.saveTokenUsage({
     session_id: null,
     provider,
     model,
@@ -96,7 +97,7 @@ export const PastSessionsList = forwardRef<PastSessionsListHandle, PastSessionsL
     const [summaryError, setSummaryError] = useState<string | null>(null);
 
     useEffect(() => {
-      getCompletedSessions().then(setSessions);
+      getQueries().then((queries) => queries.getCompletedSessions()).then(setSessions);
     }, []);
 
     const monday = useMemo(() => getWeekMonday(weekOffset), [weekOffset]);
@@ -150,7 +151,7 @@ export const PastSessionsList = forwardRef<PastSessionsListHandle, PastSessionsL
       setWeeklySummary(null);
       setSummaryError(null);
       setStreamContent("");
-      getWeeklySummary(weekMondayStr).then((s) => {
+      getQueries().then((queries) => queries.getWeeklySummary(weekMondayStr)).then((s) => {
         setWeeklySummary(s);
         setSummaryLoading(false);
       });
@@ -174,9 +175,10 @@ export const PastSessionsList = forwardRef<PastSessionsListHandle, PastSessionsL
       setSummaryModalOpen(true);
 
       try {
+        const queries = await getQueries();
         const [profile, patientNotes] = await Promise.all([
-          getUserProfile(),
-          getPatientNotes(),
+          queries.getUserProfile(),
+          queries.getPatientNotes(),
         ]);
 
         // Collect all session summaries for this week
@@ -235,7 +237,7 @@ export const PastSessionsList = forwardRef<PastSessionsListHandle, PastSessionsL
         });
 
         if (fullContent.trim().length > 0) {
-          await saveWeeklySummary(weekMondayStr, fullContent, weekSessionCount);
+          await queries.saveWeeklySummary(weekMondayStr, fullContent, weekSessionCount);
           setWeeklySummary({
             id: "",
             week_start: weekMondayStr,

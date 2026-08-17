@@ -2,7 +2,7 @@ import { useState } from "react";
 import { loadSettings } from "@/lib/store";
 import { useAppStore } from "@/stores/useAppStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
-import { upsertUserProfile } from "@/services/db/queries";
+import { getQueries } from "@/db";
 import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
 import { LanguageStep } from "@/components/onboarding/LanguageStep";
 import { WelcomeStep } from "@/components/onboarding/WelcomeStep";
@@ -32,7 +32,8 @@ export default function OnboardingPage() {
     await store.save();
 
     // Save user profile to DB
-    await upsertUserProfile({
+    const queries = await getQueries();
+    await queries.upsertUserProfile({
       approach,
       preferred_session_time: preferredSessionTime,
       session_duration_minutes: sessionDurationMinutes,
@@ -50,7 +51,8 @@ export default function OnboardingPage() {
     approach: string;
     sessionTime: string;
   }) {
-    await upsertUserProfile({
+    const queries = await getQueries();
+    await queries.upsertUserProfile({
       name: data.name,
       age: data.age,
       gender: data.gender,

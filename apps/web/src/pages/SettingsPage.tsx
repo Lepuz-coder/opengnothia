@@ -25,7 +25,7 @@ import {
   modelRequiresAdaptiveThinking,
   modelSupportsMaxThinking,
 } from "@opengnothia/shared/constants/providers";
-import { getUserProfile, upsertUserProfile, clearAllData } from "@/services/db/queries";
+import { getQueries } from "@/db";
 import { Modal } from "@/components/ui/Modal";
 import { invoke } from "@tauri-apps/api/core";
 import { generateSalt, hashPassword, verifyPassword } from "@/lib/security";
@@ -89,7 +89,7 @@ export default function SettingsPage() {
   const [biometricAvailable, setBiometricAvailable] = useState(false);
 
   useEffect(() => {
-    getUserProfile().then((profile) => {
+    getQueries().then((queries) => queries.getUserProfile()).then((profile) => {
       if (profile) {
         setProfileName(profile.name ?? "");
         setProfileAge(profile.age != null ? String(profile.age) : "");
@@ -169,7 +169,8 @@ export default function SettingsPage() {
     await store.set("preferredSessionMode", settings.preferredSessionMode);
     await store.save();
 
-    await upsertUserProfile({
+    const queries = await getQueries();
+    await queries.upsertUserProfile({
       name: profileName.trim() || null,
       age: profileAge ? parseInt(profileAge, 10) : null,
       gender: profileGender || null,
@@ -306,7 +307,8 @@ export default function SettingsPage() {
 
   async function confirmDeleteAllData() {
     if (deleteConfirmText !== t.settings.deleteConfirmText) return;
-    await clearAllData();
+    const queries = await getQueries();
+    await queries.clearAllData();
     const store = await loadSettings();
     await store.set("isOnboarded", false);
     await store.set("hasSeenNoteTutorial", false);

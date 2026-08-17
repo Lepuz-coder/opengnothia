@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "@opengnothia/shared/i18n";
 import { formatTokenCount } from "@opengnothia/shared/lib/formatTokens";
-import { getSessionTotalCost } from "@/services/db/queries";
+import { getQueries } from "@/db";
 
 interface ContextUsageIndicatorProps {
   modelName: string;
@@ -55,7 +55,8 @@ export function ContextUsageIndicator({
   useEffect(() => {
     if (!open || !sessionId) return;
     let cancelled = false;
-    getSessionTotalCost(sessionId)
+    getQueries()
+      .then((queries) => queries.getSessionTotalCost(sessionId))
       .then((cost) => {
         if (!cancelled) setSessionCost(cost);
       })

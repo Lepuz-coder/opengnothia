@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Loader2, Lightbulb, X, Pencil, Plus, Check, Sparkles } from "lucide-react";
 import { useTranslation } from "@opengnothia/shared/i18n";
 import { cn } from "@opengnothia/shared/lib/cn";
-import { getInsightGroups, getInsightsByIds } from "@/services/db/queries";
+import { getQueries } from "@/db";
 import { EMOJI_PRESETS, COLOR_PRESETS } from "@opengnothia/shared/constants/insightPresets";
 import { showToast } from "@/stores/useToastStore";
 import type { ExtractedInsight, Insight, InsightGroup } from "@opengnothia/shared/types";
@@ -134,7 +134,8 @@ export function SessionEndSummary({
   const loadDbGroups = async () => {
     if (dbGroupsLoaded) return [];
     try {
-      const groups = await getInsightGroups();
+      const queries = await getQueries();
+      const groups = await queries.getInsightGroups();
       setDbGroups(groups);
       setDbGroupsLoaded(true);
       return groups;
@@ -154,9 +155,10 @@ export function SessionEndSummary({
       }
       setUserInsightsLoading(true);
       try {
+        const queries = await getQueries();
         const [insights, groups] = await Promise.all([
-          getInsightsByIds(sessionInsightIds),
-          dbGroupsLoaded ? Promise.resolve(dbGroups) : getInsightGroups(),
+          queries.getInsightsByIds(sessionInsightIds),
+          dbGroupsLoaded ? Promise.resolve(dbGroups) : queries.getInsightGroups(),
         ]);
         if (cancelled) return;
         const order = new Map(sessionInsightIds.map((id, idx) => [id, idx]));

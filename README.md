@@ -174,7 +174,6 @@ opengnothia/
 │       │   └── lib/            # App-specific utilities (settings store, security)
 │       ├── src-tauri/          # Tauri / Rust backend
 │       │   ├── src/            # Rust source (main.rs, lib.rs)
-│       │   ├── migrations/     # SQLite migration files
 │       │   ├── icons/          # App icons for all platforms
 │       │   ├── Cargo.toml      # Rust dependencies
 │       │   └── tauri.conf.json # Tauri configuration
@@ -185,6 +184,7 @@ opengnothia/
 │
 ├── packages/
 │   └── shared/                 # @opengnothia/shared — platform-agnostic modules
+│       ├── migrations/         # SQLite migrations (single source of truth for every app)
 │       └── src/
 │           ├── ai/             # AI providers, TTS/STT, cost calculation
 │           ├── constants/      # Therapy schools, providers, breathing techniques
@@ -225,14 +225,14 @@ All data stays on the user's device. The only external communication is with the
 git clone https://github.com/Lepuz-coder/opengnothia.git
 cd opengnothia
 
-# Install dependencies
+# Install dependencies (workspace-aware, run at the repo root)
 pnpm install
 
-# Run in development mode
-pnpm tauri dev
+# Run the desktop app in development mode
+pnpm dev:desktop
 
-# Build for production
-pnpm tauri build
+# Build the desktop app for production
+pnpm build:desktop:tauri
 ```
 
 ### First Launch
@@ -261,6 +261,18 @@ All configuration is managed through the in-app Settings page:
 
 ---
 
+## Development
+
+This repository is a pnpm monorepo:
+
+- [`apps/desktop/`](apps/desktop/README.md) — the Tauri desktop app. `cd apps/desktop && pnpm tauri dev`, or `pnpm dev:desktop` from the root.
+- `apps/mobile/` — the Expo mobile app (in development, not yet in the repo). Will run with `cd apps/mobile && pnpm start`.
+- `packages/shared/` — platform-agnostic TypeScript consumed by the apps: types, i18n, AI services, database queries, and the SQLite migrations.
+
+See [`apps/desktop/README.md`](apps/desktop/README.md) for desktop-specific setup.
+
+---
+
 ## Contributing
 
 Contributions are welcome! Whether it's a bug fix, new feature, translation, or documentation improvement, we appreciate your help.
@@ -270,7 +282,7 @@ Contributions are welcome! Whether it's a bug fix, new feature, translation, or 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
-4. Test in development mode (`pnpm tauri dev`)
+4. Test in development mode (`pnpm dev:desktop`)
 5. Commit your changes (`git commit -m 'Add amazing feature'`)
 6. Push to the branch (`git push origin feature/amazing-feature`)
 7. Open a Pull Request
@@ -278,7 +290,7 @@ Contributions are welcome! Whether it's a bug fix, new feature, translation, or 
 ### Areas Where You Can Help
 
 - **New therapy schools** — Add new therapeutic approaches with detailed system prompts
-- **Translations** — Add new languages by creating translation files in `src/i18n/`
+- **Translations** — Add new languages by creating translation files in `packages/shared/src/i18n/`
 - **Breathing techniques** — Add new guided breathing patterns
 - **UI/UX improvements** — Enhance the interface and user experience
 - **Bug fixes** — Check [open issues](https://github.com/Lepuz-coder/opengnothia/issues) for known bugs

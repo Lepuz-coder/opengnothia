@@ -266,7 +266,7 @@ All configuration is managed through the in-app Settings page:
 This repository is a pnpm monorepo:
 
 - [`apps/desktop/`](apps/desktop/README.md) — the Tauri desktop app. `cd apps/desktop && pnpm tauri dev`, or `pnpm dev:desktop` from the root.
-- `apps/mobile/` — the Expo mobile app (in development, not yet in the repo). Will run with `cd apps/mobile && pnpm start`.
+- [`apps/mobile/`](apps/mobile/README.md) — the Expo mobile app (currently a smoke-test shell validating `@opengnothia/shared`; real mobile UI is planned separately). `cd apps/mobile && pnpm start`, or `pnpm dev:mobile` from the root.
 - `packages/shared/` — platform-agnostic TypeScript consumed by the apps: types, i18n, AI services, database queries, and the SQLite migrations.
 
 See [`apps/desktop/README.md`](apps/desktop/README.md) for desktop-specific setup.

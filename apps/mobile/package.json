@@ -1,0 +1,25 @@
+{
+  "name": "@opengnothia/mobile",
+  "version": "0.1.0",
+  "main": "index.ts",
+  "dependencies": {
+    "@opengnothia/shared": "workspace:*",
+    "expo": "~57.0.14",
+    "expo-sqlite": "~57.0.1",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-native": "0.86.2"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "generate:migrations": "node scripts/generate-migrations.mjs",
+    "start": "node scripts/generate-migrations.mjs && expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
+  },
+  "private": true
+}

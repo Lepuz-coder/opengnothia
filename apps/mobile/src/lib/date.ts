@@ -55,7 +55,7 @@ export function formatDayLabel(ymd: string, locale: string): string {
  * appends "Z" and relies on the WebView's lenient parser; Hermes only parses
  * ISO 8601, so the space must become a "T" as well.
  */
-function toIsoUtc(sqliteTimestamp: string): string {
+export function toIsoUtc(sqliteTimestamp: string): string {
   if (sqliteTimestamp.includes("T")) return sqliteTimestamp;
   return sqliteTimestamp.replace(" ", "T") + "Z";
 }

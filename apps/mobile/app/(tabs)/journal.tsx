@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 import { useTranslation } from "@opengnothia/shared/i18n";
 import { cn } from "@opengnothia/shared/lib/cn";
 import { DreamsSegment } from "@/features/notebook/DreamsSegment";
@@ -18,6 +19,15 @@ type Segment = "journal" | "dreams" | "insights";
 export default function NotebookScreen() {
   const { t } = useTranslation();
   const [segment, setSegment] = useState<Segment>("journal");
+
+  // Dashboard ritual cards land on a specific segment (?segment=dreams).
+  // Manual segment switches afterwards win — this only reacts to a new param.
+  const { segment: segmentParam } = useLocalSearchParams<{ segment?: string }>();
+  useEffect(() => {
+    if (segmentParam === "journal" || segmentParam === "dreams" || segmentParam === "insights") {
+      setSegment(segmentParam);
+    }
+  }, [segmentParam]);
 
   const tabs: SegmentedTab<Segment>[] = [
     { id: "journal", label: t.nav.journal },

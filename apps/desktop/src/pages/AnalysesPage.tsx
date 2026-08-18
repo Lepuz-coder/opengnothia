@@ -17,29 +17,14 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { AIProvider, TokenUsage } from "@opengnothia/shared/types";
 import type { Translations } from "@opengnothia/shared/i18n";
-
-const MILESTONES = [7, 15, 30, 60, 120, 180, 240, 365] as const;
-type Milestone = (typeof MILESTONES)[number];
-
-type AnalysesKey = keyof Translations["analyses"];
-
-interface MilestoneDef {
-  sessions: Milestone;
-  emoji: string;
-  nameKey: AnalysesKey;
-  descKey: AnalysesKey;
-}
-
-const MILESTONE_DEFS: MilestoneDef[] = [
-  { sessions: 7, emoji: "🌱", nameKey: "milestone7", descKey: "milestone7Desc" },
-  { sessions: 15, emoji: "🔍", nameKey: "milestone15", descKey: "milestone15Desc" },
-  { sessions: 30, emoji: "🧭", nameKey: "milestone30", descKey: "milestone30Desc" },
-  { sessions: 60, emoji: "🦋", nameKey: "milestone60", descKey: "milestone60Desc" },
-  { sessions: 120, emoji: "🌳", nameKey: "milestone120", descKey: "milestone120Desc" },
-  { sessions: 180, emoji: "🪞", nameKey: "milestone180", descKey: "milestone180Desc" },
-  { sessions: 240, emoji: "✨", nameKey: "milestone240", descKey: "milestone240Desc" },
-  { sessions: 365, emoji: "🏔️", nameKey: "milestone365", descKey: "milestone365Desc" },
-];
+// Lifted to shared in the mobile plan's Faz 3: the mobile journey card (and
+// later its Analyses tab) reads the same definitions.
+import {
+  MILESTONES,
+  MILESTONE_DEFS,
+  type Milestone,
+  type AnalysesKey,
+} from "@opengnothia/shared/constants/milestones";
 
 function getAnalysesText(t: Translations, key: AnalysesKey): string {
   return t.analyses[key];

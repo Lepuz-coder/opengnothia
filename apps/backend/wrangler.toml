@@ -1,0 +1,44 @@
+# OpenGnothia AI proxy — OpenAI-compatible passthrough with RevenueCat subscription
+# gating (plan D13–D17). Deploys to workers.dev; a custom domain comes with the
+# mobile release.
+name = "opengnothia-api"
+main = "src/index.ts"
+compatibility_date = "2026-08-01"
+
+# D17: content never persists — no Workers Logs. Ad-hoc debugging via `wrangler tail`
+# shows only what the code logs (status + endpoint, never bodies or identities).
+[observability]
+enabled = false
+
+# Entitlement cache + daily usage counters, both keyed by the anonymous appUserID.
+# Create with `wrangler kv namespace create USAGE_KV` and paste the id below.
+# `wrangler dev` simulates KV locally and never contacts this namespace.
+[[kv_namespaces]]
+binding = "USAGE_KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+# ~20 requests/min per appUserID (D16). `period` may only be 10 or 60 seconds;
+# changing `limit` requires a redeploy (daily caps below are vars instead).
+[[ratelimits]]
+name = "RATE_LIMITER"
+namespace_id = "1001"
+simple = { limit = 20, period = 60 }
+
+# Server-side AI constants (D15) and daily caps (D16). All adjustable without an
+# app-store update: edit here and redeploy, or override per-environment.
+# CHAT_REASONING_EFFORT: set to "" when CHAT_MODEL is not a reasoning model.
+[vars]
+CHAT_MODEL = "gpt-5.6-sol"
+CHAT_REASONING_EFFORT = "medium"
+CHAT_MAX_COMPLETION_TOKENS = "32000"
+STT_MODEL = "gpt-4o-transcribe"
+TTS_MODEL = "tts-1"
+TTS_VOICE = "alloy"
+ENTITLEMENT_ID = "pro"
+DAILY_CHAT_LIMIT = "300"
+DAILY_STT_LIMIT = "200"
+DAILY_TTS_LIMIT = "500"
+
+# Secrets (never in this file): OPENAI_API_KEY, REVENUECAT_API_KEY.
+# Production: `wrangler secret put <NAME>`. Local dev: .dev.vars (gitignored,
+# template in .dev.vars.example).

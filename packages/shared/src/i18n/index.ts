@@ -507,6 +507,12 @@ export interface Translations {
     status503Message: string;
     status529Title: string;
     status529Message: string;
+    proxyIdentityTitle: string;
+    proxyIdentityMessage: string;
+    proxySubscriptionTitle: string;
+    proxySubscriptionMessage: string;
+    proxyQuotaTitle: string;
+    proxyQuotaMessage: string;
     unknownStatusTitle: string;
     unknownStatusMessage: string;
     showDetails: string;

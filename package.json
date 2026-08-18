@@ -7,6 +7,8 @@
     "dev:desktop:vite": "pnpm --filter @opengnothia/desktop dev",
     "build:desktop": "pnpm --filter @opengnothia/desktop build",
     "build:desktop:tauri": "pnpm --filter @opengnothia/desktop tauri build",
-    "dev:mobile": "pnpm --filter @opengnothia/mobile start"
+    "dev:mobile": "pnpm --filter @opengnothia/mobile start",
+    "dev:backend": "pnpm --filter @opengnothia/backend dev",
+    "deploy:backend": "pnpm --filter @opengnothia/backend run deploy"
   }
 }

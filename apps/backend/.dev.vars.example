@@ -1,0 +1,4 @@
+# Copy to .dev.vars (gitignored) for local `wrangler dev`.
+# Production secrets are set with `wrangler secret put <NAME>` instead.
+OPENAI_API_KEY=sk-your-openai-key
+REVENUECAT_API_KEY=sk_your-revenuecat-secret-api-key

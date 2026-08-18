@@ -41,8 +41,9 @@ export async function synthesizeSpeech(
   apiKey: string,
   model: TTSModel = "tts-1",
   voice: TTSVoice = "alloy",
+  baseUrl: string = "https://api.openai.com/v1",
 ): Promise<TTSResult> {
-  const response = await fetch("https://api.openai.com/v1/audio/speech", {
+  const response = await fetch(`${baseUrl}/audio/speech`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,

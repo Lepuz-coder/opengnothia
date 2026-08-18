@@ -23,6 +23,7 @@ export async function transcribeAudio(
   audioBlob: Blob,
   apiKey: string,
   language?: string,
+  baseUrl: string = "https://api.openai.com/v1",
 ): Promise<TranscriptionResult> {
   const durationMinutes = await getWavDurationMinutes(audioBlob);
 
@@ -33,7 +34,7 @@ export async function transcribeAudio(
     formData.append("language", language);
   }
 
-  const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+  const response = await fetch(`${baseUrl}/audio/transcriptions`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,

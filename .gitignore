@@ -16,6 +16,10 @@ src-tauri/target/
 .env
 .env.*
 
+# Cloudflare Workers
+.wrangler/
+.dev.vars
+
 # IDE
 .vscode/
 .idea/

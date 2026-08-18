@@ -1,6 +1,7 @@
 export { Badge } from "./Badge";
 export { Button } from "./Button";
 export { Card } from "./Card";
+export { ConfirmSheet } from "./ConfirmSheet";
 export { Input } from "./Input";
 export { ScreenPlaceholder } from "./ScreenPlaceholder";
 export { SegmentedTabs, type SegmentedTab } from "./SegmentedTabs";

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Modal, Pressable, Text, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { X } from "lucide-react-native";
 import { cn } from "@opengnothia/shared/lib/cn";
@@ -26,7 +26,8 @@ export function Sheet({ isOpen, onClose, title, dismissible = true, className, c
 
   return (
     <Modal visible={isOpen} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
-      <View className="flex-1 justify-end">
+      {/* Sheets with a TextInput (insight notes, quick add) must rise with the keyboard. */}
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="flex-1 justify-end">
         <Pressable
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
@@ -50,7 +51,7 @@ export function Sheet({ isOpen, onClose, title, dismissible = true, className, c
           )}
           {children}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

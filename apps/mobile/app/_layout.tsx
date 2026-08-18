@@ -1,4 +1,7 @@
 import "../global.css";
+// Side effect: fills in crypto.randomUUID before anything touches the db —
+// shared queries mint row ids with it and Hermes has no Web Crypto.
+import "@/polyfills";
 // Side effect: registers the language source with @opengnothia/shared before
 // any screen calls useTranslation(). Must stay above the screen imports.
 import "@/i18n/bindings";

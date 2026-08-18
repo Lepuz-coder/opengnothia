@@ -1,3 +1,9 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# expo-modules-jsi 57.0.4 fails to compile on Xcode 26.2 (unqualified `abs` is
+# ambiguous under C++ interop). Upstream fix expo/expo#48261 is unreleased for
+# SDK 57 — drop this patch when a fixed expo-modules-jsi ships.
+patchedDependencies:
+  "expo-modules-jsi@57.0.4": patches/expo-modules-jsi@57.0.4.patch

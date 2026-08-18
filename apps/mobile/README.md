@@ -8,7 +8,7 @@ Right now this is a smoke-test shell, not a product: `App.tsx` opens an expo-sql
 
 - [Node.js](https://nodejs.org/) v18+
 - [pnpm](https://pnpm.io/)
-- [Expo Go](https://expo.dev/go) on a device, or Xcode / Android Studio for a simulator
+- Xcode + CocoaPods (the app uses native modules — `react-native-purchases`, `expo-audio`, … — so **Expo Go no longer works**; a local [dev client](https://docs.expo.dev/develop/development-builds/introduction/) build is required)
 
 ## Install
 
@@ -20,6 +20,17 @@ pnpm install
 
 ## Develop
 
+Build and install the dev client on the iOS simulator (needed once, and again whenever a native dependency changes):
+
+```bash
+# from this directory
+pnpm run:ios
+```
+
+CocoaPods requires a UTF-8 locale; if `pod install` fails with an `Encoding::CompatibilityError`, run `export LANG=en_US.UTF-8` first.
+
+Afterwards day-to-day development only needs the Metro server:
+
 ```bash
 # from this directory
 pnpm start
@@ -28,7 +39,7 @@ pnpm start
 pnpm dev:mobile
 ```
 
-Then press `i` for the iOS simulator, `a` for Android, or scan the QR code with Expo Go.
+Then press `i` to open the installed dev client in the iOS simulator.
 
 ## Notes
 

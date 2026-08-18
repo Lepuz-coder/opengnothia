@@ -1,13 +1,15 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "OpenGnothia",
+    "slug": "opengnothia",
+    "scheme": "opengnothia",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.opengnothia.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -22,7 +24,10 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-audio",
+      "expo-router",
+      "expo-localization"
     ]
   }
 }

@@ -4,21 +4,38 @@
   "main": "index.ts",
   "dependencies": {
     "@opengnothia/shared": "workspace:*",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "expo": "~57.0.14",
+    "expo-audio": "~57.0.3",
+    "expo-constants": "~57.0.12",
+    "expo-dev-client": "~57.0.13",
+    "expo-linking": "~57.0.6",
+    "expo-local-authentication": "~57.0.2",
+    "expo-localization": "~57.0.1",
+    "expo-router": "~57.0.14",
     "expo-sqlite": "~57.0.1",
     "expo-status-bar": "~57.0.1",
+    "nativewind": "^4.2.6",
     "react": "19.2.3",
-    "react-native": "0.86.2"
+    "react-native": "0.86.2",
+    "react-native-gesture-handler": "~2.32.0",
+    "react-native-purchases": "^10.7.1",
+    "react-native-reanimated": "4.5.1",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.2",
+    "react-native-svg": "15.15.4"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "tailwindcss": "^3.4.17",
     "typescript": "~6.0.3"
   },
   "scripts": {
     "generate:migrations": "node scripts/generate-migrations.mjs",
     "start": "node scripts/generate-migrations.mjs && expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "run:ios": "node scripts/generate-migrations.mjs && expo run:ios",
+    "android": "node scripts/generate-migrations.mjs && expo run:android",
+    "ios": "node scripts/generate-migrations.mjs && expo run:ios",
     "web": "expo start --web"
   },
   "private": true

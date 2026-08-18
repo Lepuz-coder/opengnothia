@@ -6,8 +6,8 @@ import { Button } from "@/ui";
 
 interface EntryComposerProps {
   visible: boolean;
-  /** Long-form day label shown in the header, e.g. "pazartesi, 18 Ağustos 2026". */
-  dateLabel: string;
+  /** Header label: a day ("pazartesi, 18 Ağustos 2026") or an action title ("Yeni Not"). */
+  label: string;
   placeholder: string;
   /** Pre-filled when editing an existing entry; empty for a new one. */
   initialContent: string;
@@ -17,13 +17,14 @@ interface EntryComposerProps {
 }
 
 /**
- * Fullscreen writing surface for Günlük and Rüyalar. Desktop swaps the page
- * body for an editor and hides the sidebar; the phone-native equivalent is an
- * iOS page sheet, which also brings swipe-to-dismiss for free.
+ * Fullscreen writing surface for the whole Defter tab — journal entries,
+ * dreams and insight notes all write here. Desktop swaps the page body for an
+ * editor and hides the sidebar; the phone-native equivalent is an iOS page
+ * sheet, which also brings swipe-to-dismiss for free.
  */
 export function EntryComposer({
   visible,
-  dateLabel,
+  label,
   placeholder,
   initialContent,
   saving,
@@ -54,7 +55,7 @@ export function EntryComposer({
             {t.common.cancel}
           </Button>
           <Text className="mx-2 flex-1 text-center text-sm capitalize text-ink-mute" numberOfLines={1}>
-            {dateLabel}
+            {label}
           </Text>
           <Button size="sm" onPress={() => onSave(content.trim())} disabled={!content.trim()} loading={saving}>
             {t.common.save}

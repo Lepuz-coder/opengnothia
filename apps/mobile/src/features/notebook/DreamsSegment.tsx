@@ -193,7 +193,7 @@ export function DreamsSegment() {
 
         <EntryComposer
           visible={composerOpen}
-          dateLabel={formatDayLabel(composerDate, locale)}
+          label={formatDayLabel(composerDate, locale)}
           placeholder={t.dreams.placeholder}
           initialContent={editingId ? selected.content : ""}
           saving={saving}
@@ -244,7 +244,7 @@ export function DreamsSegment() {
 
       <EntryComposer
         visible={composerOpen}
-        dateLabel={formatDayLabel(composerDate, locale)}
+        label={formatDayLabel(composerDate, locale)}
         placeholder={t.dreams.placeholder}
         initialContent=""
         saving={saving}

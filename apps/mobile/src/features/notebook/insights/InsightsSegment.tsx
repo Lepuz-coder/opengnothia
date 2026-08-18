@@ -8,8 +8,8 @@ import { getQueries } from "@/db";
 import { formatRelativeTime, formatTimestamp } from "@/lib/date";
 import { useThemeColors } from "@/theme/useAppTheme";
 import { Badge, Button, Card, ConfirmSheet, Input } from "@/ui";
+import { EntryComposer } from "../EntryComposer";
 import { EditGroupModal, NewInsightModal } from "./GroupFormModals";
-import { NoteSheet } from "./NoteSheet";
 
 type SegmentView = "groups" | "detail";
 
@@ -98,8 +98,10 @@ export function InsightsSegment() {
     loadGroups();
   };
 
-  // ── NoteSheet: one instance serves quick add, new note and edit ──
-  const noteSheetTitle =
+  // ── Note composer: one instance serves quick add, new note and edit.
+  // Same fullscreen page sheet as journal/dream writing — the bottom-sheet
+  // editor this started with left too little room to write (user feedback).
+  const noteComposerLabel =
     noteTarget?.kind === "edit" ? t.common.edit : noteTarget?.kind === "quick" ? t.insights.quickAdd : t.insights.newNote;
 
   const handleNoteSave = async (content: string) => {
@@ -278,9 +280,10 @@ export function InsightsSegment() {
           )}
         </ScrollView>
 
-        <NoteSheet
-          isOpen={noteTarget !== null}
-          title={noteSheetTitle}
+        <EntryComposer
+          visible={noteTarget !== null}
+          label={noteComposerLabel}
+          placeholder={t.insights.notePlaceholder}
           initialContent={noteTarget?.kind === "edit" ? noteTarget.insight.content : ""}
           saving={noteSaving}
           onSave={handleNoteSave}
@@ -401,9 +404,10 @@ export function InsightsSegment() {
         )}
       </ScrollView>
 
-      <NoteSheet
-        isOpen={noteTarget !== null}
-        title={noteSheetTitle}
+      <EntryComposer
+        visible={noteTarget !== null}
+        label={noteComposerLabel}
+        placeholder={t.insights.notePlaceholder}
         initialContent=""
         saving={noteSaving}
         onSave={handleNoteSave}

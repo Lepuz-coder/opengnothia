@@ -199,7 +199,7 @@ export function JournalSegment() {
 
         <EntryComposer
           visible={composerOpen}
-          dateLabel={formatDayLabel(composerDate, locale)}
+          label={formatDayLabel(composerDate, locale)}
           placeholder={t.journal.placeholder}
           initialContent={editingId ? selected.content : ""}
           saving={saving}
@@ -250,7 +250,7 @@ export function JournalSegment() {
 
       <EntryComposer
         visible={composerOpen}
-        dateLabel={formatDayLabel(composerDate, locale)}
+        label={formatDayLabel(composerDate, locale)}
         placeholder={t.journal.placeholder}
         initialContent=""
         saving={saving}

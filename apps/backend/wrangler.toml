@@ -15,7 +15,7 @@ enabled = false
 # `wrangler dev` simulates KV locally and never contacts this namespace.
 [[kv_namespaces]]
 binding = "USAGE_KV"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+id = "76a6fb839ad4404ba728d6497edb95ea"
 
 # ~20 requests/min per appUserID (D16). `period` may only be 10 or 60 seconds;
 # changing `limit` requires a redeploy (daily caps below are vars instead).

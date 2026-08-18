@@ -3,9 +3,10 @@ import { ArrowRight, MessageSquare, Play, Sparkles, type LucideIcon } from "luci
 import { useTranslation } from "@opengnothia/shared/i18n";
 import type { Session, UserProfile } from "@opengnothia/shared/types";
 import { cn } from "@opengnothia/shared/lib/cn";
+import { useProGate } from "@/hooks/useProGate";
 import { toIsoUtc } from "@/lib/date";
 import { useThemeColors } from "@/theme/useAppTheme";
-import { Button, Card } from "@/ui";
+import { Button, Card, LockBadge } from "@/ui";
 
 interface TodaySessionHeroProps {
   todaySession: Session | null;
@@ -19,13 +20,15 @@ function minutesSince(timestamp: string): number {
 /**
  * RN port of desktop's TodaySessionHero, with the same three states
  * (ready / active / completed — "abandoned" reads as ready, like desktop).
- * The CTA is deliberately inert until Faz 6 Step 53 wires it to the session
- * flow or the paywall (M3); it must stay visible meanwhile (Step 24).
+ * The CTA is the app's first gated AI entry point (M3): badge + paywall for
+ * free users since Faz 4; the subscriber half stays inert until Faz 6 Step 53
+ * routes it into the session flow.
  * Desktop's animated gradient orb flattens to a static tinted disc.
  */
 export function TodaySessionHero({ todaySession, profile }: TodaySessionHeroProps) {
   const { t } = useTranslation();
   const { resolved } = useThemeColors();
+  const { gate } = useProGate();
 
   const isActive = todaySession?.status === "active";
   const isCompleted = todaySession?.status === "completed";
@@ -96,15 +99,20 @@ export function TodaySessionHero({ todaySession, profile }: TodaySessionHeroProp
       <Text className="mt-1 text-xl font-bold text-ink">{title}</Text>
       {subtitle !== "" && <Text className="mt-1 text-sm text-ink-mute">{subtitle}</Text>}
 
-      <Button
-        className="mt-4 self-start"
-        icon={<PrimaryIcon size={16} color="#fff" />}
-        onPress={() => {
-          // Passive until Faz 6 (Step 53): session flow / paywall routing.
-        }}
-      >
-        {primaryLabel}
-      </Button>
+      <View className="mt-4 flex-row items-center gap-2.5 self-start">
+        <Button
+          icon={<PrimaryIcon size={16} color="#fff" />}
+          onPress={() =>
+            gate(() => {
+              // Subscriber path stays inert until Faz 6 (Step 53) routes it
+              // into the session flow; free users land on the paywall now.
+            })
+          }
+        >
+          {primaryLabel}
+        </Button>
+        <LockBadge />
+      </View>
     </Card>
   );
 }

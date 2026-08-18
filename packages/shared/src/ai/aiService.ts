@@ -64,6 +64,11 @@ export async function streamMessage(params: {
   thinkingLevel?: ThinkingLevel;
   thinkingType?: ThinkingType;
   abortSignal?: AbortSignal;
+  /**
+   * React Native's built-in fetch cannot stream response bodies, so mobile
+   * injects expo/fetch here. Defaults to the global fetch (desktop path).
+   */
+  fetchImpl?: typeof fetch;
   onThinking: (chunk: string) => void;
   onContent: (chunk: string) => void;
   onDone: () => void;
@@ -72,9 +77,10 @@ export async function streamMessage(params: {
 }): Promise<void> {
   const adapter = getAdapter(params.provider);
   const { url, init } = adapter.formatStreamRequest(params);
+  const fetchImpl = params.fetchImpl ?? fetch;
 
   try {
-    const response = await fetch(url, {
+    const response = await fetchImpl(url, {
       ...init,
       signal: params.abortSignal,
     });
@@ -163,7 +169,9 @@ export async function streamMessage(params: {
     }
     params.onDone();
   } catch (err) {
-    if (err instanceof DOMException && err.name === "AbortError") {
+    // Hermes has no DOMException global, and expo/fetch signals cancellation
+    // with a plain Error named "AbortError" — detect by name, engine-agnostic.
+    if (err instanceof Error && err.name === "AbortError") {
       // User cancelled — don't call onError
       return;
     }

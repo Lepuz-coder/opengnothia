@@ -11,6 +11,7 @@ export interface ThemeColors {
   ink: string;
   inkMute: string;
   tint: string;
+  accent: string;
 }
 
 export const THEME_COLORS: Record<"light" | "dark", ThemeColors> = {
@@ -21,6 +22,7 @@ export const THEME_COLORS: Record<"light" | "dark", ThemeColors> = {
     ink: "#0F1729", // surface-950
     inkMute: "#5A7199", // surface-500
     tint: "#2D8F8B", // primary-600
+    accent: "#C48A2A", // accent-600 — same light/dark steps as tint
   },
   dark: {
     canvas: "#0F1729", // surface-950
@@ -29,5 +31,6 @@ export const THEME_COLORS: Record<"light" | "dark", ThemeColors> = {
     ink: "#E8EDF5", // surface-50
     inkMute: "#5A7199", // surface-500
     tint: "#4BC3BE", // primary-400
+    accent: "#EDB448", // accent-400
   },
 };

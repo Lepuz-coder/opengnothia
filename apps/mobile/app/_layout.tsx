@@ -6,6 +6,7 @@ import "@/polyfills";
 // any screen calls useTranslation(). Must stay above the screen imports.
 import "@/i18n/bindings";
 
+import { useEffect } from "react";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
@@ -13,6 +14,7 @@ import { Stack } from "expo-router";
 import { useTranslation } from "@opengnothia/shared/i18n";
 import { useDatabase } from "@/db/useDatabase";
 import { useSettingsStore } from "@/stores/useSettingsStore";
+import { useSubscriptionStore } from "@/stores/useSubscriptionStore";
 import { useThemeColors, useThemeSync } from "@/theme/useAppTheme";
 import { Button, ToastContainer } from "@/ui";
 
@@ -25,6 +27,13 @@ export default function RootLayout() {
   const { resolved, colors } = useThemeColors();
   const hasHydrated = useSettingsStore((s) => s.hasHydrated);
   const { isReady, error, retry } = useDatabase();
+  const configurePurchases = useSubscriptionStore((s) => s.configure);
+
+  // RC configure must precede any Purchases call (paywall offerings, appUserID
+  // for AI requests) — earliest safe point, independent of the DB gate below.
+  useEffect(() => {
+    configurePurchases();
+  }, [configurePurchases]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -49,6 +58,8 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false, title: "" }} />
           <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
           <Stack.Screen name="settings" options={{ title: "" }} />
+          {/* M6: custom paywall, always presented as a modal sheet. */}
+          <Stack.Screen name="paywall" options={{ presentation: "modal", headerShown: false }} />
         </Stack>
       )}
       <ToastContainer />

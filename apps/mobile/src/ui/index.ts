@@ -3,6 +3,7 @@ export { Button } from "./Button";
 export { Card } from "./Card";
 export { ConfirmSheet } from "./ConfirmSheet";
 export { Input } from "./Input";
+export { LockBadge } from "./LockBadge";
 export { ScreenPlaceholder } from "./ScreenPlaceholder";
 export { SegmentedTabs, type SegmentedTab } from "./SegmentedTabs";
 export { Sheet } from "./Sheet";

@@ -25,7 +25,8 @@
     },
     "extra": {
       "revenueCat": {
-        "iosApiKey": "appl_rkwtsxeTRqgtTYijlEFBmJTrIjp"
+        "iosApiKey": "appl_rkwtsxeTRqgtTYijlEFBmJTrIjp",
+        "testStoreApiKey": "test_BqbwhXpfOSvZamnpKGSrzeFOTRr"
       }
     },
     "plugins": [

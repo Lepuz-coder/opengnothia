@@ -46,9 +46,9 @@ export function buildErrorDetails(error: unknown): string | undefined {
 // They reuse the 401/403/429 statuses but mean something different than the
 // BYOK texts below: no API key is involved, so no settings link.
 const PROXY_ERROR_CODES = ["invalid_identity", "subscription_required", "quota_exceeded"] as const;
-type ProxyErrorCode = (typeof PROXY_ERROR_CODES)[number];
+export type ProxyErrorCode = (typeof PROXY_ERROR_CODES)[number];
 
-function extractProxyErrorCode(error: unknown): ProxyErrorCode | undefined {
+export function extractProxyErrorCode(error: unknown): ProxyErrorCode | undefined {
   if (!(error instanceof AIError) || !error.rawBody) return undefined;
   try {
     const code = (JSON.parse(error.rawBody) as { error?: { code?: unknown } }).error?.code;

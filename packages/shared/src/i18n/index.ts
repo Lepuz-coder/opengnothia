@@ -529,6 +529,31 @@ export interface Translations {
     copyDetails: string;
     copied: string;
   };
+  paywall: {
+    badge: string;
+    title: string;
+    subtitle: string;
+    featureSessions: string;
+    featureAnalyses: string;
+    featureMilestones: string;
+    featureMemory: string;
+    monthly: string;
+    yearly: string;
+    perMonth: string;
+    perYear: string;
+    yearlyEquivalent: string;
+    savings: string;
+    purchaseCta: string;
+    restore: string;
+    purchaseSuccess: string;
+    restoreSuccess: string;
+    restoreNone: string;
+    purchaseFailed: string;
+    restoreFailed: string;
+    offeringsError: string;
+    renewalNote: string;
+    alreadyPro: string;
+  };
   sidebar: {
     noteTaking: string;
     info: string;

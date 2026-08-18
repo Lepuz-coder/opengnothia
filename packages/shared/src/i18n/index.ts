@@ -71,6 +71,10 @@ export interface Translations {
     analyses: string;
     courses: string;
     settings: string;
+    // Short bottom-tab labels — mobile only (M7).
+    home: string;
+    notebook: string;
+    breathe: string;
   };
   gender: {
     select: string;
@@ -312,6 +316,10 @@ export interface Translations {
     title: string;
     language: string;
     languageLabel: string;
+    theme: string;
+    themeSystem: string;
+    themeLight: string;
+    themeDark: string;
     personalInfo: string;
     name: string;
     namePlaceholder: string;
@@ -486,6 +494,7 @@ export interface Translations {
     errorTitle: string;
     summaryErrorTitle: string;
     dismissButton: string;
+    retryButton: string;
     status401Title: string;
     status401Anthropic: string;
     status401OpenAI: string;

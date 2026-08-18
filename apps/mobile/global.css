@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Channel triplets for the semantic tokens declared in tailwind.config.js.
+   `:root` is the light scheme, `.dark:root` the dark one — NativeWind maps both
+   onto its runtime colour scheme when tailwind.config.js sets darkMode:"class".
+   The dark values are desktop's `@layer base :root` block verbatim. */
+@layer base {
+  :root {
+    --canvas: 232 237 245; /* surface-50  */
+    --card: 255 255 255; /* white       */
+    --raised: 201 211 229; /* surface-100 */
+    --ink: 15 23 41; /* surface-950 */
+    --ink-soft: 63 83 120; /* surface-600 */
+    --ink-mute: 90 113 153; /* surface-500 */
+    --line: 201 211 229; /* surface-100 */
+    --tint: 45 143 139; /* primary-600 */
+  }
+
+  .dark:root {
+    --canvas: 15 23 41; /* surface-950 */
+    --card: 26 39 68; /* surface-800 */
+    --raised: 36 53 86; /* surface-700 */
+    --ink: 232 237 245; /* surface-50  */
+    --ink-soft: 139 157 195; /* surface-300 */
+    --ink-mute: 90 113 153; /* surface-500 */
+    --line: 36 53 86; /* surface-700 */
+    --tint: 75 195 190; /* primary-400 */
+  }
+}

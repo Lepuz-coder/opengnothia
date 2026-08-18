@@ -1,4 +1,5 @@
 const { getDefaultConfig } = require("expo/metro-config");
+const { withNativeWind } = require("nativewind/metro");
 const path = require("path");
 
 const config = getDefaultConfig(__dirname);
@@ -8,4 +9,5 @@ const config = getDefaultConfig(__dirname);
 // virtual store relies on upward lookup (e.g. expo → expo-modules-core), so
 // disabling it breaks resolution of transitive dependencies.
 config.watchFolders = [...new Set([...(config.watchFolders ?? []), path.resolve(__dirname, "../..")])];
-module.exports = config;
+
+module.exports = withNativeWind(config, { input: "./global.css" });

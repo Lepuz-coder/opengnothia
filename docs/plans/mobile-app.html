@@ -1,0 +1,856 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mobil Uygulama — Takip Panosu</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --panel-2: #fbfcfd;
+    --border: #e3e6ea;
+    --border-strong: #cfd4da;
+    --text: #1a1d21;
+    --text-2: #565d66;
+    --text-3: #868e98;
+    --accent: #2f7d6e;
+    --accent-soft: #e6f2ef;
+    --accent-2: #4a5fc1;
+    --warn: #b4761b;
+    --warn-soft: #fdf3e2;
+    --danger: #b4453a;
+    --code-bg: #f2f4f6;
+    --shadow: 0 1px 2px rgba(16,24,40,.04), 0 4px 14px rgba(16,24,40,.05);
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161a;
+      --panel: #1b1e23;
+      --panel-2: #202429;
+      --border: #2c3138;
+      --border-strong: #3a4048;
+      --text: #e8eaed;
+      --text-2: #a8b0ba;
+      --text-3: #79818c;
+      --accent: #5cbfab;
+      --accent-soft: #1d2b29;
+      --accent-2: #8b9bf0;
+      --warn: #d99b3f;
+      --warn-soft: #2b2418;
+      --danger: #e0736a;
+      --code-bg: #22262c;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 14px rgba(0,0,0,.25);
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 96px; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  code, pre, .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+  code { background: var(--code-bg); padding: .1em .38em; border-radius: 5px; font-size: .875em; }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; margin: 10px 0 0;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  a { color: var(--accent-2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px 80px; }
+
+  /* ---------- sticky header ---------- */
+  header.top {
+    position: sticky; top: 0; z-index: 50;
+    background: color-mix(in srgb, var(--panel) 88%, transparent);
+    backdrop-filter: saturate(1.4) blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .top-inner { max-width: 1080px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .top h1 { font-size: 15px; font-weight: 650; margin: 0; letter-spacing: -.01em; white-space: nowrap; }
+  .top h1 span { color: var(--text-3); font-weight: 450; }
+  .top-bar { flex: 1 1 240px; min-width: 180px; }
+  .bar { height: 7px; border-radius: 99px; background: var(--border); overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 0%; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .35s ease; }
+  .top-num { font-size: 12.5px; color: var(--text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .top-num b { color: var(--text); font-weight: 650; }
+  .btn {
+    font: inherit; font-size: 12.5px; padding: 5px 11px; border-radius: 7px;
+    border: 1px solid var(--border-strong); background: var(--panel); color: var(--text-2);
+    cursor: pointer; white-space: nowrap;
+  }
+  .btn:hover { background: var(--panel-2); color: var(--text); }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 34px 0 8px; }
+  .hero h2 { font-size: 27px; line-height: 1.25; margin: 0 0 10px; letter-spacing: -.02em; }
+  .hero p { color: var(--text-2); margin: 0; max-width: 74ch; }
+  .meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .chip { font-size: 12px; padding: 3px 9px; border-radius: 99px; border: 1px solid var(--border); background: var(--panel); color: var(--text-2); }
+  .chip b { color: var(--text); font-weight: 600; }
+
+  /* ---------- generic card ---------- */
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+  h3.sec { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--text-3); font-weight: 650; margin: 38px 0 12px; }
+
+  /* ---------- phase overview grid ---------- */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(212px, 1fr)); gap: 10px; }
+  .pcard {
+    display: block; padding: 12px 13px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--panel); box-shadow: var(--shadow); color: inherit; position: relative; overflow: hidden;
+  }
+  .pcard:hover { border-color: var(--border-strong); text-decoration: none; }
+  .pcard .pc-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .pcard .pc-name { font-size: 12px; font-weight: 650; color: var(--text-3); letter-spacing: .04em; text-transform: uppercase; }
+  .pcard .pc-title { font-size: 13.5px; font-weight: 550; margin-top: 3px; line-height: 1.35; }
+  .pcard .bar { margin-top: 10px; height: 5px; }
+  .pcard .pc-count { font-size: 11.5px; color: var(--text-3); margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .dot { width: 9px; height: 9px; border-radius: 99px; background: var(--border-strong); flex: none; }
+  .pcard[data-state="done"] { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); background: color-mix(in srgb, var(--accent-soft) 60%, var(--panel)); }
+  .pcard[data-state="done"] .dot { background: var(--accent); }
+  .pcard[data-state="active"] .dot { background: var(--warn); box-shadow: 0 0 0 3px color-mix(in srgb, var(--warn) 22%, transparent); }
+  .pcard[data-state="done"] .pc-name { color: var(--accent); }
+
+  /* ---------- phase sections ---------- */
+  details.phase { margin-top: 12px; }
+  details.phase > summary {
+    list-style: none; cursor: pointer; padding: 14px 16px; display: flex; gap: 12px; align-items: center;
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
+  }
+  details.phase[open] > summary { border-radius: var(--radius) var(--radius) 0 0; border-bottom-color: transparent; }
+  details.phase > summary::-webkit-details-marker { display: none; }
+  .caret { color: var(--text-3); font-size: 11px; transition: transform .18s ease; flex: none; }
+  details.phase[open] .caret { transform: rotate(90deg); }
+  .ph-title { font-weight: 600; font-size: 15px; flex: 1 1 auto; letter-spacing: -.01em; }
+  .ph-title em { font-style: normal; color: var(--text-3); font-weight: 450; }
+  .ph-badge {
+    font-size: 11.5px; font-variant-numeric: tabular-nums; padding: 2px 9px; border-radius: 99px;
+    border: 1px solid var(--border); color: var(--text-2); background: var(--panel-2); flex: none;
+  }
+  .ph-badge[data-state="done"] { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); color: var(--accent); font-weight: 600; }
+  .ph-badge[data-state="active"] { background: var(--warn-soft); border-color: color-mix(in srgb, var(--warn) 40%, var(--border)); color: var(--warn); font-weight: 600; }
+  .ph-body {
+    border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius) var(--radius);
+    background: var(--panel); padding: 6px 16px 16px; box-shadow: var(--shadow);
+  }
+
+  /* ---------- steps ---------- */
+  ul.steps { list-style: none; margin: 0; padding: 0; }
+  ul.steps > li { border-top: 1px solid var(--border); }
+  ul.steps > li:first-child { border-top: none; }
+  .step { display: flex; gap: 11px; align-items: flex-start; padding: 11px 2px; cursor: pointer; }
+  .step:hover { background: color-mix(in srgb, var(--panel-2) 70%, transparent); }
+  .step input { margin: 3px 0 0; width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; flex: none; }
+  .step .body { flex: 1 1 auto; min-width: 0; }
+  .step .no { font-weight: 600; color: var(--text); margin-right: 6px; }
+  .step .txt { color: var(--text-2); }
+  .step input:checked ~ .body .no,
+  .step input:checked ~ .body .txt { color: var(--text-3); }
+  .step input:checked ~ .body .no { text-decoration: line-through; }
+  .tag {
+    display: inline-block; font-size: 10.5px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase;
+    padding: 1px 7px; border-radius: 5px; margin-right: 7px; vertical-align: 1px;
+  }
+  .tag.reg { background: var(--warn-soft); color: var(--warn); border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); }
+  .tag.verify { background: var(--accent-soft); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+  .tag.commit { background: var(--code-bg); color: var(--text-2); border: 1px solid var(--border); }
+  .tag.user { background: var(--warn-soft); color: var(--warn); border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); }
+
+  .note {
+    margin-top: 14px; padding: 12px 14px; border-radius: 9px; font-size: 13.5px; color: var(--text-2);
+    background: var(--panel-2); border: 1px solid var(--border); border-left: 3px solid var(--accent);
+  }
+  .note b { color: var(--text); }
+  .note + .note { margin-top: 8px; }
+  .note ul { margin: 8px 0 0; padding-left: 18px; }
+
+  /* ---------- decision / info blocks ---------- */
+  .dlist { display: grid; gap: 10px; }
+  details.d > summary {
+    cursor: pointer; list-style: none; padding: 12px 15px; display: flex; gap: 10px; align-items: baseline;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  }
+  details.d[open] > summary { border-radius: 10px 10px 0 0; border-bottom-color: transparent; }
+  details.d > summary::-webkit-details-marker { display: none; }
+  details.d .dk { font-weight: 700; color: var(--accent); font-size: 12.5px; flex: none; }
+  details.d .dt { font-weight: 500; font-size: 14px; }
+  details.d .d-body {
+    border: 1px solid var(--border); border-top: none; border-radius: 0 0 10px 10px; background: var(--panel);
+    padding: 4px 15px 14px; font-size: 13.8px; color: var(--text-2);
+  }
+  .d-body p { margin: 9px 0 0; }
+  .d-body b { color: var(--text); }
+
+  table.files { width: 100%; border-collapse: collapse; font-size: 13.3px; }
+  table.files td { padding: 7px 10px; border-top: 1px solid var(--border); vertical-align: top; color: var(--text-2); }
+  table.files tr:first-child td { border-top: none; }
+  table.files td:first-child { width: 40%; color: var(--text); }
+
+  ul.plain { margin: 0; padding-left: 20px; color: var(--text-2); }
+  ul.plain li { margin: 5px 0; }
+  ul.plain li b { color: var(--text); font-weight: 600; }
+
+  /* ---------- kapanış kontrol listesi ---------- */
+  .reg-group { padding: 4px 0 2px; }
+  .reg-group > h4 { font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--text-3); margin: 16px 0 4px; }
+  ul.reg { list-style: none; margin: 0; padding: 0; }
+  ul.reg li { border-top: 1px solid var(--border); }
+  ul.reg li:first-child { border-top: none; }
+  .step.sub { padding: 6px 2px; font-size: 13.5px; }
+  .step.sub input { width: 14px; height: 14px; margin-top: 3px; }
+
+  .warnbar {
+    display: none; margin: 14px 0 -8px; padding: 10px 14px; border-radius: 9px; font-size: 13px;
+    background: var(--warn-soft); border: 1px solid color-mix(in srgb, var(--warn) 40%, var(--border)); color: var(--warn);
+  }
+  .warnbar.on { display: block; }
+  footer.f { margin-top: 46px; padding-top: 18px; border-top: 1px solid var(--border); color: var(--text-3); font-size: 12.5px; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+  .saved { color: var(--accent); opacity: 0; transition: opacity .3s ease; }
+  .saved.on { opacity: 1; }
+  @media (max-width: 620px) {
+    .hero h2 { font-size: 22px; }
+    .top h1 { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <h1>Mobil Uygulama <span>· takip panosu</span></h1>
+    <div class="top-bar"><div class="bar"><i id="totalBar"></i></div></div>
+    <div class="top-num"><b id="totalDone">0</b>/<span id="totalAll">0</span> adım · <b id="totalPct">0%</b></div>
+    <button class="btn" id="expandAll" type="button">Tümünü aç</button>
+    <button class="btn" id="resetAll" type="button">Sıfırla</button>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="warnbar" id="storageWarn">
+    <b>Bu sekmede işaretler kalıcı değil.</b> Tarayıcı bu sayfa için <code>localStorage</code>'a izin vermiyor (genellikle sayfa <code>data:</code> ya da kısıtlı bir kaynaktan açıldığında olur). İşaretler yalnızca sayfa yenilenene kadar durur — dosyayı diskten <code>file://</code> olarak veya bir yerel sunucu üzerinden aç.
+  </div>
+
+  <section class="hero">
+    <h2>Mobil Uygulama: Masaüstünün Expo'ya Taşınması — Abonelik Modeliyle</h2>
+    <p>Monorepo'daki <code>apps/mobile</code> iskeletini (bugün yalnızca DB smoke testi) sekiz bölümlü, freemium + abonelikli tam bir mobil uygulamaya dönüştürme planı: Dashboard, Seans, Günlük, Rüyalar, İçgörüler, Analizler, Nefes Egzersizi, Ayarlar. Ücretsiz katman manuel kayıt akışları + nefes + mood; Pro (aylık/yıllık) seans ve tüm AI özelliklerini açar. Başarı ölçütü: <b>sesli mod dahil</b> tüm özellikler <code>expo run:ios</code> dev build'inde çalışır, satın alma RevenueCat Test Store'a karşı, AI çağrıları canlı Worker'a karşı doğrulanmıştır. Mağaza dağıtımı (TestFlight / App Store) bilinçli olarak kapsam dışıdır.</p>
+    <div class="meta">
+      <span class="chip">Branch <b>restructure/monorepo</b> — merge kapsam dışı</span>
+      <span class="chip"><b>10</b> faz · <b>96</b> adım (76 uygulama + 20 kapanış listesi)</span>
+      <span class="chip">Karar oturumu <b>2026-08-18</b> (grill)</span>
+      <span class="chip">RC: <b>pro</b> · <code>monthly</code> + <code>yearly</code> · deneme yok</span>
+      <span class="chip">Önceki plan: <a href="monorepo-restructure.html">monorepo-restructure.html</a></span>
+    </div>
+  </section>
+
+  <h3 class="sec">Faz Özeti</h3>
+  <div class="grid" id="phaseGrid"></div>
+
+  <h3 class="sec">Bağlam</h3>
+  <div class="card" style="padding:16px 18px">
+    <p style="margin:0 0 10px;color:var(--text-2)">Monorepo restructure planı Faz 10'a kadar tamamlandı: <code>apps/desktop</code> (Tauri, tam uygulama), <code>apps/backend</code> (Cloudflare Worker AI proxy — chat/STT/TTS, RevenueCat doğrulaması, hız + günlük kota limitleri, <b>workers.dev üzerinde canlı</b>), <code>packages/shared</code> (types, 8 dilli i18n, constants, AI servisleri, DB port + ~1000 satır sorgu + 17 migration) ve <code>apps/mobile</code> (Expo 57 iskeleti: expo-sqlite adapter'ı + migration üretimi + smoke test <code>App.tsx</code>). Faz 11 (son regresyon + master'a PR) iptal edildi; bu plan doğrudan <code>restructure/monorepo</code> üzerinde devam eder.</p>
+    <p style="margin:0 0 14px;color:var(--text-2)">Bu plan restructure planındaki D13–D17 kararlarının üzerine kurulur ve mobil UI'ı gerçekten yazar. Yerel-öncelik değişmez: 16 tablo cihazda, senkron yok, backend yalnızca içerik saklamayan AI aracısı. RevenueCat tarafı hazır: entitlement <code>pro</code> ("OpenGnothia Pro"), ürünler <code>monthly</code> + <code>yearly</code>, şimdilik Test Store'da; Worker <code>ENTITLEMENT_ID = "pro"</code> ile zaten deploy'lu — <b>backend'e bu planda hiç dokunulmaz</b>.</p>
+
+    <h4 style="font-size:12.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin:0 0 6px">Önce okunacak giriş noktaları</h4>
+    <table class="files">
+      <tr><td><code>apps/mobile/App.tsx</code></td><td>Faz 10 smoke testi — DB bootstrap deseni buradan <code>src/db/</code>'ye taşınacak, dosya Router kabuğuyla değişecek</td></tr>
+      <tr><td><code>apps/mobile/src/adapters/expoSqliteAdapter.ts</code></td><td><code>DatabasePort</code> implementasyonu, hazır ve doğrulanmış</td></tr>
+      <tr><td><code>apps/mobile/scripts/generate-migrations.mjs</code></td><td><code>shared/migrations/*.sql</code> → TS sabiti; <code>start</code> script'ine bağlı, <code>run:ios</code> öncesi de çalışmalı</td></tr>
+      <tr><td><code>apps/mobile/app.json</code></td><td><code>ios.bundleIdentifier</code> yok, <code>userInterfaceStyle: "light"</code> — Faz 0/1'de düzenlenecek</td></tr>
+      <tr><td><code>packages/shared/src/ai/aiService.ts</code></td><td><code>customBaseUrl</code> + <code>apiKey</code> destekli — Worker'a yönlendirme için hazırlık restructure D15'te yapıldı</td></tr>
+      <tr><td><code>packages/shared/src/ai/errorMessages.ts</code></td><td>401/403/429 metinleri restructure Step 84'te eklendi</td></tr>
+      <tr><td><code>apps/backend/src/middleware/auth.ts</code> · <code>wrangler.toml</code></td><td><code>ENTITLEMENT_ID = "pro"</code>, entitlement cache TTL'leri, hata sözleşmesi (401/403/429)</td></tr>
+      <tr><td><code>apps/desktop/src/pages/</code> · <code>components/</code></td><td>UI referansı — 13 sayfa, 51 bileşen; mobil bunların RN yeniden yorumu</td></tr>
+      <tr><td><code>apps/desktop/src/services/ai/promptBuilder.ts</code> · <code>backgroundNotes.ts</code></td><td>Faz 5'te <code>packages/shared</code>'a taşınacak seans mantığı</td></tr>
+      <tr><td><code>apps/desktop/src/hooks/useVoiceConversation.ts</code> · <code>useAudioRecorder.ts</code></td><td>Faz 8 sesli mod portunun referansı</td></tr>
+      <tr><td><code>packages/shared/src/constants/therapySchools.ts</code></td><td>8 ekol (integrative, psychodynamic, cbt, logotherapy, act, schema, stoic, spiritual) — anketin skorlama hedefi</td></tr>
+    </table>
+
+    <h4 style="font-size:12.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin:20px 0 6px">Yüzey alanı</h4>
+    <div class="meta" style="margin-top:0">
+      <span class="chip"><b>8</b> bölüm · <b>5</b> sekme</span>
+      <span class="chip"><b>8</b> dil (i18n hazır)</span>
+      <span class="chip"><b>8</b> terapi ekolü</span>
+      <span class="chip"><b>16</b> tablo · <b>17</b> migration (hazır)</span>
+      <span class="chip"><b>3</b> backend endpoint (canlı)</span>
+      <span class="chip"><b>1</b> entitlement · <b>2</b> ürün</span>
+    </div>
+
+    <h4 style="font-size:12.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin:20px 0 6px">Bariz olmayan kısıtlar</h4>
+    <ul class="plain">
+      <li><code>react-native-purchases</code> native modül — <b>Expo Go bu planla biter</b>; <code>expo-dev-client</code> + lokal <code>expo run:ios</code> build'i zorunlu. Her yeni native bağımlılıkta dev client yeniden build edilmeli (Metro reload yetmez).</li>
+      <li>Expo SDK 57: ses için <code>expo-av</code> değil <b><code>expo-audio</code></b>; kod yazmadan önce sürümlü doküman (<code>apps/mobile/AGENTS.md</code> talimatı) okunmalı.</li>
+      <li>RC <b>Test Store</b>: App Store Connect olmadan satın alma uçtan uca test edilir; <code>app.json</code>'daki <code>bundleIdentifier</code> ve iOS Public SDK key RC panelindeki app ile eşleşmeli.</li>
+      <li><code>appUserID</code> anonim (restructure D14) — <code>Purchases.configure</code> sonrası SDK'dan okunur, her AI isteğinde <code>Authorization: Bearer</code> olur. Hesap/e-posta yok.</li>
+      <li>Ekol anketi <code>shared</code>'a girdiği için soruların <b>8 dile çevirisi</b> gerekir (i18n deseni: <code>therapySchools/</code> gibi dil-başına dosya).</li>
+      <li>Desktop Zustand store'ları UI + domain state karışık (restructure D3) — mobil <b>kendi</b> store'larını yazar; yalnızca saf mantık (<code>promptBuilder</code>, <code>backgroundNotes</code>) shared'a çıkar. Her taşımadan sonra desktop smoke şart.</li>
+      <li>Master'a merge yok (M12): master'a desktop hotfix inerse branch'e sync edilmeli (önceki v1.8.1 sync'i gibi) — Faz 0 Step 1 + süreç boyunca göz önünde.</li>
+      <li><code>app.json</code>'da <code>userInterfaceStyle: "light"</code> — tema desteği için <code>"automatic"</code> yapılmalı; <code>portrait</code> kilidi korunur.</li>
+    </ul>
+  </div>
+
+  <h3 class="sec">Verilen Kararlar — 2026-08-18 grill oturumu</h3>
+  <div class="dlist">
+    <details class="d">
+      <summary><span class="dk">M1</span><span class="dt">Kapsam: 8 bölüm — Courses, Programs, Schools, Expenses mobilde yok</span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> Mobil v1 = Dashboard, Seans, Günlük, Rüyalar, İçgörüler, Analizler, Nefes, Ayarlar. Desktop'taki CoursesPage, ProgramsPage, SchoolsPage ve Expenses yüzeyi (sayfa + Dashboard grafikleri) mobilde <b>hiç yok</b>. Dashboard içeriği: mood girişi + grafiği (ücretsiz), RitualCard, TodaySessionHero (abone değilse kilitli CTA) ve yeni <b>"yolculuk" kartı</b> (tamamlanan seans sayısı + sıradaki milestone, Analizler'e link).</p>
+        <p><b>Neden:</b> Kapsam çekirdek değere iner; kurs/program yüzeyi büyük ve AI-yoğun. Ekol <i>seçimi</i> yine de kalır (M2) çünkü seans sistem promptu seçili ekole bağlı.</p>
+        <p><b>Reddedilen:</b> Kursları "kilitli vitrin" olarak göstermek — boş raf, kod yükü, v1 dönüşümüne katkısı belirsiz.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">M2</span><span class="dt">Ekol seçimi: kural-tabanlı anket — manuel liste de AI önerisi de yok</span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> Onboarding'deki ekol adımı bir <b>anket</b>: sorular + puanlama tablosu, cevaplara göre 8 ekolden biri önerilir. Sonuç ekranı kısa "neden bu ekol" gerekçesi gösterir; tek kaçış <b>"Anketi yeniden çöz"</b> (alternatif ekol kartı yok). Ayarlar'daki ekol bölümü de liste değil: mevcut ekol + yeniden çöz. Anket tanımı + skorlama <code>packages/shared</code>'a girer (constants + 8 dil i18n); <b>soru içeriği Faz 7'de kullanıcıyla birlikte yazılır</b>. Sıfır AI maliyeti, kişiye özel sonuç.</p>
+        <p><b>Neden:</b> 8 ekollük manuel liste mobil kullanıcıya karar felci; AI önerisi hem maliyet hem abonesiz onboarding'de imkânsız. Anket ikisini de çözer.</p>
+        <p><b>Reddedilen:</b> (a) Desktop'taki gibi statik manuel liste — ilk öneriydi, kullanıcı kişiselleştirilmiş seçim istedi. (b) Sonuç ekranında ikinci-en-uygun ekol kartı — arka kapıdan manuel seçimi geri getirir. (c) AI ekol önerisi (<code>useSchoolRecommendation</code>) — mobilde hiç kullanılmaz.</p>
+        <p><b>Not:</b> Restructure D13'teki "SchoolSelectionStep mobile taşınır" varsayımının revizyonudur; desktop'ta manuel liste aynen kalır.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">M3</span><span class="dt">Freemium sınırı: kilit sayfa değil, özellik seviyesinde</span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> Ücretsiz: Günlük / Rüyalar / İçgörüler'in manuel akışları, Nefes, mood takibi ve Dashboard. Pro: seans (yazılı + sesli) ve <b>yeni AI çağrısı gerektiren her eylem</b> (günlük analizi, rüya analizi, milestone üretimi, tanışma görüşmesi). AI düğmeleri abonesi olmayana <b>gizlenmez</b>: görünür durur, <code>LockBadge</code> (kilit/Pro rozeti) taşır, dokununca paywall açılır. Analizler sekmesi herkese görünür — milestone yol haritası kilitli kartlarla sergilenir, üstte abonelik CTA'sı.</p>
+        <p><b>Neden:</b> Ücretsiz katman gerçek değer sunar (edinim + mağaza politikaları); görünür kilit keşfedilebilirlik ve dönüşüm yüzeyidir; menünün abonelik durumuna göre değişmemesi hem kod hem UX sadeliği.</p>
+        <p><b>Reddedilen:</b> AI düğmelerini abonesizden gizlemek; Analizler'i navigasyondan saklamak.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">M4</span><span class="dt">Üretilmiş AI içeriği abonelik bitince de okunur kalır</span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> Abonelik sona erdiğinde daha önce üretilmiş her şey — seans transkriptleri, seans özetleri, arka plan notları, günlük/rüya analizleri, milestone analizleri — okunabilir kalır. Kilit yalnızca <b>yeni</b> AI çağrısı gerektiren eylemlerde ("yeni seans başlat", "analiz üret").</p>
+        <p><b>Neden:</b> Veri kullanıcının cihazında ve kullanıcınındır; okumanın maliyeti yok; yerel-öncelik vaadiyle tutarlı; "kendi verini rehin alma" görüntüsü mağaza itiraz riskini de düşürür.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">M5</span><span class="dt">Abonelik: entitlement <code>pro</code>, aylık + yıllık, deneme yok, backend sıfır değişiklik</span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> Tek RevenueCat entitlement'ı <code>pro</code> ("OpenGnothia Pro"); ürünler <code>monthly</code> + <code>yearly</code> tek offering altında; <b>deneme süresi yok</b>. Fiyat rakamları kodda hiç geçmez — offerings/StoreKit'ten okunur. Worker zaten <code>ENTITLEMENT_ID = "pro"</code> ile canlıda; aylık/yıllık ayrımı backend'i ilgilendirmez → <b>bu planda backend'e hiç dokunulmaz</b>.</p>
+        <p><b>Neden:</b> Yıllık paket LTV/nakit akışı için; tek entitlement gating'i tek soruya ("pro aktif mi?") indirir. Deneme, lansman sonrası RC intro offer olarak kod değişikliği olmadan eklenebilir.</p>
+        <p><b>Not:</b> Restructure D13'ün revizyonu: "tek aylık paket" → aylık + yıllık. RC tarafı 2026-08-18 itibarıyla kurulu (ürünler Test Store'a bağlı).</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">M6</span><span class="dt">Tamamen özel paywall — RevenueCat Paywalls kullanılmaz</span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> Paywall uygulama içinde özel bir ekran: offerings'ten iki paket kartı (fiyatlar StoreKit'ten), yıllık kartta hesaplanan "%X tasarruf" rozeti, satın al + geri yükle düğmeleri, 8 dilde metinler (shared i18n). <code>react-native-purchases-ui</code> / uzaktan yönetilen RC Paywalls kullanılmaz.</p>
+        <p><b>Neden:</b> Tasarım dili üzerinde tam kontrol (kullanıcı tercihi).</p>
+        <p><b>Kabul edilen bedel:</b> Metin/yerleşim değişikliği app güncellemesi ister; satın alma, restore ve hata akışlarının tüm sorumluluğu bizde.</p>
+        <p><b>Reddedilen:</b> RC Paywalls — uzaktan değiştirilebilirlik ve hazır edge-case'ler sunuyordu; tasarım kontrolüne feda edildi.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">M7</span><span class="dt">Navigasyon: Expo Router + 5 sekme; Ayarlar sekme değil</span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> Expo Router (dosya tabanlı). Alt sekmeler: <b>Ana Sayfa</b> (Dashboard; header'da ⚙️ → Ayarlar'a push), <b>Seans</b>, <b>Defter</b> (üst segment: Günlük | Rüyalar | İçgörüler), <b>Nefes</b>, <b>Analizler</b>.</p>
+        <p><b>Neden:</b> 8 bölüm 5 sekmeye bu gruplamayla iner: defter ailesi aynı zihinsel raf; Analizler tab'da kalıcı dönüşüm yüzeyi; Ayarlar en az girilen yer, gear yeter.</p>
+        <p><b>Reddedilen:</b> 5. sekmenin Ayarlar olması (Analizler Dashboard kartına inerdi); "Daha Fazla" sekmesi.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">M8</span><span class="dt">Stil: NativeWind v4 + desktop renk token'ları</span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> NativeWind v4; desktop <code>styles.css</code>'teki renk token'ları (açık/koyu) Tailwind temasına taşınır; tema = sistem takibi + Ayarlar'dan manuel açık/koyu override.</p>
+        <p><b>Neden:</b> Tailwind kas hafızası mevcut; 30+ ekran/bileşende hız farkı ciddi; iki platformda hizalı görsel dil.</p>
+        <p><b>Reddedilen:</b> Düz StyleSheet + el yapımı tema — yavaş; Tamagui — gereksiz öğrenme maliyeti.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">M9</span><span class="dt">Seans tam parite; sesli mod zorunlu kapsam</span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> Yazılı seans desktop'la tam parite: seans öncesi/sonrası mood, intake CTA + modal, zamanlayıcı + bağlam göstergesi, seans içi içgörü bottom sheet'i, bitirme onayı + AI özeti, <b>arka plan notları</b>, geçmiş seans listesi/detayı. <code>promptBuilder</code> + <code>backgroundNotes</code> shared'a taşınır (<code>courseNotes</code> desktop'ta kalır — kurs mobilde yok). <b>Sesli mod</b> (kayıt → STT → cevap → TTS, kesme dahil) <b>zorunlu kapsam</b>: plan sesli mod bitmeden tamamlanmış sayılmaz. AmbientBackground türü süsler nice-to-have.</p>
+        <p><b>Neden:</b> Arka plan notları kesilirse mobil seanslar "hafızasız" kalır — desktop'tan belirgin kötü ürün. Sesli mod telefonda çekirdek satış noktası (kullanıcı kararı: sessiz çıkılmaz).</p>
+        <p><b>Reddedilen:</b> Yazılı-önce çıkış (önerilmişti); sesli modu sonraki sürüme atmak.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">M10</span><span class="dt">Ayarlar kapsamı: kilit var (OS doğrulaması), veri aktarımı yok</span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> Ayarlar: dil, tema, terapi ekolü (M2), abonelik yönetimi (durum, geri yükle, aboneliği yönet linki, Pro değilse paywall CTA), uygulama kilidi, hakkında (sürüm, açık kaynak linki). AI ayarları (anahtar / sağlayıcı / model / ses / thinking) mobilde <b>hiç yok</b> (restructure D13/D15). <b>Uygulama kilidi:</b> <code>expo-local-authentication</code> ile FaceID/TouchID/cihaz kodu — özel PIN altyapısı yazılmaz. <b>Veri dışa/içe aktarma bu planda yok</b> (kullanıcı kararı) — faz açılmaz.</p>
+        <p><b>Neden:</b> OS doğrulaması ucuz ve güvenli; PIN saklama derdi yok.</p>
+        <p><b>Bilinen risk (kabul):</b> Senkron da yedekleme de olmadığından cihaz kaybı = veri kaybı; aktarım ileriki bir plana.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">M11</span><span class="dt">Onboarding: Karşılama → Dil → Anket → Paywall (atlanabilir) → Görüşme (yalnız abone) → Hazır</span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> Akış: Karşılama → Dil seçimi → Ekol anketi (M2) → Özel paywall ("Şimdilik atla" ile geçilebilir) → AI tanışma görüşmesi (<b>yalnızca abone olduysa</b>; atlandıysa adım atlanır, intake sonradan Seans sayfasındaki CTA/modal ile tamamlanır) → Hazır. Güvenlik adımı onboarding'de yok — kilit Ayarlar'dan açılır.</p>
+        <p><b>Neden:</b> Restructure D13 iskeletinin anket (M2) + özel paywall (M6) ile güncellenmiş hâli. Kısa onboarding = ilk izlenim + dönüşüm.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">M12</span><span class="dt">Süreç: aynı branch, mağaza dağıtımı kapsam dışı, bitiş çizgisi dev build</span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> İş <code>restructure/monorepo</code> üzerinde faz-bazlı commit'lerle sürer; <b>master'a merge bu planın dışında</b> (kullanıcı kararı — merge etmeden devam). Mağaza dağıtımı tamamen kapsam dışı: TestFlight, App Store gönderimi, mağaza metinleri/ekran görüntüleri, gizlilik politikası sayfası, custom domain, Android — hepsi sonraki ayrı plana. <b>Bitiş çizgisi:</b> sesli mod dahil tüm özellikler <code>expo run:ios</code> dev build'inde çalışır; satın alma RC Test Store'a, AI çağrıları canlı Worker'a karşı doğrulanmıştır.</p>
+        <p><b>Risk notu:</b> Branch yaşadıkça master'a inen desktop hotfix'leri branch'e sync edilmeli (önceki v1.8.1 sync örneği); Faz 0 Step 1 bunu kontrol eder.</p>
+        <p><b>Reddedilen:</b> Önce merge + faz-başına PR önerisi.</p>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">M13</span><span class="dt">Altyapı varsayılanları: Zustand + AsyncStorage; analitik yok, bildirim yok, EAS mecbur değil</span></summary>
+      <div class="d-body">
+        <p><b>Karar:</b> State: Zustand, <b>mobilin kendi store'ları</b> (restructure D3 uyarınca store'lar shared'a çıkarılmaz; yalnız saf mantık taşınır). Ayar kalıcılığı: AsyncStorage (restructure D12'deki Tauri store ↔ AsyncStorage eşlemesi) — dil, tema, ekol, kilit, onboarded bayrağı. Analitik/crash raporlama <b>yok</b> (gizlilik kimliğiyle tutarlı; desktop'ta da yok). Bildirim/hatırlatıcı <b>bu planda yok</b>. Build: dev client lokal <code>expo run:ios</code>; EAS zorunlu değil.</p>
+      </div>
+    </details>
+  </div>
+
+  <h3 class="sec">Etkilenen Dosyalar</h3>
+  <div class="dlist">
+    <details class="d">
+      <summary><span class="dk">YENİ</span><span class="dt"><code>apps/mobile/</code> — uygulamanın gövdesi</span></summary>
+      <div class="d-body">
+        <table class="files">
+          <tr><td><code>app/_layout.tsx</code></td><td>kök layout: tema + i18n + DB bootstrap + kilit ekranı sarmalayıcısı</td></tr>
+          <tr><td><code>app/(onboarding)/…</code></td><td>karşılama, dil, anket, paywall, görüşme, hazır adımları (M11)</td></tr>
+          <tr><td><code>app/(tabs)/index · session · journal · breathe · analyses</code></td><td>5 sekme (M7); <code>journal</code> içinde Günlük | Rüyalar | İçgörüler segmentleri</td></tr>
+          <tr><td><code>app/settings.tsx</code> · <code>app/paywall.tsx</code></td><td>gear'dan push edilen Ayarlar; modal paywall (M6)</td></tr>
+          <tr><td><code>src/db/index.ts</code></td><td>bootstrap: expo-sqlite aç → adapter → <code>runMigrations</code> → tekil <code>getQueries</code> (App.tsx smoke kodundan evrilir)</td></tr>
+          <tr><td><code>src/ai/client.ts</code></td><td>shared AI servislerini Worker baseUrl + <code>appUserID</code> Bearer ile saran yapılandırma</td></tr>
+          <tr><td><code>src/stores/…</code></td><td>Zustand: settings (AsyncStorage persist), session, subscription (M13)</td></tr>
+          <tr><td><code>src/ui/…</code></td><td>NativeWind UI kiti: Button, Card, Badge, Input, Toggle, SegmentedTabs, Sheet, Toast, LockBadge</td></tr>
+          <tr><td><code>tailwind.config.js</code> · <code>global.css</code></td><td>desktop token'larının NativeWind teması (M8)</td></tr>
+        </table>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">DÜZENLE</span><span class="dt"><code>apps/mobile/</code> mevcut dosyalar</span></summary>
+      <div class="d-body">
+        <table class="files">
+          <tr><td><code>app.json</code></td><td><code>ios.bundleIdentifier</code> (RC app ile aynı), <code>userInterfaceStyle: "automatic"</code>, ad/ikon gözden geçirme</td></tr>
+          <tr><td><code>package.json</code></td><td><code>main: "expo-router/entry"</code>, yeni bağımlılıklar, <code>generate:migrations</code>'ın <code>run:ios</code> öncesi de çalışması</td></tr>
+          <tr><td><code>metro.config.js</code> · <code>babel.config.js</code></td><td>NativeWind + Reanimated wiring (monorepo ayarları korunur)</td></tr>
+          <tr><td><code>App.tsx</code> · <code>index.ts</code></td><td>smoke test kabuğu Router yapısına devrolur (mantığı <code>src/db/</code>'ye taşınmış olur)</td></tr>
+        </table>
+      </div>
+    </details>
+    <details class="d">
+      <summary><span class="dk">SHARED</span><span class="dt"><code>packages/shared/</code> eklemeler — davranış değişikliği yok</span></summary>
+      <div class="d-body">
+        <table class="files">
+          <tr><td><code>src/ai/promptBuilder.ts</code> · <code>src/ai/backgroundNotes.ts</code></td><td>desktop'tan taşınır (Faz 5); <code>courseNotes</code> desktop'ta kalır</td></tr>
+          <tr><td><code>src/constants/schoolQuiz.ts</code></td><td>YENİ — anket soruları + puanlama tablosu (M2, içerik Faz 7'de birlikte)</td></tr>
+          <tr><td><code>src/i18n/schoolQuiz/*.ts</code></td><td>YENİ — anketin 8 dili</td></tr>
+          <tr><td><code>src/i18n/*.ts</code></td><td>paywall / abonelik / kilit / onboarding metin bölümleri eklenir</td></tr>
+        </table>
+        <p><b>Desktop dokunuşu:</b> yalnızca <code>promptBuilder</code>/<code>backgroundNotes</code> import yollarının güncellenmesi — davranış birebir aynı kalır, her taşımadan sonra desktop seans smoke'u koşulur. <b>Backend dokunuşu: yok</b> (M5).</p>
+      </div>
+    </details>
+  </div>
+
+  <h3 class="sec">Uygulama Adımları</h3>
+
+  <details class="phase" id="phase-0" data-phase="0" data-name="Faz 0" data-title="Dev client + bağımlılıklar">
+    <summary>
+      <span class="caret">▶</span>
+      <span class="ph-title">Faz 0 — <em>Expo Go'dan dev client'a geçiş + native bağımlılıklar</em></span>
+      <span class="ph-badge" data-badge></span>
+    </summary>
+    <div class="ph-body">
+      <ul class="steps">
+        <li><label class="step"><input type="checkbox" data-track data-seed id="s1"><span class="body"><span class="no">Step 1</span><span class="txt"><code>git fetch origin</code> ve <code>git log restructure/monorepo..origin/master --oneline</code> — master'da yeni commit varsa önce branch'e sync et (merge), yoksa devam (M12 risk notu).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s2"><span class="body"><span class="no">Step 2</span><span class="txt"><code>app.json</code>: <code>ios.bundleIdentifier</code> belirle ve RC panelindeki iOS app'iyle birebir aynı olduğunu doğrula; <code>userInterfaceStyle: "automatic"</code>; ad/slug gözden geçir. RC iOS <b>Public SDK key</b>'ini not al (Faz 4'te lazım).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track data-seed id="s3"><span class="body"><span class="no">Step 3</span><span class="txt">Bağımlılıklar (<code>npx expo install</code> ile sürüm uyumlu): <code>expo-dev-client</code>, <code>react-native-purchases</code>, <code>expo-local-authentication</code>, <code>expo-audio</code>, <code>expo-router</code> (+ <code>react-native-safe-area-context</code>, <code>react-native-screens</code>, <code>expo-linking</code>, <code>expo-constants</code>), <code>expo-localization</code>, <code>@react-native-async-storage/async-storage</code>, <code>nativewind</code> + <code>tailwindcss</code>, <code>react-native-reanimated</code>, <code>react-native-gesture-handler</code>, <code>react-native-svg</code>.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track data-seed id="s4"><span class="body"><span class="no">Step 4</span><span class="txt"><code>generate:migrations</code>'ın yalnızca <code>start</code>'a değil <code>run:ios</code> akışına da bağlandığından emin ol (ör. <code>predev</code>/açıklamalı script); üretilen dosya güncel mi kontrol et.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track data-seed id="s5"><span class="body"><span class="tag verify">Doğrulama</span><span class="no">Step 5</span><span class="txt"><code>npx expo run:ios</code> — dev client lokal build başarılı, simülatörde mevcut smoke test ekranı (schema 17 + seans sayısı) aynen çalışıyor. Router'a geçilmedi; bu adım salt build kanıtı.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track data-seed id="s6"><span class="body"><span class="tag commit">Commit</span><span class="no">Step 6</span><span class="txt"><code>chore(mobile): adopt dev client and native deps</code></span></span></label></li>
+      </ul>
+      <div class="note"><b>Not:</b> Bu fazdan sonra Expo Go kullanılamaz — telefonda/simülatörde her zaman dev client build'i koşar. Yeni native bağımlılık eklenen her fazda <code>expo run:ios</code> ile client yeniden build edilir.</div>
+      <div class="note"><b>Sonuç (2026-08-18, commit <code>3278543</code>):</b> Master'da yeni commit yoktu, sync gerekmedi. 16 bağımlılık <code>expo install</code> ile kuruldu (CLI <code>expo-audio</code>/<code>expo-router</code>/<code>expo-localization</code> plugin'lerini kendisi ekledi); <code>tailwindcss</code> v4 yerine <b>^3.4.17</b>'ye sabitlendi (<code>react-native-css-interop</code> peer'ı <code>~3</code> istiyor — Faz 1 wiring'i v3 varsayar). <code>expo run:ios</code> dev client build'i <b>başarılı</b>: smoke ekranı dev client içinde aynen çalıştı (<code>user_version 17</code>, <code>com.opengnothia.app</code> süreci simülatörde doğrulandı). İki ortam engeli çözüldü: (1) CocoaPods UTF-8 locale ister — build öncesi <code>export LANG=en_US.UTF-8</code>; (2) <code>expo-modules-jsi@57.0.4</code> Xcode 26.2'de derlenmiyor — upstream düzeltme (<a href="https://github.com/expo/expo/pull/48261">expo/expo#48261</a>, SDK 57'ye yayınlanmadı) <code>patches/expo-modules-jsi@57.0.4.patch</code> olarak uygulandı; düzeltilmiş sürüm çıkınca patch kaldırılmalı. <b>Step 2 kısmen açık:</b> <code>bundleIdentifier</code> <code>com.opengnothia.app</code> seçildi ama RC panelindeki iOS app ile eşleştiği <b>kullanıcı tarafından doğrulanmalı</b>; RC iOS <b>Public SDK key</b> de Faz 4 öncesi panelden alınmalı (Chrome bağlantısı olmadığından panele bakılamadı).</div>
+    </div>
+  </details>
+
+  <details class="phase" id="phase-1" data-phase="1" data-name="Faz 1" data-title="Tasarım sistemi + kabuk">
+    <summary>
+      <span class="caret">▶</span>
+      <span class="ph-title">Faz 1 — <em>Tasarım sistemi, Router kabuğu, DB bootstrap</em></span>
+      <span class="ph-badge" data-badge></span>
+    </summary>
+    <div class="ph-body">
+      <ul class="steps">
+        <li><label class="step"><input type="checkbox" data-track id="s7"><span class="body"><span class="no">Step 7</span><span class="txt">NativeWind wiring: <code>tailwind.config.js</code> + <code>global.css</code> + babel/metro ayarları (Reanimated plugin'i dahil). Desktop <code>styles.css</code>'teki renk token'ları (açık/koyu değerleriyle) Tailwind temasına taşınır (M8).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s8"><span class="body"><span class="no">Step 8</span><span class="txt">Expo Router iskeleti: <code>package.json main → "expo-router/entry"</code>; <code>app/_layout.tsx</code>; <code>app/(tabs)/_layout.tsx</code> ile 5 sekme — <code>index</code> (Ana Sayfa), <code>session</code>, <code>journal</code> (Defter), <code>breathe</code>, <code>analyses</code> — placeholder ekranlarla; <code>app/(onboarding)/</code> grubu boş iskelet; <code>app/settings.tsx</code> Ana Sayfa header'ındaki ⚙️ ile push (M7).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s9"><span class="body"><span class="no">Step 9</span><span class="txt">DB bootstrap: <code>App.tsx</code> smoke kodu <code>src/db/index.ts</code>'e taşınır (desktop'taki tekil <code>getQueries</code> deseni); kök layout açılışta migration koşar, hata durumunda anlaşılır hata ekranı.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s10"><span class="body"><span class="no">Step 10</span><span class="txt">Settings store: Zustand + AsyncStorage persist — <code>language</code>, <code>theme</code>, <code>schoolId</code>, <code>lockEnabled</code>, <code>onboarded</code> (M13).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s11"><span class="body"><span class="no">Step 11</span><span class="txt">i18n bağlama: shared <code>useTranslation</code> RN'de; ilk dil <code>expo-localization</code> cihaz dilinden, sonrası store'dan.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s12"><span class="body"><span class="no">Step 12</span><span class="txt">UI kiti (desktop <code>components/ui</code> referansıyla NativeWind uyarlaması): Button, Card, Badge, Input, Toggle, SegmentedTabs, Sheet/Modal, Toast. Sheet için önce sade RN <code>Modal</code>; gerekirse <code>@gorhom/bottom-sheet</code> (gesture-handler Faz 0'da kurulu).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s13"><span class="body"><span class="no">Step 13</span><span class="txt">İskelet Ayarlar ekranı: dil seçici + tema seçici (sistem/açık/koyu) çalışır durumda — geliştirme boyunca test için erken lazım.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s14"><span class="body"><span class="tag verify">Doğrulama</span><span class="no">Step 14</span><span class="txt">5 sekme + Ayarlar gezilebilir; tema üç modda doğru; dil değişimi anında yansıyor; açılış logunda <code>user_version = 17</code>.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s15"><span class="body"><span class="tag commit">Commit</span><span class="no">Step 15</span><span class="txt"><code>feat(mobile): design tokens, router shell, db bootstrap</code></span></span></label></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="phase" id="phase-2" data-phase="2" data-name="Faz 2" data-title="Defter (ücretsiz çekirdek I)">
+    <summary>
+      <span class="caret">▶</span>
+      <span class="ph-title">Faz 2 — <em>Defter: Günlük · Rüyalar · İçgörüler (manuel akışlar)</em></span>
+      <span class="ph-badge" data-badge></span>
+    </summary>
+    <div class="ph-body">
+      <ul class="steps">
+        <li><label class="step"><input type="checkbox" data-track id="s16"><span class="body"><span class="no">Step 16</span><span class="txt">Defter sekmesi: üstte SegmentedTabs (<b>Günlük | Rüyalar | İçgörüler</b>), her segment kendi liste durumunu korur (M7).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s17"><span class="body"><span class="no">Step 17</span><span class="txt">Günlük: kayıt listesi + yeni kayıt + düzenle/sil — desktop <code>JournalPage</code>'in manuel akışları (shared queries hazır). AI analiz düğmesi bu fazda <b>konmaz</b> (Faz 6'da rozetiyle gelir).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s18"><span class="body"><span class="no">Step 18</span><span class="txt">Rüyalar: desktop <code>DreamsPage</code>'in kayıt/görünüm akışlarının (takvim + detay) RN uyarlaması; AI analizi Faz 6'da.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s19"><span class="body"><span class="no">Step 19</span><span class="txt">İçgörüler: grup ızgarası (emoji + renk preset'leri) → grup detayı → içgörü ekle/düzenle/sil/pinle/ara — desktop <code>InsightsPage</code> paritesi (bu bölümde AI yok, tamamen ücretsiz).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s20"><span class="body"><span class="tag verify">Doğrulama</span><span class="no">Step 20</span><span class="txt">Üç segmentte CRUD uçtan uca; uygulama kapat/aç sonrası veriler duruyor; TR/EN dil değişiminde etiketler doğru.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s21"><span class="body"><span class="tag commit">Commit</span><span class="no">Step 21</span><span class="txt"><code>feat(mobile): journal, dreams, insights free flows</code></span></span></label></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="phase" id="phase-3" data-phase="3" data-name="Faz 3" data-title="Nefes + Dashboard (ücretsiz çekirdek II)">
+    <summary>
+      <span class="caret">▶</span>
+      <span class="ph-title">Faz 3 — <em>Nefes egzersizi + Dashboard</em></span>
+      <span class="ph-badge" data-badge></span>
+    </summary>
+    <div class="ph-body">
+      <ul class="steps">
+        <li><label class="step"><input type="checkbox" data-track id="s22"><span class="body"><span class="no">Step 22</span><span class="txt">Nefes: <code>BreathingSetup</code> (teknik + süre; shared <code>getBreathingTechniques</code>) → <code>BreathingExercise</code> (Reanimated nefes animasyonu, faz metinleri, kalan süre); egzersiz sırasında tab bar gizlenir (desktop'taki sidebar gizleme paritesi).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s23"><span class="body"><span class="no">Step 23</span><span class="txt">Dashboard: MoodPickerScale (sheet) ile mood girişi + <code>react-native-svg</code> ile MoodChart uyarlaması.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s24"><span class="body"><span class="no">Step 24</span><span class="txt">RitualCard + TodaySessionHero — hero'nun "seans başlat" CTA'sı görünür ama Faz 4'e kadar pasif (harcama bileşenleri M1 gereği hiç yok).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s25"><span class="body"><span class="no">Step 25</span><span class="txt">Yolculuk kartı: tamamlanan seans sayısı + sıradaki milestone; Analizler sekmesine link (M1).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s26"><span class="body"><span class="tag verify">Doğrulama</span><span class="no">Step 26</span><span class="txt">Nefes egzersizi tam tur (başlat → bitir/iptal, tab bar geri gelir); mood girişi grafiğe düşüyor; yolculuk kartı sayaçları doğru.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s27"><span class="body"><span class="tag commit">Commit</span><span class="no">Step 27</span><span class="txt"><code>feat(mobile): breathing exercise and dashboard</code></span></span></label></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="phase" id="phase-4" data-phase="4" data-name="Faz 4" data-title="Abonelik + paywall + AI istemci">
+    <summary>
+      <span class="caret">▶</span>
+      <span class="ph-title">Faz 4 — <em>RevenueCat aboneliği, özel paywall, AI erişim katmanı</em></span>
+      <span class="ph-badge" data-badge></span>
+    </summary>
+    <div class="ph-body">
+      <ul class="steps">
+        <li><label class="step"><input type="checkbox" data-track id="s28"><span class="body"><span class="no">Step 28</span><span class="txt"><code>Purchases.configure</code> (iOS Public SDK key app config'ten) + anonim <code>appUserID</code>; subscription store/hook: <code>CustomerInfo</code> dinleyicisi, <code>isPro</code> (entitlement <code>pro</code>), <code>restorePurchases</code> (M5).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s29"><span class="body"><span class="no">Step 29</span><span class="txt">Özel paywall ekranı (<code>app/paywall.tsx</code>, modal): offerings'ten <code>monthly</code>/<code>yearly</code> kartları — fiyatlar StoreKit'ten, yıllık kartta hesaplanan tasarruf rozeti, satın al + geri yükle (M6).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s30"><span class="body"><span class="no">Step 30</span><span class="txt">Paywall + abonelik i18n: shared i18n'e yeni bölüm, 8 dil (TR + EN elle, kalan 6 çeviri).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s31"><span class="body"><span class="no">Step 31</span><span class="txt">Gate altyapısı: <code>LockBadge</code> bileşeni + <code>useProGate()</code> — abone değilse paywall modal açan tek desen; tüm AI giriş noktaları bunu kullanacak (M3).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s32"><span class="body"><span class="no">Step 32</span><span class="txt">AI istemci: <code>src/ai/client.ts</code> — shared <code>streamMessage</code> / transcription / TTS çağrılarını Worker baseUrl + <code>appUserID</code> Bearer ile saran yapılandırma (model/ses parametreleri sunucuda ezildiğinden sabit değerler).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s33"><span class="body"><span class="no">Step 33</span><span class="txt">Hata eşleme: <code>AIError</code> 401/403/429 → 403 <code>subscription_required</code>'da otomatik paywall; 429'da kota mesajı; metinler shared <code>errorMessages</code>'tan.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s34"><span class="body"><span class="tag verify">Doğrulama</span><span class="no">Step 34</span><span class="txt">RC Test Store: monthly satın al → <code>isPro true</code>; yearly ile tekrar; restore çalışıyor; sandbox aboneliği temizlenince <code>false</code>'a dönüyor.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s35"><span class="body"><span class="tag verify">Doğrulama</span><span class="no">Step 35</span><span class="txt">Canlı Worker smoke (geçici dev tetikleyici yeterli): abonesizken chat isteği <b>403 + paywall</b>; abone olduktan sonra aynı istek <b>200 SSE stream</b>.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s36"><span class="body"><span class="tag commit">Commit</span><span class="no">Step 36</span><span class="txt"><code>feat(mobile): revenuecat subscription, custom paywall, AI proxy client</code></span></span></label></li>
+      </ul>
+      <div class="note"><b>Not:</b> Bu faz planın en riskli entegrasyonlarını (RC + dev client + Worker auth) bilerek öne alır — sonraki her özellik <code>useProGate</code> + <code>src/ai/client.ts</code>'i hazır bulur. Backend'e dokunulmaz; <code>ENTITLEMENT_ID = "pro"</code> zaten canlı (M5).</div>
+    </div>
+  </details>
+
+  <details class="phase" id="phase-5" data-phase="5" data-name="Faz 5" data-title="Seans — yazılı">
+    <summary>
+      <span class="caret">▶</span>
+      <span class="ph-title">Faz 5 — <em>Seans: yazılı akış, tam parite</em></span>
+      <span class="ph-badge" data-badge></span>
+    </summary>
+    <div class="ph-body">
+      <ul class="steps">
+        <li><label class="step"><input type="checkbox" data-track id="s37"><span class="body"><span class="no">Step 37</span><span class="txt"><code>promptBuilder.ts</code> + <code>backgroundNotes.ts</code> desktop'tan <code>packages/shared/src/ai/</code>'ye taşınır; desktop importları güncellenir (<code>courseNotes</code> desktop'ta kalır — M9).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s38"><span class="body"><span class="tag verify">Doğrulama</span><span class="no">Step 38</span><span class="txt">Desktop smoke: <code>pnpm dev:desktop</code> ile bir seans aç/kapat — taşıma masaüstünde hiçbir davranışı değiştirmedi.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s39"><span class="body"><span class="no">Step 39</span><span class="txt">Mobil session store (Zustand): <code>messages</code>, <code>sessionId</code>, streaming durumu, seans yaşam döngüsü (M13 — desktop store'u kopyalanmaz, mobil kendi yazınır).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s40"><span class="body"><span class="no">Step 40</span><span class="txt">Chat UI: mesaj listesi + streaming render + markdown gösterimi + input (desktop chat bileşenlerinin RN uyarlaması; marker temizleme shared stream util'leriyle).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s41"><span class="body"><span class="no">Step 41</span><span class="txt">Seans öncesi mood girişi; intake CTA + IntakeForm modal (onboarding'de paywall'u atlayanlar burada tamamlar — M11).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s42"><span class="body"><span class="no">Step 42</span><span class="txt">SessionTimer + bağlam (context) kullanım göstergesi — kompakt üst bar.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s43"><span class="body"><span class="no">Step 43</span><span class="txt">Seans içi içgörü yakalama: bottom sheet ile grup seç/oluştur + içgörü kaydet (desktop InsightsPanel'in mobil yorumu).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s44"><span class="body"><span class="no">Step 44</span><span class="txt">Bitirme akışı: onay → AI seans özeti → seans sonrası mood → kayıt.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s45"><span class="body"><span class="no">Step 45</span><span class="txt">Arka plan notları: seans sonrası async üretim + durum göstergesi (NoteTakingBanner eşleniği) — sonraki seansların hafızası (M9).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s46"><span class="body"><span class="no">Step 46</span><span class="txt">Geçmiş seanslar: liste + detay (transkript, özet, notlar) — abonelik olmadan da okunur (M4); "yeni seans" CTA'ları <code>useProGate</code>'li.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s47"><span class="body"><span class="tag verify">Doğrulama</span><span class="no">Step 47</span><span class="txt">Aboneyken uçtan uca yazılı seans (mood → sohbet → içgörü → özet → arka plan notu üretildi); abonesizken başlatma paywall'a düşer; geçmiş her durumda okunur.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s48"><span class="body"><span class="tag commit">Commit</span><span class="no">Step 48</span><span class="txt"><code>feat(mobile): full text session flow</code></span></span></label></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="phase" id="phase-6" data-phase="6" data-name="Faz 6" data-title="AI ek yüzeyleri">
+    <summary>
+      <span class="caret">▶</span>
+      <span class="ph-title">Faz 6 — <em>Günlük/Rüya analizi + Analizler sekmesi + Dashboard bağlantıları</em></span>
+      <span class="ph-badge" data-badge></span>
+    </summary>
+    <div class="ph-body">
+      <ul class="steps">
+        <li><label class="step"><input type="checkbox" data-track id="s49"><span class="body"><span class="no">Step 49</span><span class="txt">Günlük AI analizi: <code>LockBadge</code>'li "Analiz et" düğmesi + stream + <code>ai_analysis</code> kaydet/göster (desktop paritesi, M3 rozet kuralı).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s50"><span class="body"><span class="no">Step 50</span><span class="txt">Rüya AI analizi: aynı desenle <code>DreamsPage</code> analizi.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s51"><span class="body"><span class="no">Step 51</span><span class="txt">Analizler sekmesi: 8 milestone kartlık yol haritası (7/15/30/60/120/180/240/365), kilitli/açılmış durumlar, sayaçlar — herkese görünür (M3), üstte abonesize CTA.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s52"><span class="body"><span class="no">Step 52</span><span class="txt">Milestone analizi üretimi (<code>useProGate</code>'li) + üretilmişleri cache'ten okuma — okuma abonelik istemez (M4).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s53"><span class="body"><span class="no">Step 53</span><span class="txt">Dashboard bağlantıları: TodaySessionHero CTA → seans (abone) / paywall (değil); yolculuk kartı → Analizler.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s54"><span class="body"><span class="tag verify">Doğrulama</span><span class="no">Step 54</span><span class="txt">Abonesiz: üç AI yüzeyinde rozetler görünür, hepsi paywall'a gider. Aboneli: günlük analizi, rüya analizi ve milestone üretimi uçtan uca çalışır.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s55"><span class="body"><span class="tag commit">Commit</span><span class="no">Step 55</span><span class="txt"><code>feat(mobile): journal/dream analysis and milestone analyses</code></span></span></label></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="phase" id="phase-7" data-phase="7" data-name="Faz 7" data-title="Onboarding + ekol anketi">
+    <summary>
+      <span class="caret">▶</span>
+      <span class="ph-title">Faz 7 — <em>Onboarding akışı + ekol anketi</em></span>
+      <span class="ph-badge" data-badge></span>
+    </summary>
+    <div class="ph-body">
+      <ul class="steps">
+        <li><label class="step"><input type="checkbox" data-track id="s56"><span class="body"><span class="tag user">Birlikte</span><span class="no">Step 56</span><span class="txt">Anket içeriği kullanıcıyla birlikte yazılır: 6–10 soru + 8 ekolü ayrıştıran puan tablosu + beraberlik kuralı; kullanıcı onayıyla <code>shared/constants/schoolQuiz.ts</code>'e girer (M2).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s57"><span class="body"><span class="no">Step 57</span><span class="txt">Anket i18n: <code>shared/i18n/schoolQuiz/</code> altında 8 dil (therapySchools dizin deseni).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s58"><span class="body"><span class="no">Step 58</span><span class="txt">Onboarding rotaları (M11): Karşılama → Dil → Anket (çok adımlı soru UI) → <b>Sonuç ekranı</b> ("neden bu ekol" gerekçesi + tek kaçış: yeniden çöz) → Paywall (atlanabilir) → AI tanışma görüşmesi (yalnız abone; Faz 5 chat bileşenleri; intake kaydı) → Hazır.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s59"><span class="body"><span class="no">Step 59</span><span class="txt">İlk açılış yönlendirmesi: <code>onboarded</code> bayrağına göre <code>(onboarding)</code> ↔ <code>(tabs)</code>; dil adımı settings store ile senkron.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s60"><span class="body"><span class="no">Step 60</span><span class="txt">Ayarlar ekol bölümü: mevcut ekol adı + "Anketi yeniden çöz" (onboarding anket ekranını yeniden kullanır) (M2).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s61"><span class="body"><span class="tag verify">Doğrulama</span><span class="no">Step 61</span><span class="txt">Temiz kurulumda iki akış: <b>abonesiz</b> (paywall atlanır → görüşme atlanır → Seans'ta intake CTA'sı bekliyor) ve <b>aboneli</b> (görüşme tamamlanır, intake kayıtlı). Aynı cevaplar → aynı ekol (deterministik skorlama).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s62"><span class="body"><span class="tag commit">Commit</span><span class="no">Step 62</span><span class="txt"><code>feat(mobile): onboarding with school quiz</code></span></span></label></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="phase" id="phase-8" data-phase="8" data-name="Faz 8" data-title="Sesli mod">
+    <summary>
+      <span class="caret">▶</span>
+      <span class="ph-title">Faz 8 — <em>Sesli konuşma modu (zorunlu kapsam — M9)</em></span>
+      <span class="ph-badge" data-badge></span>
+    </summary>
+    <div class="ph-body">
+      <ul class="steps">
+        <li><label class="step"><input type="checkbox" data-track id="s63"><span class="body"><span class="no">Step 63</span><span class="txt">Mikrofon izni akışı + <code>expo-audio</code> kayıt hook'u (<code>useAudioRecorder</code>'ın RN portu); kayıt formatının Worker transcription'ın kabul ettiği bir format (m4a/wav) olduğu doğrulanır.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s64"><span class="body"><span class="no">Step 64</span><span class="txt">STT: kayıt → shared transcription servisi → Worker <code>/v1/audio/transcriptions</code> → metin.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s65"><span class="body"><span class="no">Step 65</span><span class="txt">TTS: asistan cevabı → <code>/v1/audio/speech</code> → geçici dosya → <code>expo-audio</code> player; parça/cümle kuyruğu (desktop akışı referans).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s66"><span class="body"><span class="no">Step 66</span><span class="txt">Konuşma döngüsü durum makinesi: dinliyor → çözümlüyor → düşünüyor → konuşuyor; dokunarak kesme (<code>useVoiceConversation</code> portu).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s67"><span class="body"><span class="no">Step 67</span><span class="txt">VoiceConversationView RN: tam ekran sesli mod UI'ı; aynı seans içinde yazılı ↔ sesli geçiş.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s68"><span class="body"><span class="no">Step 68</span><span class="txt">iOS ses oturumu: sessiz anahtar (silent switch) davranışı, kulaklık/hoparlör yönlendirmesi, arama/bildirim kesintisinden toparlanma.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s69"><span class="body"><span class="tag verify">Doğrulama</span><span class="no">Step 69</span><span class="txt">Uçtan uca sesli seans (gerçek cihazda): konuş → transkript doğru → cevap sesli çalıyor → dokunarak kesme → yazılıya geçiş sorunsuz; seans kaydı/özeti/notları yazılı akışla aynı.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s70"><span class="body"><span class="tag commit">Commit</span><span class="no">Step 70</span><span class="txt"><code>feat(mobile): voice conversation mode</code></span></span></label></li>
+      </ul>
+      <div class="note"><b>Not:</b> SDK 57'de ses API'si <code>expo-audio</code> — koda başlamadan sürümlü dokümanı oku (<code>AGENTS.md</code> talimatı). Sesli mod simülatörde kısmen, <b>gerçek iPhone'da tam</b> test edilir (mikrofon/hoparlör davranışı).</div>
+    </div>
+  </details>
+
+  <details class="phase" id="phase-9" data-phase="9" data-name="Faz 9" data-title="Ayarlar + kilit + kapanış">
+    <summary>
+      <span class="caret">▶</span>
+      <span class="ph-title">Faz 9 — <em>Ayarlar tamamlama, uygulama kilidi, kapanış kontrolü</em></span>
+      <span class="ph-badge" data-badge></span>
+    </summary>
+    <div class="ph-body">
+      <ul class="steps">
+        <li><label class="step"><input type="checkbox" data-track id="s71"><span class="body"><span class="no">Step 71</span><span class="txt">Ayarlar tamamlama (M10): abonelik bölümü (durum + bitiş tarihi, geri yükle, "Aboneliği yönet" linki, Pro değilse paywall CTA), hakkında (sürüm, açık kaynak linki); dil/tema (Faz 1) + ekol (Faz 7) bölümleriyle tek düzen.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s72"><span class="body"><span class="no">Step 72</span><span class="txt">Uygulama kilidi: <code>lockEnabled</code> toggle → <code>expo-local-authentication</code> (FaceID/TouchID/cihaz kodu); soğuk açılışta ve foreground'a dönüşte kilit ekranı (M10).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s73"><span class="body"><span class="no">Step 73</span><span class="txt">Boşluk kapama: boş durumlar (empty states), hata/çevrimdışı durumları, toast'lar, klavye davranışları, safe area gözden geçirmesi.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s74"><span class="body"><span class="no">Step 74</span><span class="txt">Migration senkron kontrolü: bu plan sırasında <code>shared/migrations</code>'a dosya eklendiyse <code>generate:migrations</code> çıktısı ve desktop <code>lib.rs</code> kayıtları senkron mu doğrula (beklenen: şema değişmedi).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s75"><span class="body"><span class="tag reg">Kapanış</span><span class="no">Step 75</span><span class="txt">Aşağıdaki kapanış kontrol listesinin tamamı temiz bir kurulumda geçilir.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s76"><span class="body"><span class="tag commit">Commit</span><span class="no">Step 76</span><span class="txt"><code>feat(mobile): settings, app lock, polish</code> — plan tamam.</span></span></label></li>
+      </ul>
+
+      <div class="reg-group">
+        <h4>Kapanış listesi · Onboarding</h4>
+        <ul class="reg">
+          <li><label class="step sub"><input type="checkbox" data-track id="k1"><span class="body"><span class="txt">Temiz kurulum, <b>abonesiz</b> akış: dil → anket → sonuç → paywall'u atla → görüşme atlandı → Hazır → Seans'ta intake CTA'sı görünüyor</span></span></label></li>
+          <li><label class="step sub"><input type="checkbox" data-track id="k2"><span class="body"><span class="txt">Temiz kurulum, <b>aboneli</b> akış: paywall'da Test Store satın alması → tanışma görüşmesi tamamlanıyor, intake kayıtlı</span></span></label></li>
+          <li><label class="step sub"><input type="checkbox" data-track id="k3"><span class="body"><span class="txt">Anket deterministik: aynı cevaplar aynı ekolü veriyor; sonuç ekranında gerekçe + yalnızca "yeniden çöz"</span></span></label></li>
+        </ul>
+        <h4>Kapanış listesi · Sekmeler (ücretsiz çekirdek)</h4>
+        <ul class="reg">
+          <li><label class="step sub"><input type="checkbox" data-track id="k4"><span class="body"><span class="txt">Ana Sayfa: mood gir → grafik güncelleniyor; yolculuk kartı sayaçları doğru</span></span></label></li>
+          <li><label class="step sub"><input type="checkbox" data-track id="k5"><span class="body"><span class="txt">Defter · Günlük: ekle/düzenle/sil + yeniden açılışta kalıcı</span></span></label></li>
+          <li><label class="step sub"><input type="checkbox" data-track id="k6"><span class="body"><span class="txt">Defter · Rüyalar: kayıt + görünüm akışı</span></span></label></li>
+          <li><label class="step sub"><input type="checkbox" data-track id="k7"><span class="body"><span class="txt">Defter · İçgörüler: grup + içgörü CRUD, pinleme, arama</span></span></label></li>
+          <li><label class="step sub"><input type="checkbox" data-track id="k8"><span class="body"><span class="txt">Nefes: teknik + süre seç → egzersiz tam tur → tab bar geri geliyor</span></span></label></li>
+          <li><label class="step sub"><input type="checkbox" data-track id="k9"><span class="body"><span class="txt">Analizler: yol haritası herkese görünür; kilitli kartlar + CTA abonesizde doğru</span></span></label></li>
+        </ul>
+        <h4>Kapanış listesi · Abonelik + gating</h4>
+        <ul class="reg">
+          <li><label class="step sub"><input type="checkbox" data-track id="k10"><span class="body"><span class="txt">Monthly ve yearly satın alma (Test Store) → <code>isPro</code>; restore çalışıyor</span></span></label></li>
+          <li><label class="step sub"><input type="checkbox" data-track id="k11"><span class="body"><span class="txt">Abonesizken her AI giriş noktası: rozet görünür, dokununca paywall (seans, günlük, rüya, milestone, görüşme)</span></span></label></li>
+          <li><label class="step sub"><input type="checkbox" data-track id="k12"><span class="body"><span class="txt">Abonesizken doğrudan AI isteği 403 → paywall (Worker gate'i); abonelikte 200</span></span></label></li>
+          <li><label class="step sub"><input type="checkbox" data-track id="k13"><span class="body"><span class="txt">Abonelik bitince üretilmiş içerikler (transkript/özet/analizler) hâlâ okunuyor (M4)</span></span></label></li>
+        </ul>
+        <h4>Kapanış listesi · Seans + AI</h4>
+        <ul class="reg">
+          <li><label class="step sub"><input type="checkbox" data-track id="k14"><span class="body"><span class="txt">Yazılı seans uçtan uca: mood → sohbet → seans içi içgörü → özet → arka plan notu üretildi</span></span></label></li>
+          <li><label class="step sub"><input type="checkbox" data-track id="k15"><span class="body"><span class="txt">Sesli seans uçtan uca (gerçek cihaz): konuş → transkript → sesli cevap → kesme → yazılıya geçiş</span></span></label></li>
+          <li><label class="step sub"><input type="checkbox" data-track id="k16"><span class="body"><span class="txt">Günlük analizi + rüya analizi + milestone üretimi çalışıyor; sonuçlar kalıcı</span></span></label></li>
+        </ul>
+        <h4>Kapanış listesi · Ayarlar</h4>
+        <ul class="reg">
+          <li><label class="step sub"><input type="checkbox" data-track id="k17"><span class="body"><span class="txt">Dil değişimi (en az TR ↔ EN tam tur) her ekranda tutarlı</span></span></label></li>
+          <li><label class="step sub"><input type="checkbox" data-track id="k18"><span class="body"><span class="txt">Tema: sistem/açık/koyu üçlüsü tüm sekmelerde doğru</span></span></label></li>
+          <li><label class="step sub"><input type="checkbox" data-track id="k19"><span class="body"><span class="txt">Ekol: "Anketi yeniden çöz" Ayarlar'dan çalışıyor, yeni ekol seansa yansıyor</span></span></label></li>
+          <li><label class="step sub"><input type="checkbox" data-track id="k20"><span class="body"><span class="txt">Uygulama kilidi: aç → FaceID/cihaz kodu isteniyor (soğuk açılış + foreground dönüşü); kapat → istenmiyor</span></span></label></li>
+        </ul>
+      </div>
+    </div>
+  </details>
+
+  <h3 class="sec">Açık Sorular</h3>
+  <div class="card" style="padding:14px 18px">
+    <p style="margin:0;color:var(--text-2)">Açık soru kalmadı — tüm kararlar 2026-08-18 grill oturumunda verildi (M1–M13). Tek ertelenmiş içerik işi, ekol anketinin soruları + puan tablosu: <b>Step 56</b>'da kullanıcıyla birlikte yazılacak. Mağaza dağıtımı (TestFlight, App Store, gizlilik politikası, custom domain, Android) bilinçli kapsam dışı — ayrı bir planla ele alınacak (M12).</p>
+  </div>
+
+  <footer class="f">
+    <span>OpenGnothia · Mobil Uygulama Planı · karar oturumu 2026-08-18</span>
+    <span class="saved" id="savedNote">kaydedildi ✓</span>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var KEY = "og-mobile-app-plan-v1";
+
+  var steps = Array.prototype.slice.call(document.querySelectorAll("input[data-track]"));
+  var phases = Array.prototype.slice.call(document.querySelectorAll("details.phase"));
+  var grid = document.getElementById("phaseGrid");
+  var savedNote = document.getElementById("savedNote");
+
+  var state = load();
+
+  function load() {
+    var raw = null;
+    try { raw = localStorage.getItem(KEY); } catch (e) { /* storage disabled */ }
+    var st = { steps: {}, open: {} };
+    if (raw) {
+      try {
+        var parsed = JSON.parse(raw);
+        st.steps = parsed.steps || {};
+        st.open = parsed.open || {};
+      } catch (e) { /* corrupt — continue fresh */ }
+    }
+    // data-seed = "bu adım projede tamamlandı" kaydı; kayıtlı durumun üzerine de uygulanır,
+    // böylece plan dosyasındaki yeni faz işaretleri mevcut localStorage'ı olan tarayıcılarda da görünür.
+    steps.forEach(function (box) { if (box.hasAttribute("data-seed")) st.steps[box.id] = true; });
+    return st;
+  }
+
+  var saveTimer = null;
+  function save() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(state));
+    } catch (e) {
+      document.getElementById("storageWarn").classList.add("on");
+      return;
+    }
+    if (!savedNote) return;
+    savedNote.classList.add("on");
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function () { savedNote.classList.remove("on"); }, 1200);
+  }
+
+  /* ---------- phase overview cards ---------- */
+  phases.forEach(function (ph) {
+    var card = document.createElement("a");
+    card.className = "pcard";
+    card.href = "#" + ph.id;
+    card.dataset.for = ph.id;
+    card.innerHTML =
+      '<div class="pc-top"><span class="pc-name">' + ph.dataset.name + '</span><span class="dot"></span></div>' +
+      '<div class="pc-title">' + ph.dataset.title + "</div>" +
+      '<div class="bar"><i></i></div>' +
+      '<div class="pc-count"></div>';
+    card.addEventListener("click", function () {
+      ph.open = true;
+      state.open[ph.id] = true;
+      save();
+    });
+    grid.appendChild(card);
+  });
+
+  /* ---------- progress ---------- */
+  function render() {
+    steps.forEach(function (box) { box.checked = !!state.steps[box.id]; });
+
+    var totalDone = 0;
+    var firstOpen = null;
+
+    phases.forEach(function (ph) {
+      var boxes = Array.prototype.slice.call(ph.querySelectorAll("input[data-track]"));
+      var done = boxes.filter(function (b) { return b.checked; }).length;
+      var pct = boxes.length ? Math.round((done / boxes.length) * 100) : 0;
+      totalDone += done;
+
+      var st = done === 0 ? "idle" : (done === boxes.length ? "done" : "active");
+      if (st !== "done" && !firstOpen) firstOpen = ph;
+
+      var badge = ph.querySelector("[data-badge]");
+      badge.textContent = done + "/" + boxes.length;
+      badge.dataset.state = st;
+
+      var card = grid.querySelector('[data-for="' + ph.id + '"]');
+      card.dataset.state = st;
+      card.querySelector(".bar > i").style.width = pct + "%";
+      card.querySelector(".pc-count").textContent = done + "/" + boxes.length + " adım · " + pct + "%";
+    });
+
+    var pct = Math.round((totalDone / steps.length) * 100);
+    document.getElementById("totalDone").textContent = totalDone;
+    document.getElementById("totalAll").textContent = steps.length;
+    document.getElementById("totalPct").textContent = pct + "%";
+    document.getElementById("totalBar").style.width = pct + "%";
+
+    return firstOpen;
+  }
+
+  steps.forEach(function (box) {
+    box.addEventListener("change", function () {
+      if (box.checked) state.steps[box.id] = true;
+      else delete state.steps[box.id];
+      save();
+      render();
+    });
+  });
+
+  phases.forEach(function (ph) {
+    ph.addEventListener("toggle", function () {
+      state.open[ph.id] = ph.open;
+      save();
+    });
+  });
+
+  /* ---------- header buttons ---------- */
+  var expandBtn = document.getElementById("expandAll");
+  expandBtn.addEventListener("click", function () {
+    var anyClosed = phases.some(function (ph) { return !ph.open; });
+    phases.forEach(function (ph) { ph.open = anyClosed; state.open[ph.id] = anyClosed; });
+    expandBtn.textContent = anyClosed ? "Tümünü kapat" : "Tümünü aç";
+    save();
+  });
+
+  document.getElementById("resetAll").addEventListener("click", function () {
+    if (!confirm("Tüm işaretler silinecek. Devam edilsin mi?")) return;
+    try { localStorage.removeItem(KEY); } catch (e) { /* ignore */ }
+    state = load();
+    render();
+  });
+
+  /* ---------- boot ---------- */
+  try {
+    localStorage.setItem(KEY + ":probe", "1");
+    localStorage.removeItem(KEY + ":probe");
+  } catch (e) {
+    document.getElementById("storageWarn").classList.add("on");
+  }
+
+  var firstIncomplete = render();
+
+  var hasStoredOpen = Object.keys(state.open).length > 0;
+  phases.forEach(function (ph) {
+    if (hasStoredOpen) ph.open = !!state.open[ph.id];
+    else ph.open = ph === firstIncomplete;
+  });
+
+  if (location.hash) {
+    var target = document.querySelector(location.hash);
+    if (target && target.tagName === "DETAILS") {
+      target.open = true;
+      target.scrollIntoView();
+    }
+  }
+})();
+</script>
+
+</body>
+</html>

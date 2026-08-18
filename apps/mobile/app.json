@@ -23,6 +23,11 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "extra": {
+      "revenueCat": {
+        "iosApiKey": "appl_rkwtsxeTRqgtTYijlEFBmJTrIjp"
+      }
+    },
     "plugins": [
       "expo-sqlite",
       "expo-audio",

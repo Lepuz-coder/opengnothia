@@ -911,10 +911,10 @@ export async function runMigrations(db: DatabasePort, migrations: MigrationDef[]
     </summary>
     <div class="ph-body">
       <ul class="steps">
-        <li><label class="step"><input type="checkbox" data-track id="s61"><span class="body"><span class="no">Step 61</span><span class="txt">Kökten: <code>cd apps &amp;&amp; pnpm create expo-app mobile --template blank-typescript</code> (alternatif: <code>npx create-expo-app@latest mobile --template</code>).</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s62"><span class="body"><span class="no">Step 62</span><span class="txt"><code>apps/mobile/package.json</code>: ad <code>@opengnothia/mobile</code>, sürüm <code>0.1.0</code>, <code>"private": true</code>.</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s63"><span class="body"><span class="no">Step 63</span><span class="txt">Bağımlılıklara <code>"@opengnothia/shared": "workspace:*"</code> ekle, kökten <code>pnpm install</code>.</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s64"><span class="body"><span class="no">Step 64</span><span class="txt">Metro'yu monorepo için ayarla — <code>apps/mobile/metro.config.js</code>:<pre><code>const { getDefaultConfig } = require("expo/metro-config");
+        <li><label class="step"><input type="checkbox" data-track id="s61" data-seed><span class="body"><span class="no">Step 61</span><span class="txt">Kökten: <code>cd apps &amp;&amp; pnpm create expo-app mobile --template blank-typescript</code> (alternatif: <code>npx create-expo-app@latest mobile --template</code>).</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s62" data-seed><span class="body"><span class="no">Step 62</span><span class="txt"><code>apps/mobile/package.json</code>: ad <code>@opengnothia/mobile</code>, sürüm <code>0.1.0</code>, <code>"private": true</code>.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s63" data-seed><span class="body"><span class="no">Step 63</span><span class="txt">Bağımlılıklara <code>"@opengnothia/shared": "workspace:*"</code> ekle, kökten <code>pnpm install</code>.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s64" data-seed><span class="body"><span class="no">Step 64</span><span class="txt">Metro'yu monorepo için ayarla — <code>apps/mobile/metro.config.js</code>:<pre><code>const { getDefaultConfig } = require("expo/metro-config");
 const path = require("path");
 
 const config = getDefaultConfig(__dirname);
@@ -925,8 +925,8 @@ config.resolver.nodeModulesPaths = [
 ];
 config.resolver.disableHierarchicalLookup = true;
 module.exports = config;</code></pre></span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s65"><span class="body"><span class="no">Step 65</span><span class="txt"><code>cd apps/mobile &amp;&amp; npx expo install expo-sqlite</code></span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s66"><span class="body"><span class="no">Step 66</span><span class="txt"><code>apps/mobile/src/adapters/expoSqliteAdapter.ts</code>'i yaz:<pre><code>import * as SQLite from "expo-sqlite";
+        <li><label class="step"><input type="checkbox" data-track id="s65" data-seed><span class="body"><span class="no">Step 65</span><span class="txt"><code>cd apps/mobile &amp;&amp; npx expo install expo-sqlite</code></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s66" data-seed><span class="body"><span class="no">Step 66</span><span class="txt"><code>apps/mobile/src/adapters/expoSqliteAdapter.ts</code>'i yaz:<pre><code>import * as SQLite from "expo-sqlite";
 import type { DatabasePort } from "@opengnothia/shared/db/port";
 
 export function createExpoSqliteAdapter(db: SQLite.SQLiteDatabase): DatabasePort {
@@ -939,24 +939,27 @@ export function createExpoSqliteAdapter(db: SQLite.SQLiteDatabase): DatabasePort
     },
   };
 }</code></pre></span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s67"><span class="body"><span class="no">Step 67</span><span class="txt">Mobil için migration paketleme yöntemini karara bağla (<a href="#questions">Açık Soru 3</a> — öneri: codegen). Smoke test için 1-2 migration'ı <code>App.tsx</code>'te satır içi yazmak ya da migration'ları tamamen atlayıp boş DB'de sorgu çalıştırmak yeterli.</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s68"><span class="body"><span class="no">Step 68</span><span class="txt"><code>apps/mobile/App.tsx</code>'i yaz: expo-sqlite DB'yi aç → adapter'a sar → migration'ları çalıştır (veya Step 67 gereği atla) → <code>createQueries(adapter).getCheckInCount()</code> gibi basit bir sorgu çağır → sonucu bir <code>&lt;Text&gt;</code> içinde göster.</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s69"><span class="body"><span class="no">Step 69</span><span class="txt">Simülatörde çalıştır: <code>cd apps/mobile &amp;&amp; pnpm start</code>, iOS simülatörü veya cihazda Expo Go ile aç.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s67" data-seed><span class="body"><span class="no">Step 67</span><span class="txt">Mobil için migration paketleme yöntemini karara bağla (<a href="#questions">Açık Soru 3</a> — öneri: codegen). Smoke test için 1-2 migration'ı <code>App.tsx</code>'te satır içi yazmak ya da migration'ları tamamen atlayıp boş DB'de sorgu çalıştırmak yeterli.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s68" data-seed><span class="body"><span class="no">Step 68</span><span class="txt"><code>apps/mobile/App.tsx</code>'i yaz: expo-sqlite DB'yi aç → adapter'a sar → migration'ları çalıştır (veya Step 67 gereği atla) → <code>createQueries(adapter).getCheckInCount()</code> gibi basit bir sorgu çağır → sonucu bir <code>&lt;Text&gt;</code> içinde göster.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s69" data-seed><span class="body"><span class="no">Step 69</span><span class="txt">Simülatörde çalıştır: <code>cd apps/mobile &amp;&amp; pnpm start</code>, iOS simülatörü veya cihazda Expo Go ile aç.</span></span></label></li>
         <li>
-          <label class="step"><input type="checkbox" data-track id="s70"><span class="body"><span class="tag verify">Kontrol listesi</span><span class="no">Step 70</span><span class="txt">Mobil smoke-test kontrol listesi:</span></span></label>
+          <label class="step"><input type="checkbox" data-track id="s70" data-seed><span class="body"><span class="tag verify">Kontrol listesi</span><span class="no">Step 70</span><span class="txt">Mobil smoke-test kontrol listesi:</span></span></label>
           <ul>
-            <li><label class="step sub"><input type="checkbox" data-track id="s70a"><span class="body"><span class="txt">Metro bundler çözümleme hatası olmadan başlıyor</span></span></label></li>
-            <li><label class="step sub"><input type="checkbox" data-track id="s70b"><span class="body"><span class="txt">iOS simülatörü veya Expo Go bağlanıyor</span></span></label></li>
-            <li><label class="step sub"><input type="checkbox" data-track id="s70c"><span class="body"><span class="txt"><code>@opengnothia/shared</code> import'u çözülüyor (kırmızı hata ekranı yok)</span></span></label></li>
-            <li><label class="step sub"><input type="checkbox" data-track id="s70d"><span class="body"><span class="txt">expo-sqlite adapter'ı hatasız kuruluyor</span></span></label></li>
-            <li><label class="step sub"><input type="checkbox" data-track id="s70e"><span class="body"><span class="txt">Paylaşılan sorgu bir değer döndürüyor (muhtemelen <code>0</code>)</span></span></label></li>
-            <li><label class="step sub"><input type="checkbox" data-track id="s70f"><span class="body"><span class="txt">Değer ekranda görünüyor</span></span></label></li>
-            <li><label class="step sub"><input type="checkbox" data-track id="s70g"><span class="body"><span class="txt">Metro loglarında <code>crypto.randomUUID</code> vb. polyfill hatası yok</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-track id="s70a" data-seed><span class="body"><span class="txt">Metro bundler çözümleme hatası olmadan başlıyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-track id="s70b" data-seed><span class="body"><span class="txt">iOS simülatörü veya Expo Go bağlanıyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-track id="s70c" data-seed><span class="body"><span class="txt"><code>@opengnothia/shared</code> import'u çözülüyor (kırmızı hata ekranı yok)</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-track id="s70d" data-seed><span class="body"><span class="txt">expo-sqlite adapter'ı hatasız kuruluyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-track id="s70e" data-seed><span class="body"><span class="txt">Paylaşılan sorgu bir değer döndürüyor (muhtemelen <code>0</code>)</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-track id="s70f" data-seed><span class="body"><span class="txt">Değer ekranda görünüyor</span></span></label></li>
+            <li><label class="step sub"><input type="checkbox" data-track id="s70g" data-seed><span class="body"><span class="txt">Metro loglarında <code>crypto.randomUUID</code> vb. polyfill hatası yok</span></span></label></li>
           </ul>
         </li>
-        <li><label class="step"><input type="checkbox" data-track id="s71"><span class="body"><span class="no">Step 71</span><span class="txt">Minimal <code>apps/mobile/README.md</code>'yi yaz.</span></span></label></li>
-        <li><label class="step"><input type="checkbox" data-track id="s72"><span class="body"><span class="tag commit">Commit</span><span class="no">Step 72</span><span class="txt"><code>feat(mobile): scaffold Expo app, validate shared package via smoke test</code></span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s71" data-seed><span class="body"><span class="no">Step 71</span><span class="txt">Minimal <code>apps/mobile/README.md</code>'yi yaz.</span></span></label></li>
+        <li><label class="step"><input type="checkbox" data-track id="s72" data-seed><span class="body"><span class="tag commit">Commit</span><span class="no">Step 72</span><span class="txt"><code>feat(mobile): scaffold Expo app, validate shared package via smoke test</code></span></span></label></li>
       </ul>
+      <div class="note">
+        <b>Faz 10 — 2026-08-18'de tamamlandı.</b> İskelet <code>pnpm create expo-app --template blank-typescript</code> ile: Expo SDK 57.0.14 / RN 0.86.2 / React 19.2.3; paket <code>@opengnothia/mobile@0.1.0</code>, <code>@opengnothia/shared</code> workspace bağımlılığı ve <code>expo-sqlite ~57.0.1</code> (config plugin dahil) eklendi. Şablonun getirdiği <code>AGENTS.md</code>/<code>CLAUDE.md</code>/<code>.claude/</code> tutuldu, Expo telifli <code>LICENSE</code> atıldı; Expo'ya özgü ignore girdileri uygulama-yerel <code>.gitignore</code>'da. <b>Step 64 plandaki içerikle uygulanmadı:</b> <code>disableHierarchicalLookup: true</code> pnpm'in izole <code>.pnpm</code> sanal deposunu kırıyor — ilk çalıştırmada <code>expo → expo-modules-core</code> çözülemedi (plandaki şablon eski Expo monorepo rehberinden; SDK 52+ pnpm workspace'lerini otomatik yapılandırıyor). Nihai <code>metro.config.js</code> yalnızca workspace kökünü <code>watchFolders</code>'a sabitler, hiyerarşik arama açık. <b>Açık Soru 3 kapandı: (c) codegen</b> — <code>scripts/generate-migrations.mjs</code>, <code>packages/shared/migrations/*.sql</code>'den (sürüm = dosya adı öneki, katı artan doğrulanır) <code>src/generated/migrations.ts</code> üretir; çıktı commit'li, <code>pnpm start</code> her koşuda tazeler. Adapter Faz 6 notunun gereğini uygular: parametresiz ifadeler <code>execAsync</code> (çok-ifadeli migration script'leri için), parametreliler <code>runAsync</code>; <code>execAsync</code>'in sayaç dönmemesi Faz 5 tespitiyle ("hiçbir sorgu <code>execute</code> dönüşünü okumuyor") güvenli. <code>tsc --noEmit</code> temiz — shared'ın exports haritası Expo tsconfig'iyle sorunsuz. Smoke test iPhone 16e simülatöründe (iOS 26.2) Expo Go ile, port 8082 (8081'i başka bir projenin Metro'su tutuyordu): bundle 742 modül / 1.8s hatasız; ekranda <code>@opengnothia/shared OK</code> + <code>schema user_version: 17</code> (17 migration'ın tamamı adapter üzerinden koştu) + <code>completed sessions: 0</code> — sorgu <code>getCompletedSessionCount()</code> (plandaki <code>getCheckInCount</code> adı queries'te yok). s70a–g yedisi de yeşil; Metro logunda tek bir warn/error yok. Soru 4 bu akışta hiç tetiklenmedi (<code>randomUUID</code> yalnızca insert yollarında) — ertelenmiş kalıyor. Kök README'deki "in development, not yet in the repo" ibaresi mobil README linkiyle değiştirildi.
+      </div>
     </div>
   </details>
 
@@ -1095,7 +1098,7 @@ export function createExpoSqliteAdapter(db: SQLite.SQLiteDatabase): DatabasePort
       <div class="d-body"><p>Kullanıcı onayıyla <code>origin/courses</code> diğer <code>claude/*</code> branch'leriyle birlikte silindi.</p></div>
     </details>
     <details class="d">
-      <summary><span class="dk">3</span><span class="dt">Mobilde migration paketleme <span style="color:var(--warn);font-weight:600">— açık, Faz 9'da karara bağlanacak</span></span></summary>
+      <summary><span class="dk">3</span><span class="dt">Mobilde migration paketleme <span style="color:var(--accent);font-weight:600">— Faz 10'da kapatıldı: (c) codegen</span></span></summary>
       <div class="d-body">
         <p>Mobil, 17 <code>.sql</code> dosyasına string olarak ihtiyaç duyuyor. Üç seçenek:</p>
         <ul class="plain">
@@ -1104,11 +1107,13 @@ export function createExpoSqliteAdapter(db: SQLite.SQLiteDatabase): DatabasePort
           <li><b>(c)</b> Build-zamanı codegen: küçük bir script <code>packages/shared/migrations/*.sql</code>'i okur ve <code>export const MIGRATIONS = [...]</code> içeren bir dosya üretir; <code>apps/mobile</code>'ın pre-build adımı olarak çalışır. <b>Öneri: (c)</b> — temiz, Metro hack'i yok, tek doğruluk kaynağı.</li>
         </ul>
         <p>Smoke test'in kendisi için 1-2 migration'ı <code>App.tsx</code>'te satır içi yazmak kabul edilebilir.</p>
+        <p><b>Karar (Faz 10):</b> (c) build-zamanı codegen — <code>apps/mobile/scripts/generate-migrations.mjs</code>, <code>packages/shared/migrations/*.sql</code>'i okuyup <code>src/generated/migrations.ts</code> üretir (sürüm = dosya adı öneki, katı artan doğrulanır). Çıktı commit'lenir; <code>pnpm start</code> her koşuda yeniden üretir, elle <code>pnpm generate:migrations</code>. Smoke test satır içi alt küme yerine bu yolla 17 migration'ın tamamını çalıştırdı (<code>user_version: 17</code>).</p>
       </div>
     </details>
     <details class="d">
       <summary><span class="dk">4</span><span class="dt">Mobilde <code>crypto.randomUUID()</code> ve Web Crypto <span style="color:var(--warn);font-weight:600">— açık, smoke test ortaya çıkarınca</span></span></summary>
-      <div class="d-body"><p>Birkaç shared modül (veya shared'dan import eden store'lar) <code>crypto.randomUUID()</code> kullanıyor. Yeni Expo SDK'ları bunu Hermes üzerinde sunuyor. Smoke test runtime hatası gösterirse <code>react-native-get-random-values</code> polyfill'i veya <code>expo-crypto</code> kurulur. Ertelendi.</p></div>
+      <div class="d-body"><p>Birkaç shared modül (veya shared'dan import eden store'lar) <code>crypto.randomUUID()</code> kullanıyor. Yeni Expo SDK'ları bunu Hermes üzerinde sunuyor. Smoke test runtime hatası gösterirse <code>react-native-get-random-values</code> polyfill'i veya <code>expo-crypto</code> kurulur. Ertelendi.</p>
+      <p><b>Faz 10 smoke testi:</b> polyfill hatası görünmedi, ama bu akış <code>randomUUID</code>'yi hiç çağırmıyor (yalnızca insert yollarında kullanılıyor) — soru gerçek insert akışları mobilde çalışana dek (mobil UI planı) ertelenmiş kalıyor.</p></div>
     </details>
     <details class="d">
       <summary><span class="dk">5</span><span class="dt"><code>DatabasePort.execute</code> dönüş şekli <span style="color:var(--accent);font-weight:600">— Faz 5'te kapatıldı</span></span></summary>

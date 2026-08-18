@@ -47,19 +47,25 @@ export function enforceLimits(endpoint: Endpoint, maxBodyBytes: number) {
 
     const day = new Date().toISOString().slice(0, 10);
     const counterKey = `quota:${endpoint}:${day}:${appUserId}`;
-    const used = Number((await c.env.USAGE_KV.get(counterKey)) ?? "0");
-    if (used >= dailyLimit(c.env, endpoint)) {
-      return openaiError(
-        c,
-        429,
-        "You have reached today's usage limit for this feature. It resets at midnight UTC.",
-        "rate_limit_error",
-        "quota_exceeded",
-      );
+    // KV get+put is not atomic and allows ~1 write/s per key, so racing
+    // requests can undercount or make the put throw. Counting failures must
+    // not fail the request — fail open; the caps are generous (D16) and the
+    // per-minute limiter above bounds the race.
+    try {
+      const used = Number((await c.env.USAGE_KV.get(counterKey)) ?? "0");
+      if (used >= dailyLimit(c.env, endpoint)) {
+        return openaiError(
+          c,
+          429,
+          "You have reached today's usage limit for this feature. It resets at midnight UTC.",
+          "rate_limit_error",
+          "quota_exceeded",
+        );
+      }
+      await c.env.USAGE_KV.put(counterKey, String(used + 1), { expirationTtl: COUNTER_TTL_SECONDS });
+    } catch {
+      console.error(`usage counter kv error: ${endpoint}`);
     }
-    // KV get+put is not atomic; racing requests can undercount. Acceptable —
-    // the caps are generous (D16) and the per-minute limiter bounds the race.
-    await c.env.USAGE_KV.put(counterKey, String(used + 1), { expirationTtl: COUNTER_TTL_SECONDS });
 
     await next();
   });

@@ -38,7 +38,14 @@ export const requireSubscription = createMiddleware<AppEnv>(async (c, next) => {
   }
 
   const cacheKey = `ent:${appUserId}`;
-  const cached = await c.env.USAGE_KV.get(cacheKey);
+  // A cache read failure is just a miss — the live RevenueCat check below
+  // stays authoritative, so KV trouble never loosens the gate.
+  let cached: string | null = null;
+  try {
+    cached = await c.env.USAGE_KV.get(cacheKey);
+  } catch {
+    console.error("entitlement cache read error");
+  }
   let active = cached === "1";
 
   if (cached === null) {
@@ -72,9 +79,13 @@ export const requireSubscription = createMiddleware<AppEnv>(async (c, next) => {
         "verification_unavailable",
       );
     }
-    await c.env.USAGE_KV.put(cacheKey, active ? "1" : "0", {
-      expirationTtl: active ? ACTIVE_TTL_SECONDS : INACTIVE_TTL_SECONDS,
-    });
+    try {
+      await c.env.USAGE_KV.put(cacheKey, active ? "1" : "0", {
+        expirationTtl: active ? ACTIVE_TTL_SECONDS : INACTIVE_TTL_SECONDS,
+      });
+    } catch {
+      console.error("entitlement cache write error");
+    }
   }
 
   if (!active) {

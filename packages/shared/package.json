@@ -13,6 +13,7 @@
     "./types": "./src/types/index.ts",
     "./i18n": "./src/i18n/index.ts",
     "./i18n/therapySchools": "./src/i18n/therapySchools/index.ts",
+    "./i18n/schoolQuiz": "./src/i18n/schoolQuiz/index.ts",
     "./constants": "./src/constants/index.ts",
     "./constants/*": "./src/constants/*.ts",
     "./lib/*": "./src/lib/*.ts",

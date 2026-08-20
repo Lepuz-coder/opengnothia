@@ -18,14 +18,15 @@ import { useSubscriptionStore } from "@/stores/useSubscriptionStore";
 import { useThemeColors, useThemeSync } from "@/theme/useAppTheme";
 import { Button, ToastContainer } from "@/ui";
 
-// Without this, the router would land on (onboarding) — groups are ordered
-// alphabetically. Faz 7 replaces this with a real `onboarded`-flag decision.
+// The anchor covers the onboarded case; on a fresh install the guards below
+// drop (tabs) entirely and the router falls through to (onboarding) (Step 59).
 export const unstable_settings = { anchor: "(tabs)" };
 
 export default function RootLayout() {
   useThemeSync();
   const { resolved, colors } = useThemeColors();
   const hasHydrated = useSettingsStore((s) => s.hasHydrated);
+  const onboarded = useSettingsStore((s) => s.onboarded);
   const { isReady, error, retry } = useDatabase();
   const configurePurchases = useSubscriptionStore((s) => s.configure);
 
@@ -54,14 +55,23 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: colors.canvas },
           }}
         >
-          {/* title:"" also blanks the label Settings' back button inherits from here. */}
-          <Stack.Screen name="(tabs)" options={{ headerShown: false, title: "" }} />
-          <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
+          {/* Step 59: the flag decides which group exists; flipping it swaps
+              groups and clears the dropped one's history (Expo Router guards). */}
+          <Stack.Protected guard={onboarded}>
+            {/* title:"" also blanks the label Settings' back button inherits from here. */}
+            <Stack.Screen name="(tabs)" options={{ headerShown: false, title: "" }} />
+          </Stack.Protected>
+          <Stack.Protected guard={!onboarded}>
+            <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
+          </Stack.Protected>
           <Stack.Screen name="settings" options={{ title: "" }} />
           {/* Faz 5: past-session detail, pushed over the tabs (title set in-screen). */}
           <Stack.Screen name="session/[id]" options={{ title: "", headerBackButtonDisplayMode: "minimal" }} />
-          {/* M6: custom paywall, always presented as a modal sheet. */}
+          {/* M6: custom paywall, always presented as a modal sheet. Unguarded on
+              purpose — the 403 error handler may push it mid-onboarding too. */}
           <Stack.Screen name="paywall" options={{ presentation: "modal", headerShown: false }} />
+          {/* Step 60: settings' "retake the quiz" surface. */}
+          <Stack.Screen name="school-quiz" options={{ presentation: "modal", headerShown: false }} />
         </Stack>
       )}
       <ToastContainer />

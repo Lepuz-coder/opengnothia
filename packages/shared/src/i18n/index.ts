@@ -425,6 +425,24 @@ export interface Translations {
     ready: string;
     readyDescription: string;
     readyDisclaimer: string;
+    // Mobile onboarding (Faz 7 / M11) — the phone flow has no API-key or
+    // security step; these keys cover its welcome, language, paywall-skip,
+    // AI intake interview and ready screens.
+    personalizedApproach: string;
+    personalizedApproachDescription: string;
+    languageTitle: string;
+    languageDescription: string;
+    skipForNow: string;
+    interviewTitle: string;
+    interviewIntro: string;
+    interviewFinish: string;
+    interviewFinishConfirmTitle: string;
+    interviewFinishConfirmMessage: string;
+    interviewSaving: string;
+    interviewSaveFailed: string;
+    interviewSavedToast: string;
+    readyMobileDescription: string;
+    openApp: string;
   };
   breathing: {
     title: string;

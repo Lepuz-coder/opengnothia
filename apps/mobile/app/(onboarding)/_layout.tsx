@@ -1,8 +1,19 @@
 import { Stack } from "expo-router";
+import { useThemeColors } from "@/theme/useAppTheme";
 
-// Empty skeleton for now — the welcome → language → quiz → paywall → intake
-// flow is written in Faz 7 (M11). Kept as its own group so the root layout
-// can swap between it and (tabs) on the `onboarded` flag without a reshuffle.
+// Without an anchor, "/" inside this group would resolve alphabetically —
+// interview.tsx would beat welcome.tsx. The flow order itself is enforced by
+// each screen's push target (M11), not by the navigator.
+export const unstable_settings = { anchor: "welcome" };
+
 export default function OnboardingLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  const { colors } = useThemeColors();
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: colors.canvas },
+      }}
+    />
+  );
 }

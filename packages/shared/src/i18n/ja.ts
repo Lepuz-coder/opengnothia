@@ -680,6 +680,8 @@ export const ja: Translations = {
     pauseVoice: "一時停止",
     resumeVoice: "再開",
     switchToChat: "チャットに切り替え",
+    switchToVoice: "音声に切り替え",
+    tapToInterrupt: "タップして中断",
     ttsError: "音声の再生に失敗しました。テキストで続けることができます。",
     voicePaused: "音声を一時停止中",
     sendRecording: "送信",

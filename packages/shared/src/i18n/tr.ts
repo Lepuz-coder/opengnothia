@@ -680,6 +680,8 @@ export const tr: Translations = {
     pauseVoice: "Duraklat",
     resumeVoice: "Devam Et",
     switchToChat: "Yazılıya Geç",
+    switchToVoice: "Sesliye Geç",
+    tapToInterrupt: "Kesmek için dokun",
     ttsError: "Ses oynatma başarısız oldu. Yazılı olarak devam edebilirsin.",
     voicePaused: "Ses duraklatıldı",
     sendRecording: "Gönder",

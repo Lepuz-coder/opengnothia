@@ -701,6 +701,8 @@ export interface Translations {
     pauseVoice: string;
     resumeVoice: string;
     switchToChat: string;
+    switchToVoice: string;
+    tapToInterrupt: string;
     ttsError: string;
     voicePaused: string;
     sendRecording: string;

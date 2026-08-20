@@ -33,6 +33,23 @@ const CHAT_STREAM_FLUSH_DELAY_MS = 48;
  */
 export const PROXY_CONTEXT_WINDOW = 1_050_000;
 
+/**
+ * Faz 8: the voice loop taps the assistant stream here — desktop's
+ * voiceFeedRef/voiceFlushRef pair as a module-level registration, since this
+ * orchestration lives outside any component. SessionModal registers the sink
+ * while voice mode is active and clears it on exit.
+ */
+export interface VoiceStreamSink {
+  feed: (chunk: string) => void;
+  flush: () => void;
+}
+
+let voiceSink: VoiceStreamSink | null = null;
+
+export function setVoiceSink(sink: VoiceStreamSink | null): void {
+  voiceSink = sink;
+}
+
 async function trackUsage(callType: string, usage: TokenUsage | null) {
   if (!usage) return;
   const sessionId = useSessionStore.getState().sessionId;
@@ -104,7 +121,10 @@ async function streamAssistantTurn({ requestMessages, systemPrompt, callType, on
 
   const contentStream = createMarkerStrippedStream(
     SESSION_END_MARKER,
-    (safeChunk) => store().appendStreamContent(safeChunk),
+    (safeChunk) => {
+      store().appendStreamContent(safeChunk);
+      voiceSink?.feed(safeChunk);
+    },
     CHAT_STREAM_FLUSH_DELAY_MS,
   );
 
@@ -120,6 +140,7 @@ async function streamAssistantTurn({ requestMessages, systemPrompt, callType, on
       if (sessionId) {
         getQueries().then((q) => q.updateSessionMessages(sessionId, store().messages)).catch(() => undefined);
       }
+      voiceSink?.flush();
       if (contentStream.hasMarker()) {
         store().setPendingEndPrompt(true);
       }

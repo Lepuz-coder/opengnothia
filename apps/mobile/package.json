@@ -11,6 +11,7 @@
     "expo-constants": "~57.0.12",
     "expo-crypto": "~57.0.1",
     "expo-dev-client": "~57.0.13",
+    "expo-file-system": "~57.0.4",
     "expo-keep-awake": "~57.0.1",
     "expo-linking": "~57.0.6",
     "expo-local-authentication": "~57.0.2",

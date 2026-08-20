@@ -680,6 +680,8 @@ export const zh: Translations = {
     pauseVoice: "暂停",
     resumeVoice: "继续",
     switchToChat: "切换到文字对话",
+    switchToVoice: "切换到语音对话",
+    tapToInterrupt: "点按即可打断",
     ttsError: "语音播放失败。你可以继续使用文字对话。",
     voicePaused: "语音已暂停",
     sendRecording: "发送",

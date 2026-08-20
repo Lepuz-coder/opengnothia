@@ -1,9 +1,9 @@
 import { fetch as expoFetch } from "expo/fetch";
+import { Directory, File, Paths } from "expo-file-system";
 import { AIError } from "@opengnothia/shared/ai/AIError";
 import { sendMessage, streamMessage } from "@opengnothia/shared/ai/aiService";
 import { takeBackgroundNotes } from "@opengnothia/shared/ai/backgroundNotes";
 import { transcribeAudio, type TranscriptionResult } from "@opengnothia/shared/ai/transcriptionService";
-import { synthesizeSpeech, type TTSResult } from "@opengnothia/shared/ai/ttsService";
 import type { ChatMessage, TokenUsage } from "@opengnothia/shared/types";
 import { getQueries } from "@/db";
 import { getAppUserId } from "@/stores/useSubscriptionStore";
@@ -97,11 +97,53 @@ export function takeSessionNotes(params: {
   });
 }
 
-export function transcribe(audioBlob: Blob, language?: string): Promise<TranscriptionResult> {
-  return transcribeAudio(audioBlob, requireAppUserId(), language, WORKER_BASE_URL);
+/**
+ * STT (Faz 8 Step 64): the shared service does the multipart POST; the
+ * expo-file-system File implements Blob (name included, so the Worker sees the
+ * .m4a extension), and expo/fetch is injected because RN's fetch cannot
+ * serialize Blob-backed FormData.
+ */
+export function transcribe(recording: File, language?: string): Promise<TranscriptionResult> {
+  return transcribeAudio(
+    recording,
+    requireAppUserId(),
+    language,
+    WORKER_BASE_URL,
+    expoFetch as unknown as typeof fetch,
+  );
 }
 
-/** Model/voice arguments are overridden by the Worker (D15) — pass the defaults. */
-export function speak(text: string): Promise<TTSResult> {
-  return synthesizeSpeech(text, requireAppUserId(), "tts-1", "alloy", WORKER_BASE_URL);
+export interface SpeechResult {
+  /** Temporary mp3 under caches/tts — the caller deletes it after playback. */
+  file: File;
+  characterCount: number;
+}
+
+/**
+ * TTS (Faz 8 Step 65). Not the shared ttsService: that contract is web-shaped
+ * (Blob out, HTMLAudio playback), while expo-audio players want a file URI —
+ * so the bytes land in a temp file here. Model and voice are Worker constants
+ * (D15); only `input` crosses the wire.
+ */
+export async function speak(text: string): Promise<SpeechResult> {
+  const appUserId = requireAppUserId();
+  const response = await expoFetch(`${WORKER_BASE_URL}/audio/speech`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${appUserId}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ input: text, response_format: "mp3" }),
+  });
+  if (!response.ok) {
+    const rawBody = await response.text().catch(() => undefined);
+    throw new AIError(`TTS failed (${response.status})`, response.status, rawBody);
+  }
+  const bytes = await response.bytes();
+
+  const dir = new Directory(Paths.cache, "tts");
+  dir.create({ intermediates: true, idempotent: true });
+  const file = new File(dir, `${crypto.randomUUID()}.mp3`);
+  file.write(bytes);
+  return { file, characterCount: text.length };
 }

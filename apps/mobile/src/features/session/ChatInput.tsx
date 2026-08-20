@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Pressable, TextInput, View } from "react-native";
-import { ArrowUp } from "lucide-react-native";
+import { ArrowUp, Mic } from "lucide-react-native";
 import { useTranslation } from "@opengnothia/shared/i18n";
 import { cn } from "@opengnothia/shared/lib/cn";
 import { useThemeColors } from "@/theme/useAppTheme";
@@ -8,14 +8,17 @@ import { useThemeColors } from "@/theme/useAppTheme";
 interface ChatInputProps {
   disabled: boolean;
   onSend: (content: string) => void;
+  /** Faz 8: renders the mic button that switches the session to voice mode. */
+  onVoicePress?: () => void;
 }
 
 /**
- * Desktop ChatInput minus the dictation mic — voice arrives with Faz 8. The
- * input stays enabled for composing while the assistant streams; only sending
- * is held back, matching the disabled-send semantics of desktop.
+ * Desktop ChatInput's RN counterpart. The input stays enabled for composing
+ * while the assistant streams; only sending is held back, matching the
+ * disabled-send semantics of desktop. Surfaces without voice (the onboarding
+ * interview) simply omit onVoicePress.
  */
-export function ChatInput({ disabled, onSend }: ChatInputProps) {
+export function ChatInput({ disabled, onSend, onVoicePress }: ChatInputProps) {
   const { t } = useTranslation();
   const { colors } = useThemeColors();
   const [draft, setDraft] = useState("");
@@ -31,6 +34,16 @@ export function ChatInput({ disabled, onSend }: ChatInputProps) {
 
   return (
     <View className="flex-row items-end gap-2 border-t border-line bg-card px-3 py-2.5">
+      {onVoicePress !== undefined && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.voice.switchToVoice}
+          onPress={onVoicePress}
+          className="h-11 w-11 items-center justify-center rounded-full bg-raised active:bg-line"
+        >
+          <Mic size={20} color={colors.tint} />
+        </Pressable>
+      )}
       <TextInput
         multiline
         value={draft}

@@ -680,6 +680,8 @@ export const en: Translations = {
     pauseVoice: "Pause",
     resumeVoice: "Resume",
     switchToChat: "Switch to Chat",
+    switchToVoice: "Switch to Voice",
+    tapToInterrupt: "Tap to interrupt",
     ttsError: "Voice playback failed. You can continue with text.",
     voicePaused: "Voice paused",
     sendRecording: "Send",

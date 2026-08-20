@@ -7,6 +7,7 @@ import type { Dream, JournalEntry, MoodEntry, Session, UserProfile } from "@open
 import { cn } from "@opengnothia/shared/lib/cn";
 import { getQueries } from "@/db";
 import { formatMonthYear, formatYMD, getCalendarDays } from "@/lib/date";
+import { useSessionStore } from "@/stores/useSessionStore";
 import { useThemeColors } from "@/theme/useAppTheme";
 import { Card } from "@/ui";
 import { JourneyCard } from "@/features/dashboard/JourneyCard";
@@ -52,6 +53,7 @@ export default function HomeScreen() {
   const [moodSheetOpen, setMoodSheetOpen] = useState(false);
   const [moodEntries, setMoodEntries] = useState<MoodEntry[]>([]);
   const [todaySession, setTodaySession] = useState<Session | null>(null);
+  const sessionStoreStatus = useSessionStore((s) => s.status);
   const [todayJournal, setTodayJournal] = useState<JournalEntry | null>(null);
   const [todayDream, setTodayDream] = useState<Dream | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -145,6 +147,15 @@ export default function HomeScreen() {
   const moodDates = useMemo(() => new Set(moodEntries.map((e) => e.date)), [moodEntries]);
   const streak = useMemo(() => computeStreak(moodDates, todayStr), [moodDates, todayStr]);
 
+  // Desktop parity: a DB "active" row only counts as a live session while the
+  // in-memory store is active too — an abandoned one (app killed mid-session)
+  // reads as "ready".
+  const heroSession = useMemo<Session | null>(() => {
+    if (!todaySession) return null;
+    if (todaySession.status === "active" && sessionStoreStatus !== "active") return null;
+    return todaySession;
+  }, [todaySession, sessionStoreStatus]);
+
   const currentMonthEntries = useMemo(
     () =>
       moodEntries.filter((e) => {
@@ -185,7 +196,7 @@ export default function HomeScreen() {
           )}
         </View>
 
-        <TodaySessionHero todaySession={todaySession} profile={profile} />
+        <TodaySessionHero todaySession={heroSession} profile={profile} />
 
         {/* Mood */}
         {todayMood === null ? (

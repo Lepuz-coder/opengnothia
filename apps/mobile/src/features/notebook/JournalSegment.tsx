@@ -1,27 +1,42 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
-import { ArrowLeft, Pencil, Plus, Trash2 } from "lucide-react-native";
+import { ArrowLeft, Pencil, Plus, Sparkles, Trash2 } from "lucide-react-native";
 import { getDateLocale, getDayNames, useTranslation } from "@opengnothia/shared/i18n";
+import {
+  JOURNAL_ANALYSIS_TRIGGER,
+  buildJournalAnalysisPrompt,
+  journalPatientNotesMessage,
+} from "@opengnothia/shared/ai/promptBuilder";
 import type { JournalEntry } from "@opengnothia/shared/types";
+import { useAIErrorHandler } from "@/ai/useAIErrorHandler";
 import { getQueries } from "@/db";
+import { useProGate } from "@/hooks/useProGate";
 import { formatDayLabel, formatTimestamp, formatYMD, getCalendarDays } from "@/lib/date";
+import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useThemeColors } from "@/theme/useAppTheme";
-import { Badge, Button, Card, ConfirmSheet } from "@/ui";
+import { Badge, Button, Card, ConfirmSheet, LockBadge } from "@/ui";
+import { AnalysisSheet } from "@/features/analyses/AnalysisSheet";
+import { kickOffAnalysisNotes, streamAnalysisContent } from "@/features/analyses/analysisActions";
 import { CalendarMonth } from "./CalendarMonth";
 import { EntryComposer } from "./EntryComposer";
 
 type SegmentView = "calendar" | "detail";
 
 /**
- * RN re-interpretation of desktop's JournalPage manual flows: calendar →
- * write (page sheet) → detail, plus edit and delete. The AI analysis button
- * deliberately does not exist yet — Faz 6 adds it with its LockBadge (M3).
+ * RN re-interpretation of desktop's JournalPage: calendar → write (page
+ * sheet) → detail with edit/delete, plus the Faz 6 AI analysis — badged for
+ * free users (M3), streamed into the analysis sheet, then kept readable
+ * without a subscription (M4).
  */
 export function JournalSegment() {
   const { t, language } = useTranslation();
   const locale = getDateLocale(language);
   const dayNames = getDayNames(language);
   const { colors } = useThemeColors();
+  const { isPro, gate } = useProGate();
+  // The analysis streams inside the pageSheet — errors there toast in place
+  // instead of pushing the paywall route underneath it.
+  const handleAIError = useAIErrorHandler({ modalHosted: true });
 
   const [view, setView] = useState<SegmentView>("calendar");
   const [entries, setEntries] = useState<JournalEntry[]>([]);
@@ -37,6 +52,10 @@ export function JournalSegment() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+
+  const [analysisOpen, setAnalysisOpen] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [streamContent, setStreamContent] = useState("");
 
   const entriesByDate = useMemo(() => {
     const map = new Map<string, JournalEntry>();
@@ -131,6 +150,71 @@ export function JournalSegment() {
     await loadEntries();
   };
 
+  // Step 49: desktop JournalPage's handleAnalyze over the mobile AI plumbing.
+  const handleAnalyze = async (entry: JournalEntry) => {
+    if (analyzing) return;
+    setAnalyzing(true);
+    setStreamContent("");
+    setAnalysisOpen(true);
+    try {
+      const queries = await getQueries();
+      const [profile, patientNotes] = await Promise.all([queries.getUserProfile(), queries.getPatientNotes()]);
+      const analysisPrompt = buildJournalAnalysisPrompt({
+        journalContent: entry.content,
+        mood: entry.mood,
+        tags: entry.tags,
+        patientNotes,
+        profile,
+        therapySchool: useSettingsStore.getState().schoolId ?? undefined,
+        language,
+      });
+
+      const full = await streamAnalysisContent({
+        messages: [
+          { id: "journal-analysis", role: "user", content: JOURNAL_ANALYSIS_TRIGGER, timestamp: new Date().toISOString() },
+        ],
+        systemPrompt: analysisPrompt,
+        callType: "journal_analysis",
+        onChunk: (chunk) => setStreamContent((prev) => prev + chunk),
+        onAIError: handleAIError,
+      });
+
+      if (full !== null && full.trim().length > 0) {
+        await queries.updateJournalAnalysis(entry.id, full);
+        setSelected((prev) => (prev && prev.id === entry.id ? { ...prev, ai_analysis: full } : prev));
+        kickOffAnalysisNotes(journalPatientNotesMessage(entry.content, full));
+        // Refresh the calendar cache so re-opening this day carries the analysis.
+        await loadEntries();
+      }
+    } catch (err) {
+      handleAIError(err);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const handleAnalyzePress = () => {
+    if (!selected) return;
+    if (selected.ai_analysis) {
+      // Reading an existing analysis is free (M4).
+      setAnalysisOpen(true);
+      return;
+    }
+    gate(() => void handleAnalyze(selected));
+  };
+
+  // The sheet's retry (only reachable after a failed run): same gate, but a
+  // paywall route would present below the open sheet — close it first.
+  const handleSheetGeneratePress = () => {
+    if (!selected) return;
+    if (isPro) {
+      void handleAnalyze(selected);
+      return;
+    }
+    setAnalysisOpen(false);
+    setTimeout(() => gate(() => undefined), 400);
+  };
+
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center">
@@ -161,7 +245,7 @@ export function JournalSegment() {
             <Text className="mt-0.5 text-sm text-ink-mute">{formatTimestamp(selected.created_at, locale)}</Text>
           </View>
 
-          <View className="flex-row gap-2">
+          <View className="flex-row flex-wrap items-center gap-2">
             <Button
               variant="secondary"
               size="sm"
@@ -174,6 +258,10 @@ export function JournalSegment() {
             >
               {t.common.edit}
             </Button>
+            <Button size="sm" icon={<Sparkles size={16} color="#fff" />} onPress={handleAnalyzePress}>
+              {selected.ai_analysis ? t.journal.showAnalysis : t.journal.analyze}
+            </Button>
+            {!selected.ai_analysis && <LockBadge />}
             <Button
               variant="danger"
               size="sm"
@@ -217,6 +305,18 @@ export function JournalSegment() {
           confirmLabel={t.journal.yesDelete}
           onConfirm={handleDelete}
           onClose={() => setDeleteOpen(false)}
+        />
+
+        <AnalysisSheet
+          visible={analysisOpen}
+          title={t.journal.aiAnalysis}
+          content={selected.ai_analysis}
+          generating={analyzing}
+          streamContent={streamContent}
+          generatingLabel={t.journal.analyzing}
+          generateLabel={t.journal.analyze}
+          onGeneratePress={handleSheetGeneratePress}
+          onClose={() => setAnalysisOpen(false)}
         />
       </>
     );

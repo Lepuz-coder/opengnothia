@@ -1,10 +1,13 @@
 import { Text, View } from "react-native";
+import { useRouter } from "expo-router";
 import { ArrowRight, MessageSquare, Play, Sparkles, type LucideIcon } from "lucide-react-native";
 import { useTranslation } from "@opengnothia/shared/i18n";
 import type { Session, UserProfile } from "@opengnothia/shared/types";
 import { cn } from "@opengnothia/shared/lib/cn";
 import { useProGate } from "@/hooks/useProGate";
 import { toIsoUtc } from "@/lib/date";
+import { useSessionStore } from "@/stores/useSessionStore";
+import { showToast } from "@/stores/useToastStore";
 import { useThemeColors } from "@/theme/useAppTheme";
 import { Button, Card, LockBadge } from "@/ui";
 
@@ -20,15 +23,16 @@ function minutesSince(timestamp: string): number {
 /**
  * RN port of desktop's TodaySessionHero, with the same three states
  * (ready / active / completed — "abandoned" reads as ready, like desktop).
- * The CTA is the app's first gated AI entry point (M3): badge + paywall for
- * free users since Faz 4; the subscriber half stays inert until Faz 6 Step 53
- * routes it into the session flow.
+ * The CTA is a gated AI entry point (M3): badge + paywall for free users;
+ * for subscribers (Step 53) it lands on the session tab — the ?start param
+ * kicks off the start flow there, mirroring desktop's openStartModal state.
  * Desktop's animated gradient orb flattens to a static tinted disc.
  */
 export function TodaySessionHero({ todaySession, profile }: TodaySessionHeroProps) {
   const { t } = useTranslation();
   const { resolved } = useThemeColors();
   const { gate } = useProGate();
+  const router = useRouter();
 
   const isActive = todaySession?.status === "active";
   const isCompleted = todaySession?.status === "completed";
@@ -65,6 +69,24 @@ export function TodaySessionHero({ todaySession, profile }: TodaySessionHeroProp
       ? "#2D8F8B" // primary-600
       : "#4BC3BE"; // primary-400
 
+  const handlePress = () =>
+    gate(() => {
+      if (isActive) {
+        // The live session's fullscreen modal is mounted on the session tab —
+        // landing there is enough.
+        router.push("/session");
+        return;
+      }
+      // Desktop's onStart: notes still being written blocks a new session
+      // with a toast, without leaving the dashboard.
+      if (useSessionStore.getState().noteTakingStartedAt !== null) {
+        showToast(t.session.noteTakingStartBlocked, "info");
+        return;
+      }
+      // Unique value so every tap retriggers the tab's start effect.
+      router.push({ pathname: "/session", params: { start: String(Date.now()) } });
+    });
+
   return (
     <Card
       className={cn(
@@ -100,15 +122,7 @@ export function TodaySessionHero({ todaySession, profile }: TodaySessionHeroProp
       {subtitle !== "" && <Text className="mt-1 text-sm text-ink-mute">{subtitle}</Text>}
 
       <View className="mt-4 flex-row items-center gap-2.5 self-start">
-        <Button
-          icon={<PrimaryIcon size={16} color="#fff" />}
-          onPress={() =>
-            gate(() => {
-              // Subscriber path stays inert until Faz 6 (Step 53) routes it
-              // into the session flow; free users land on the paywall now.
-            })
-          }
-        >
+        <Button icon={<PrimaryIcon size={16} color="#fff" />} onPress={handlePress}>
           {primaryLabel}
         </Button>
         <LockBadge />

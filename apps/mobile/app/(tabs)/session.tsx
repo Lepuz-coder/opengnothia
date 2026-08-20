@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { Play } from "lucide-react-native";
 import { useTranslation } from "@opengnothia/shared/i18n";
 import { intakeFormHasContent } from "@opengnothia/shared/db/queries";
@@ -100,6 +100,15 @@ export default function SessionScreen() {
   }, [t]);
 
   const handleStartPress = () => gate(() => void beginStartFlow());
+
+  // Step 53: the dashboard hero lands here with ?start=<timestamp> (already
+  // gated there); each tap carries a fresh value, so the effect retriggers.
+  const { start } = useLocalSearchParams<{ start?: string }>();
+  useEffect(() => {
+    if (!start) return;
+    if (useSessionStore.getState().status !== "idle") return;
+    void beginStartFlow();
+  }, [start, beginStartFlow]);
 
   const openIntakeForEdit = () => {
     pendingStartRef.current = false;

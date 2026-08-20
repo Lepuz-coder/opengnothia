@@ -1,12 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
-import { ArrowLeft, Pencil, Plus, Trash2 } from "lucide-react-native";
+import { ArrowLeft, Pencil, Plus, Sparkles, Trash2 } from "lucide-react-native";
 import { getDateLocale, getDayNames, useTranslation } from "@opengnothia/shared/i18n";
+import { buildDreamAnalysisPrompt, dreamPatientNotesMessage } from "@opengnothia/shared/ai/promptBuilder";
 import type { Dream } from "@opengnothia/shared/types";
+import { useAIErrorHandler } from "@/ai/useAIErrorHandler";
 import { getQueries } from "@/db";
+import { useProGate } from "@/hooks/useProGate";
 import { formatDayLabel, formatTimestamp, formatYMD, getCalendarDays } from "@/lib/date";
 import { useThemeColors } from "@/theme/useAppTheme";
-import { Button, Card, ConfirmSheet } from "@/ui";
+import { Button, Card, ConfirmSheet, LockBadge } from "@/ui";
+import { AnalysisSheet } from "@/features/analyses/AnalysisSheet";
+import { kickOffAnalysisNotes, streamAnalysisContent } from "@/features/analyses/analysisActions";
 import { CalendarMonth } from "./CalendarMonth";
 import { EntryComposer } from "./EntryComposer";
 
@@ -14,15 +19,20 @@ type SegmentView = "calendar" | "detail";
 
 /**
  * Same shape as JournalSegment, over the dreams table — desktop keeps the two
- * pages as parallel copies too, and Faz 6 grows them apart (different
- * analysis flows), so they are not force-merged here. Shared pieces live in
- * CalendarMonth and EntryComposer.
+ * pages as parallel copies too, and their analysis flows differ (dream prompt
+ * takes no profile/school and the dream text itself is the user message), so
+ * they are not force-merged here. Shared pieces live in CalendarMonth,
+ * EntryComposer and AnalysisSheet.
  */
 export function DreamsSegment() {
   const { t, language } = useTranslation();
   const locale = getDateLocale(language);
   const dayNames = getDayNames(language);
   const { colors } = useThemeColors();
+  const { isPro, gate } = useProGate();
+  // The analysis streams inside the pageSheet — errors there toast in place
+  // instead of pushing the paywall route underneath it.
+  const handleAIError = useAIErrorHandler({ modalHosted: true });
 
   const [view, setView] = useState<SegmentView>("calendar");
   const [dreams, setDreams] = useState<Dream[]>([]);
@@ -38,6 +48,10 @@ export function DreamsSegment() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+
+  const [analysisOpen, setAnalysisOpen] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [streamContent, setStreamContent] = useState("");
 
   const dreamsByDate = useMemo(() => {
     const map = new Map<string, Dream>();
@@ -133,6 +147,62 @@ export function DreamsSegment() {
     await loadDreams();
   };
 
+  // Step 50: desktop DreamsPage's handleAnalyze over the mobile AI plumbing.
+  const handleAnalyze = async (dream: Dream) => {
+    if (analyzing) return;
+    setAnalyzing(true);
+    setStreamContent("");
+    setAnalysisOpen(true);
+    try {
+      const queries = await getQueries();
+      const patientNotes = await queries.getPatientNotes();
+
+      const full = await streamAnalysisContent({
+        messages: [
+          { id: crypto.randomUUID(), role: "user", content: dream.content, timestamp: new Date().toISOString() },
+        ],
+        systemPrompt: buildDreamAnalysisPrompt(patientNotes, language),
+        callType: "dream_analysis",
+        onChunk: (chunk) => setStreamContent((prev) => prev + chunk),
+        onAIError: handleAIError,
+      });
+
+      if (full !== null && full.trim().length > 0) {
+        await queries.updateDreamAnalysis(dream.id, full);
+        setSelected((prev) => (prev && prev.id === dream.id ? { ...prev, analysis: full } : prev));
+        kickOffAnalysisNotes(dreamPatientNotesMessage(dream.content, full));
+        // Refresh the calendar cache so re-opening this day carries the analysis.
+        await loadDreams();
+      }
+    } catch (err) {
+      handleAIError(err);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const handleAnalyzePress = () => {
+    if (!selected) return;
+    if (selected.analysis) {
+      // Reading an existing analysis is free (M4).
+      setAnalysisOpen(true);
+      return;
+    }
+    gate(() => void handleAnalyze(selected));
+  };
+
+  // The sheet's retry (only reachable after a failed run): same gate, but a
+  // paywall route would present below the open sheet — close it first.
+  const handleSheetGeneratePress = () => {
+    if (!selected) return;
+    if (isPro) {
+      void handleAnalyze(selected);
+      return;
+    }
+    setAnalysisOpen(false);
+    setTimeout(() => gate(() => undefined), 400);
+  };
+
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center">
@@ -163,7 +233,7 @@ export function DreamsSegment() {
             <Text className="mt-0.5 text-sm text-ink-mute">{formatTimestamp(selected.created_at, locale)}</Text>
           </View>
 
-          <View className="flex-row gap-2">
+          <View className="flex-row flex-wrap items-center gap-2">
             <Button
               variant="secondary"
               size="sm"
@@ -176,6 +246,10 @@ export function DreamsSegment() {
             >
               {t.common.edit}
             </Button>
+            <Button size="sm" icon={<Sparkles size={16} color="#fff" />} onPress={handleAnalyzePress}>
+              {selected.analysis ? t.dreams.showAnalysis : t.dreams.analyze}
+            </Button>
+            {!selected.analysis && <LockBadge />}
             <Button
               variant="danger"
               size="sm"
@@ -211,6 +285,18 @@ export function DreamsSegment() {
           confirmLabel={t.dreams.yesDelete}
           onConfirm={handleDelete}
           onClose={() => setDeleteOpen(false)}
+        />
+
+        <AnalysisSheet
+          visible={analysisOpen}
+          title={t.dreams.aiAnalysis}
+          content={selected.analysis}
+          generating={analyzing}
+          streamContent={streamContent}
+          generatingLabel={t.dreams.analyzing}
+          generateLabel={t.dreams.analyze}
+          onGeneratePress={handleSheetGeneratePress}
+          onClose={() => setAnalysisOpen(false)}
         />
       </>
     );

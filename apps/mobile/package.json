@@ -5,6 +5,7 @@
   "dependencies": {
     "@opengnothia/shared": "workspace:*",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@ronradtke/react-native-markdown-display": "^9.0.3",
     "expo": "~57.0.14",
     "expo-audio": "~57.0.3",
     "expo-constants": "~57.0.12",

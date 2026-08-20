@@ -1,7 +1,18 @@
-import type { UserProfile, PatientIntakeForm, CheckIn, SessionSummary, TherapySchool, Language, AIProvider } from "@opengnothia/shared/types";
-import type { TherapySchoolDef } from "@opengnothia/shared/constants/therapySchools";
-import { getSchoolById } from "@/stores/useSchoolsStore";
-import { getCurrentLanguage, getDateLocale } from "@opengnothia/shared/i18n";
+import type { UserProfile, PatientIntakeForm, CheckIn, SessionSummary, TherapySchool, Language, AIProvider } from "../types";
+import { getTherapySchool, type TherapySchoolDef } from "../constants/therapySchools";
+import { getCurrentLanguage, getDateLocale } from "../i18n";
+
+/**
+ * School lookup is injectable: desktop overrides it with its store-backed
+ * resolver (custom schools + prompt overrides, registered in main.tsx); every
+ * other consumer gets the built-in localized list.
+ */
+type SchoolResolver = (id: TherapySchool) => TherapySchoolDef | undefined;
+let resolveSchool: SchoolResolver = (id) => getTherapySchool(id);
+
+export function setSchoolResolver(resolver: SchoolResolver): void {
+  resolveSchool = resolver;
+}
 
 function getLanguageInstruction(lang?: Language): string {
   const l = lang ?? getCurrentLanguage();
@@ -100,7 +111,7 @@ Response style — applies to every reply, on every provider (voice mode reads y
   }
 
   if (therapySchool) {
-    const school = getSchoolById(therapySchool);
+    const school = resolveSchool(therapySchool);
     if (school) {
       prompt += `\n\n--- Therapy School ---\nYour working modality for this client. Apply its techniques within the global response style defined above.\n${school.promptInstructions}`;
     }
@@ -336,7 +347,7 @@ Core principles:
   prompt += getLanguageInstruction(params.language);
 
   if (therapySchool) {
-    const school = getSchoolById(therapySchool);
+    const school = resolveSchool(therapySchool);
     if (school) {
       prompt += `\n\nTherapy school: ${school.name}\n${school.promptInstructions}`;
     }

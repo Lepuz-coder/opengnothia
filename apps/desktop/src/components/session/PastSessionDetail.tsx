@@ -8,7 +8,7 @@ import { ChatContainer } from "@/components/chat/ChatContainer";
 import { useTranslation, getDateLocale } from "@opengnothia/shared/i18n";
 import { getQueries } from "@/db";
 import { streamMessage } from "@opengnothia/shared/ai/aiService";
-import { buildSummaryPrompt, SESSION_SUMMARY_SYSTEM_PROMPT } from "@/services/ai/promptBuilder";
+import { buildSummaryPrompt, SESSION_SUMMARY_SYSTEM_PROMPT } from "@opengnothia/shared/ai/promptBuilder";
 import { calculateCost } from "@opengnothia/shared/ai/costCalculator";
 import { createBufferedTextStream } from "@opengnothia/shared/lib/createBufferedTextStream";
 import { useSettingsStore } from "@/stores/useSettingsStore";

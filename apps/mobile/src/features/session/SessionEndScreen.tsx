@@ -1,0 +1,231 @@
+import { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { ChevronRight, Lightbulb, Pencil, Sparkles, Trash2 } from "lucide-react-native";
+import { useTranslation } from "@opengnothia/shared/i18n";
+import type { Insight, InsightGroup } from "@opengnothia/shared/types";
+import { getQueries } from "@/db";
+import { useSessionStore } from "@/stores/useSessionStore";
+import { useThemeColors } from "@/theme/useAppTheme";
+import { Button, Card } from "@/ui";
+import { EntryComposer } from "@/features/notebook/EntryComposer";
+import { getMoodBandLabel, MoodIcon, MoodPickerSheet } from "@/features/dashboard/MoodPicker";
+import { Markdown } from "./Markdown";
+import { generateSummary, saveAndCloseSession } from "./sessionActions";
+
+interface SessionEndScreenProps {
+  onAIError: (error: unknown) => void;
+}
+
+/**
+ * Step 44's ending flow, desktop's SessionEndSummary reinterpreted: summary is
+ * generated on demand (same manual trigger as desktop), the insights captured
+ * during the session are editable here (the desktop side panel's edit/delete,
+ * relocated), and — unlike desktop, which hardcodes 5 — the post-session mood
+ * is actually asked before saving.
+ */
+export function SessionEndScreen({ onAIError }: SessionEndScreenProps) {
+  const { t } = useTranslation();
+  const { colors } = useThemeColors();
+  const summaryNarrative = useSessionStore((s) => s.summaryNarrative);
+  const isSummaryStreaming = useSessionStore((s) => s.isSummaryStreaming);
+  const moodAfter = useSessionStore((s) => s.moodAfter);
+  const setMoodAfter = useSessionStore((s) => s.setMoodAfter);
+  const sessionInsightIds = useSessionStore((s) => s.sessionInsightIds);
+  const removeSessionInsightId = useSessionStore((s) => s.removeSessionInsightId);
+
+  const [moodSheetOpen, setMoodSheetOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [insights, setInsights] = useState<Insight[]>([]);
+  const [groups, setGroups] = useState<InsightGroup[]>([]);
+  const [editingInsight, setEditingInsight] = useState<Insight | null>(null);
+
+  const loadInsights = useCallback(async () => {
+    if (sessionInsightIds.length === 0) {
+      setInsights([]);
+      return;
+    }
+    try {
+      const queries = await getQueries();
+      const [list, groupList] = await Promise.all([
+        queries.getInsightsByIds(sessionInsightIds),
+        queries.getInsightGroups(),
+      ]);
+      const order = new Map(sessionInsightIds.map((id, idx) => [id, idx]));
+      list.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+      setInsights(list);
+      setGroups(groupList);
+    } catch {
+      setInsights([]);
+    }
+  }, [sessionInsightIds]);
+
+  useEffect(() => {
+    loadInsights();
+  }, [loadInsights]);
+
+  const handleDeleteInsight = async (id: string) => {
+    try {
+      const queries = await getQueries();
+      await queries.deleteInsight(id);
+      removeSessionInsightId(id);
+    } catch {
+      // row stays; the list simply doesn't shrink
+    }
+  };
+
+  const handleSaveEdit = async (content: string) => {
+    if (!editingInsight) return;
+    const queries = await getQueries();
+    await queries.updateInsightContent(editingInsight.id, content);
+    setEditingInsight(null);
+    await loadInsights();
+  };
+
+  const handleSaveAndClose = async () => {
+    setSaving(true);
+    try {
+      await saveAndCloseSession();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const groupedInsights = (() => {
+    const byGroup = new Map<string, { group: InsightGroup | null; items: Insight[] }>();
+    for (const insight of insights) {
+      const existing = byGroup.get(insight.group_id);
+      if (existing) existing.items.push(insight);
+      else byGroup.set(insight.group_id, { group: groups.find((g) => g.id === insight.group_id) ?? null, items: [insight] });
+    }
+    return Array.from(byGroup.values());
+  })();
+
+  const saveDisabled = saving || isSummaryStreaming || moodAfter === null;
+
+  return (
+    <>
+      <ScrollView className="flex-1" contentContainerClassName="gap-4 px-4 py-6">
+        <View className="items-center">
+          <Text className="text-2xl font-bold text-ink">{t.session.sessionCompleted}</Text>
+        </View>
+
+        {/* Summary */}
+        <Card>
+          <View className="mb-3 flex-row items-center gap-2">
+            <Text className="text-base font-semibold text-ink">{t.session.sessionSummary}</Text>
+            {isSummaryStreaming && <ActivityIndicator size="small" color={colors.tint} />}
+          </View>
+          {summaryNarrative !== "" ? (
+            <Markdown>{summaryNarrative}</Markdown>
+          ) : isSummaryStreaming ? (
+            <View className="gap-2.5">
+              <View className="h-3 w-full rounded bg-raised" />
+              <View className="h-3 w-5/6 rounded bg-raised" />
+              <View className="h-3 w-4/6 rounded bg-raised" />
+            </View>
+          ) : (
+            <Button
+              variant="secondary"
+              icon={<Sparkles size={16} color={colors.ink} />}
+              onPress={() => generateSummary(onAIError)}
+              className="self-center"
+            >
+              {t.session.generateSummary}
+            </Button>
+          )}
+        </Card>
+
+        {/* Insights captured during the session */}
+        {insights.length > 0 && (
+          <Card>
+            <View className="mb-3 flex-row items-center gap-2">
+              <Lightbulb size={16} color={colors.tint} />
+              <Text className="text-base font-semibold text-ink">{t.session.yourSessionInsights}</Text>
+              <Text className="text-xs text-ink-mute" style={{ fontVariant: ["tabular-nums"] }}>
+                · {insights.length}
+              </Text>
+            </View>
+            <View className="gap-4">
+              {groupedInsights.map(({ group, items }) => (
+                <View key={group?.id ?? "unknown"} className="gap-2">
+                  <View className="flex-row items-center gap-2">
+                    <Text className="text-base">{group?.emoji ?? "💡"}</Text>
+                    <Text className="text-sm font-medium text-ink">{group?.name ?? "—"}</Text>
+                  </View>
+                  {items.map((insight) => (
+                    <View key={insight.id} className="flex-row items-start gap-2 pl-7">
+                      <Text className="flex-1 text-sm leading-relaxed text-ink-soft">{insight.content}</Text>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={t.common.edit}
+                        onPress={() => setEditingInsight(insight)}
+                        className="rounded-lg p-1 active:bg-raised"
+                      >
+                        <Pencil size={14} color={colors.inkMute} />
+                      </Pressable>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={t.common.delete}
+                        onPress={() => handleDeleteInsight(insight.id)}
+                        className="rounded-lg p-1 active:bg-raised"
+                      >
+                        <Trash2 size={14} color="#EF4444" />
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              ))}
+            </View>
+          </Card>
+        )}
+
+        {/* Post-session mood (Step 44) */}
+        <Pressable accessibilityRole="button" onPress={() => setMoodSheetOpen(true)} className="active:opacity-80">
+          <Card>
+            <View className="flex-row items-center gap-4">
+              <View className="h-12 w-12 items-center justify-center rounded-2xl border border-primary-500/20 bg-primary-500/10">
+                {moodAfter !== null ? (
+                  <MoodIcon mood={moodAfter} size={28} />
+                ) : (
+                  <Sparkles size={22} color={colors.inkMute} />
+                )}
+              </View>
+              <View className="flex-1">
+                <Text className="text-sm font-semibold text-ink">{t.session.moodAfterQuestion}</Text>
+                {moodAfter !== null && (
+                  <View className="flex-row items-baseline gap-1.5">
+                    <Text className="text-xl font-bold text-ink">{moodAfter}</Text>
+                    <Text className="text-sm text-ink-mute">/ 10 · {getMoodBandLabel(moodAfter, t)}</Text>
+                  </View>
+                )}
+              </View>
+              <ChevronRight size={18} color={colors.inkMute} />
+            </View>
+          </Card>
+        </Pressable>
+
+        <Button size="lg" onPress={handleSaveAndClose} disabled={saveDisabled} loading={saving}>
+          {isSummaryStreaming ? t.session.preparingSummary : t.session.saveAndClose}
+        </Button>
+      </ScrollView>
+
+      <MoodPickerSheet
+        isOpen={moodSheetOpen}
+        title={t.session.moodAfterQuestion}
+        initialMood={moodAfter}
+        onSelect={setMoodAfter}
+        onClose={() => setMoodSheetOpen(false)}
+      />
+
+      <EntryComposer
+        visible={editingInsight !== null}
+        label={editingInsight ? (groups.find((g) => g.id === editingInsight.group_id)?.name ?? t.insights.insightLabel) : ""}
+        placeholder={t.insights.notePlaceholder}
+        initialContent={editingInsight?.content ?? ""}
+        saving={false}
+        onClose={() => setEditingInsight(null)}
+        onSave={handleSaveEdit}
+      />
+    </>
+  );
+}

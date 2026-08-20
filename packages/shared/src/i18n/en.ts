@@ -131,6 +131,8 @@ export const en: Translations = {
     goToSettings: "Go to Settings",
     checkingConnection: "Checking connection...",
     startSessionButton: "Start Session",
+    moodBeforeQuestion: "Before we begin, how are you feeling right now?",
+    moodAfterQuestion: "Now that the session is over, how are you feeling?",
     psychologist: "Psychologist",
     sessionCompleted: "Session Completed",
     sessionSummary: "Session Summary",

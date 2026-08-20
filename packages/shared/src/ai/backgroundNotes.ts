@@ -1,9 +1,7 @@
-import { useAppStore } from "@/stores/useAppStore";
-import { sendMessage } from "@opengnothia/shared/ai/aiService";
-import { calculateCost } from "@opengnothia/shared/ai/costCalculator";
-import { getQueries } from "@/db";
-import type { AIProvider, ChatMessage, ThinkingLevel, ThinkingType, TokenUsage } from "@opengnothia/shared/types";
-
+import { sendMessage } from "./aiService";
+import { calculateCost } from "./costCalculator";
+import type { Queries } from "../db";
+import type { AIProvider, ChatMessage, ThinkingLevel, ThinkingType, TokenUsage } from "../types";
 
 interface BackgroundNotesParams {
   provider: AIProvider;
@@ -17,10 +15,17 @@ interface BackgroundNotesParams {
   thinkingType?: ThinkingType;
   callType: string;
   sessionId?: string | null;
-  manageNoteTaking?: boolean;
+  /** App-owned database access — desktop and mobile each pass their own getQueries. */
+  getQueries: () => Promise<Queries>;
+  /**
+   * Optional UI status hook (desktop's NoteTakingBanner, mobile's session
+   * banner). Callers that manage a richer status themselves simply omit it.
+   */
+  onNoteTaking?: (active: boolean) => void;
 }
 
 async function trackUsage(
+  getQueries: () => Promise<Queries>,
   provider: AIProvider,
   model: string,
   sessionId: string | null,
@@ -42,10 +47,7 @@ async function trackUsage(
 }
 
 export async function takeBackgroundNotes(params: BackgroundNotesParams): Promise<void> {
-  const setNoteTaking = params.manageNoteTaking === false
-    ? null
-    : useAppStore.getState().setNoteTaking;
-  setNoteTaking?.(true);
+  params.onNoteTaking?.(true);
 
   try {
     const result = await sendMessage({
@@ -63,10 +65,11 @@ export async function takeBackgroundNotes(params: BackgroundNotesParams): Promis
 
     if (result.content && result.content.trim().length > 0) {
       const notes = result.content.trim();
-      const queries = await getQueries();
+      const queries = await params.getQueries();
       await queries.upsertPatientNotes(notes);
     }
     await trackUsage(
+      params.getQueries,
       params.provider,
       params.model,
       params.sessionId ?? null,
@@ -76,6 +79,6 @@ export async function takeBackgroundNotes(params: BackgroundNotesParams): Promis
   } catch {
     // Silent failure for background notes
   } finally {
-    setNoteTaking?.(false);
+    params.onNoteTaking?.(false);
   }
 }

@@ -7,7 +7,7 @@ import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useTranslation, getDayNames, getDateLocale } from "@opengnothia/shared/i18n";
 import { streamMessage } from "@opengnothia/shared/ai/aiService";
 import { calculateCost } from "@opengnothia/shared/ai/costCalculator";
-import { buildWeeklySummaryPrompt, WEEKLY_SUMMARY_TRIGGER } from "@/services/ai/promptBuilder";
+import { buildWeeklySummaryPrompt, WEEKLY_SUMMARY_TRIGGER } from "@opengnothia/shared/ai/promptBuilder";
 import { getQueries } from "@/db";
 import type { Session, AIProvider, TokenUsage, WeeklySummary } from "@opengnothia/shared/types";
 

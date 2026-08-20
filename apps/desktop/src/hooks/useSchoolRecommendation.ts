@@ -6,7 +6,7 @@ import { streamMessage } from "@opengnothia/shared/ai/aiService";
 import { AIError } from "@opengnothia/shared/ai/AIError";
 import { getErrorDisplayInfo, type ErrorDisplayInfo } from "@opengnothia/shared/ai/errorMessages";
 import { calculateCost } from "@opengnothia/shared/ai/costCalculator";
-import { buildSchoolRecommendationPrompt } from "@/services/ai/promptBuilder";
+import { buildSchoolRecommendationPrompt } from "@opengnothia/shared/ai/promptBuilder";
 import { getQueries } from "@/db";
 import type { TherapySchoolDef } from "@opengnothia/shared/constants/therapySchools";
 import type { ChatMessage } from "@opengnothia/shared/types";

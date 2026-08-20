@@ -58,6 +58,8 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false, title: "" }} />
           <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
           <Stack.Screen name="settings" options={{ title: "" }} />
+          {/* Faz 5: past-session detail, pushed over the tabs (title set in-screen). */}
+          <Stack.Screen name="session/[id]" options={{ title: "", headerBackButtonDisplayMode: "minimal" }} />
           {/* M6: custom paywall, always presented as a modal sheet. */}
           <Stack.Screen name="paywall" options={{ presentation: "modal", headerShown: false }} />
         </Stack>

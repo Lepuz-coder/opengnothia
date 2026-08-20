@@ -44,6 +44,8 @@ interface MoodPickerSheetProps {
   initialMood: number | null;
   onSelect: (mood: number) => void;
   onClose: () => void;
+  /** Sheet title; defaults to the dashboard's daily mood question. */
+  title?: string;
 }
 
 const DOT_HIT = 40;
@@ -55,7 +57,7 @@ const TRACK_INSET = DOT_HIT / 2;
  * follows the selection only; a tap selects, saves and closes shortly after —
  * long enough for the thumb to register visually.
  */
-export function MoodPickerSheet({ isOpen, initialMood, onSelect, onClose }: MoodPickerSheetProps) {
+export function MoodPickerSheet({ isOpen, initialMood, onSelect, onClose, title }: MoodPickerSheetProps) {
   const { t } = useTranslation();
   const { resolved, colors } = useThemeColors();
   const [selected, setSelected] = useState<number | null>(initialMood);
@@ -82,7 +84,7 @@ export function MoodPickerSheet({ isOpen, initialMood, onSelect, onClose }: Mood
   };
 
   return (
-    <Sheet isOpen={isOpen} onClose={onClose} title={t.dashboard.moodQuestion}>
+    <Sheet isOpen={isOpen} onClose={onClose} title={title ?? t.dashboard.moodQuestion}>
       <View className="pb-2">
         <View className="h-16">
           {selected !== null && trackWidth > 0 && (

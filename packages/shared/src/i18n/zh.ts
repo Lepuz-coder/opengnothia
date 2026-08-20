@@ -131,6 +131,8 @@ export const zh: Translations = {
     goToSettings: "前往设置",
     checkingConnection: "正在检查连接...",
     startSessionButton: "开始会话",
+    moodBeforeQuestion: "开始之前，你现在感觉怎么样？",
+    moodAfterQuestion: "会谈结束了，你现在感觉怎么样？",
     psychologist: "心理咨询师",
     sessionCompleted: "会话已完成",
     sessionSummary: "会话摘要",

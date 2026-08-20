@@ -1,9 +1,11 @@
 import { fetch as expoFetch } from "expo/fetch";
 import { AIError } from "@opengnothia/shared/ai/AIError";
 import { sendMessage, streamMessage } from "@opengnothia/shared/ai/aiService";
+import { takeBackgroundNotes } from "@opengnothia/shared/ai/backgroundNotes";
 import { transcribeAudio, type TranscriptionResult } from "@opengnothia/shared/ai/transcriptionService";
 import { synthesizeSpeech, type TTSResult } from "@opengnothia/shared/ai/ttsService";
 import type { ChatMessage, TokenUsage } from "@opengnothia/shared/types";
+import { getQueries } from "@/db";
 import { getAppUserId } from "@/stores/useSubscriptionStore";
 
 /**
@@ -68,6 +70,29 @@ export function sendChat(params: {
     apiKey: requireAppUserId(),
     model: PROXY_MODEL,
     customBaseUrl: WORKER_BASE_URL,
+    ...params,
+  });
+}
+
+/**
+ * Shared takeBackgroundNotes behind the proxy config (Faz 5 Step 45). Notes
+ * are silent-failure by design, so a not-yet-ready subscription identity just
+ * skips the run instead of surfacing an error.
+ */
+export function takeSessionNotes(params: {
+  messages: ChatMessage[];
+  systemPrompt: string;
+  callType: string;
+  sessionId?: string | null;
+}): Promise<void> {
+  const appUserId = getAppUserId();
+  if (appUserId === null) return Promise.resolve();
+  return takeBackgroundNotes({
+    provider: PROXY_PROVIDER,
+    apiKey: appUserId,
+    model: PROXY_MODEL,
+    customBaseUrl: WORKER_BASE_URL,
+    getQueries,
     ...params,
   });
 }

@@ -131,6 +131,8 @@ export const tr: Translations = {
     goToSettings: "Ayarlara Git",
     checkingConnection: "Bağlantı kontrol ediliyor...",
     startSessionButton: "Seansı Başlat",
+    moodBeforeQuestion: "Seansa başlamadan önce, şu an nasıl hissediyorsun?",
+    moodAfterQuestion: "Seansın ardından şu an nasıl hissediyorsun?",
     psychologist: "Psikolog",
     sessionCompleted: "Seans Tamamlandı",
     sessionSummary: "Seans Özeti",

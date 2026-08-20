@@ -23,6 +23,10 @@ interface SettingsState {
   schoolId: TherapySchool | null;
   lockEnabled: boolean;
   onboarded: boolean;
+  /** Desktop's hasSeenIntakeFormPrompt: the first-session intake nudge fires once. */
+  hasSeenIntakePrompt: boolean;
+  /** Last intake form step, so a half-filled form reopens where it was left. */
+  intakeLastStep: number;
   /** False until AsyncStorage has been read; the root layout waits on it. */
   hasHydrated: boolean;
   setLanguage: (language: Language) => void;
@@ -30,6 +34,8 @@ interface SettingsState {
   setSchoolId: (schoolId: TherapySchool | null) => void;
   setLockEnabled: (lockEnabled: boolean) => void;
   setOnboarded: (onboarded: boolean) => void;
+  setHasSeenIntakePrompt: (hasSeenIntakePrompt: boolean) => void;
+  setIntakeLastStep: (intakeLastStep: number) => void;
 }
 
 // M13: mobile keeps its own stores; only pure logic is shared. AsyncStorage is
@@ -42,22 +48,28 @@ export const useSettingsStore = create<SettingsState>()(
       schoolId: null,
       lockEnabled: false,
       onboarded: false,
+      hasSeenIntakePrompt: false,
+      intakeLastStep: 0,
       hasHydrated: false,
       setLanguage: (language) => set({ language }),
       setTheme: (theme) => set({ theme }),
       setSchoolId: (schoolId) => set({ schoolId }),
       setLockEnabled: (lockEnabled) => set({ lockEnabled }),
       setOnboarded: (onboarded) => set({ onboarded }),
+      setHasSeenIntakePrompt: (hasSeenIntakePrompt) => set({ hasSeenIntakePrompt }),
+      setIntakeLastStep: (intakeLastStep) => set({ intakeLastStep }),
     }),
     {
       name: "opengnothia-settings",
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: ({ language, theme, schoolId, lockEnabled, onboarded }) => ({
+      partialize: ({ language, theme, schoolId, lockEnabled, onboarded, hasSeenIntakePrompt, intakeLastStep }) => ({
         language,
         theme,
         schoolId,
         lockEnabled,
         onboarded,
+        hasSeenIntakePrompt,
+        intakeLastStep,
       }),
       // Runs whether or not stored state was found, so the gate always opens.
       onRehydrateStorage: () => () => useSettingsStore.setState({ hasHydrated: true }),

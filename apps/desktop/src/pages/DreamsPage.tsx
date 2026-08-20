@@ -10,8 +10,8 @@ import { streamMessage } from "@opengnothia/shared/ai/aiService";
 import { AIError } from "@opengnothia/shared/ai/AIError";
 import { getErrorDisplayInfo, type ErrorDisplayInfo } from "@opengnothia/shared/ai/errorMessages";
 import { calculateCost } from "@opengnothia/shared/ai/costCalculator";
-import { buildDreamAnalysisPrompt, buildPatientNotesUpdatePrompt, dreamPatientNotesMessage } from "@/services/ai/promptBuilder";
-import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
+import { buildDreamAnalysisPrompt, buildPatientNotesUpdatePrompt, dreamPatientNotesMessage } from "@opengnothia/shared/ai/promptBuilder";
+import { takeBackgroundNotes } from "@opengnothia/shared/ai/backgroundNotes";
 import { getQueries } from "@/db";
 import { ErrorModal } from "@/components/ui/ErrorModal";
 import { Plus, ArrowLeft, Sparkles, Trash2, Loader2, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
@@ -282,6 +282,8 @@ export default function DreamsPage() {
         thinkingLevel: settings.memoryThinkingLevel,
         thinkingType: settings.memoryThinkingType,
         callType: "patient_notes",
+        getQueries,
+        onNoteTaking: useAppStore.getState().setNoteTaking,
       });
 
       // Refresh dream data

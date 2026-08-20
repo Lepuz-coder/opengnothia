@@ -10,7 +10,7 @@ import { streamMessage } from "@opengnothia/shared/ai/aiService";
 import { AIError } from "@opengnothia/shared/ai/AIError";
 import { getErrorDisplayInfo, type ErrorDisplayInfo } from "@opengnothia/shared/ai/errorMessages";
 import { calculateCost } from "@opengnothia/shared/ai/costCalculator";
-import { buildMilestoneAnalysisPrompt } from "@/services/ai/promptBuilder";
+import { buildMilestoneAnalysisPrompt } from "@opengnothia/shared/ai/promptBuilder";
 import { getQueries } from "@/db";
 import { Sparkles, Lock, CheckCircle2, Loader2, Trophy, MessageSquare, BookOpen, Moon } from "lucide-react";
 import ReactMarkdown from "react-markdown";

@@ -149,8 +149,8 @@ interface NewInsightModalProps {
   visible: boolean;
   groups: InsightGroup[];
   onClose: () => void;
-  /** Fired after the insert lands so the parent can reload lists. */
-  onSaved: (groupId: string) => void;
+  /** Fired after the insert lands so the parent can reload lists (or, in-session, track the id). */
+  onSaved: (groupId: string, insightId: string) => void;
   /** Fired after an inline group create so the parent can refresh `groups`. */
   onGroupCreated: () => Promise<void>;
 }
@@ -206,8 +206,8 @@ export function NewInsightModal({ visible, groups, onClose, onSaved, onGroupCrea
     setSaving(true);
     try {
       const queries = await getQueries();
-      await queries.createInsight({ group_id: selectedGroupId, content: content.trim() });
-      onSaved(selectedGroupId);
+      const insightId = await queries.createInsight({ group_id: selectedGroupId, content: content.trim() });
+      onSaved(selectedGroupId, insightId);
       onClose();
     } finally {
       setSaving(false);

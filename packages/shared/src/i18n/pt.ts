@@ -131,6 +131,8 @@ export const pt: Translations = {
     goToSettings: "Ir para Configurações",
     checkingConnection: "Verificando conexão...",
     startSessionButton: "Iniciar Sessão",
+    moodBeforeQuestion: "Antes de começar, como você está se sentindo agora?",
+    moodAfterQuestion: "Agora que a sessão terminou, como você está se sentindo?",
     psychologist: "Psicólogo",
     sessionCompleted: "Sessão Concluída",
     sessionSummary: "Resumo da Sessão",

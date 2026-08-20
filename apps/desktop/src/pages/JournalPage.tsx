@@ -11,8 +11,8 @@ import { streamMessage } from "@opengnothia/shared/ai/aiService";
 import { AIError } from "@opengnothia/shared/ai/AIError";
 import { getErrorDisplayInfo, type ErrorDisplayInfo } from "@opengnothia/shared/ai/errorMessages";
 import { calculateCost } from "@opengnothia/shared/ai/costCalculator";
-import { buildJournalAnalysisPrompt, buildPatientNotesUpdatePrompt, JOURNAL_ANALYSIS_TRIGGER, journalPatientNotesMessage } from "@/services/ai/promptBuilder";
-import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
+import { buildJournalAnalysisPrompt, buildPatientNotesUpdatePrompt, JOURNAL_ANALYSIS_TRIGGER, journalPatientNotesMessage } from "@opengnothia/shared/ai/promptBuilder";
+import { takeBackgroundNotes } from "@opengnothia/shared/ai/backgroundNotes";
 import { getQueries } from "@/db";
 import { ErrorModal } from "@/components/ui/ErrorModal";
 import { Plus, ArrowLeft, Trash2, Sparkles, Loader2, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
@@ -320,6 +320,8 @@ export default function JournalPage() {
         thinkingLevel: settings.memoryThinkingLevel,
         thinkingType: settings.memoryThinkingType,
         callType: "patient_notes",
+        getQueries,
+        onNoteTaking: useAppStore.getState().setNoteTaking,
       });
 
       // Refresh data

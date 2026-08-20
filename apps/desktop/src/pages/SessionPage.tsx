@@ -26,8 +26,8 @@ import { sendMessage, streamMessage, testApiKey } from "@opengnothia/shared/ai/a
 import { AIError } from "@opengnothia/shared/ai/AIError";
 import { getErrorDisplayInfo, buildErrorDetails, type ErrorDisplayInfo } from "@opengnothia/shared/ai/errorMessages";
 import { calculateCost } from "@opengnothia/shared/ai/costCalculator";
-import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildPatientNotesUpdatePrompt, buildCompactionPrompt, buildInsightExtractionPrompt, GREETING_TRIGGER, BACKGROUND_NOTES_SYSTEM_PROMPT, SESSION_SUMMARY_SYSTEM_PROMPT, INSIGHT_EXTRACTION_SYSTEM_PROMPT, SESSION_END_MARKER } from "@/services/ai/promptBuilder";
-import { takeBackgroundNotes } from "@/services/ai/backgroundNotes";
+import { buildSystemPrompt, buildSummaryPrompt, buildGreetingPrompt, buildPatientNotesUpdatePrompt, buildCompactionPrompt, buildInsightExtractionPrompt, GREETING_TRIGGER, BACKGROUND_NOTES_SYSTEM_PROMPT, SESSION_SUMMARY_SYSTEM_PROMPT, INSIGHT_EXTRACTION_SYSTEM_PROMPT, SESSION_END_MARKER } from "@opengnothia/shared/ai/promptBuilder";
+import { takeBackgroundNotes } from "@opengnothia/shared/ai/backgroundNotes";
 import { getQueries } from "@/db";
 import { intakeFormHasContent } from "@opengnothia/shared/db/queries";
 import { getAllSchools, getSchoolById } from "@/stores/useSchoolsStore";
@@ -678,7 +678,7 @@ export default function SessionPage() {
           thinkingType: settings.memoryThinkingType,
           callType: "patient_notes",
           sessionId,
-          manageNoteTaking: false,
+          getQueries,
         });
       })
       .catch(() => {

@@ -1,4 +1,5 @@
 import { ActivityIndicator, Modal, ScrollView, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Sparkles } from "lucide-react-native";
 import { useTranslation } from "@opengnothia/shared/i18n";
 import { useThemeColors } from "@/theme/useAppTheme";
@@ -41,6 +42,7 @@ export function AnalysisSheet({
 }: AnalysisSheetProps) {
   const { t } = useTranslation();
   const { colors } = useThemeColors();
+  const insets = useSafeAreaInsets();
 
   return (
     <Modal
@@ -60,7 +62,11 @@ export function AnalysisSheet({
             {t.common.close}
           </Button>
         </View>
-        <ScrollView className="flex-1" contentContainerClassName="px-5 py-4">
+        <ScrollView
+          className="flex-1"
+          contentContainerClassName="px-5 pt-4"
+          contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
+        >
           {content ? (
             <Markdown>{content}</Markdown>
           ) : generating ? (

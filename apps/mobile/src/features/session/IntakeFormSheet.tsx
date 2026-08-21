@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, Text, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ArrowLeft, ArrowRight } from "lucide-react-native";
 import { useTranslation } from "@opengnothia/shared/i18n";
 import type { PatientIntakeForm, PatientIntakeFormField } from "@opengnothia/shared/types";
 import { getQueries } from "@/db";
 import { useSettingsStore } from "@/stores/useSettingsStore";
+import { showToast } from "@/stores/useToastStore";
 import { useThemeColors } from "@/theme/useAppTheme";
-import { Button } from "@/ui";
+import { Button, ToastContainer } from "@/ui";
 
 type FormState = Record<PatientIntakeFormField, string>;
 
@@ -69,6 +71,7 @@ export function IntakeFormSheet({
 }: IntakeFormSheetProps) {
   const { t } = useTranslation();
   const { colors } = useThemeColors();
+  const insets = useSafeAreaInsets();
   const [form, setForm] = useState<FormState>(() => formFromInitial(initialData));
   const [stepIndex, setStepIndex] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -108,20 +111,32 @@ export function IntakeFormSheet({
 
   const goTo = async (next: number) => {
     if (saving) return;
-    setStepIndex(next);
-    useSettingsStore.getState().setIntakeLastStep(next);
-    await persist();
-  };
-
-  const handleSave = async () => {
     setSaving(true);
     try {
       await persist();
-      useSettingsStore.getState().setIntakeLastStep(0);
+      useSettingsStore.getState().setIntakeLastStep(next);
+      setStepIndex(next);
+    } catch (err) {
+      console.error("Failed to save intake form progress:", err);
+      showToast(t.errors.generic, "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await persist();
       const queries = await getQueries();
       const latest = await queries.getPatientIntakeForm();
+      useSettingsStore.getState().setIntakeLastStep(0);
       onSaved(latest, true);
       onClose();
+    } catch (err) {
+      console.error("Failed to save intake form:", err);
+      showToast(t.errors.generic, "error");
     } finally {
       setSaving(false);
     }
@@ -129,16 +144,29 @@ export function IntakeFormSheet({
 
   const handleClose = async () => {
     if (saving) return;
-    await persist();
-    useSettingsStore.getState().setIntakeLastStep(stepIndex);
-    const queries = await getQueries();
-    const latest = await queries.getPatientIntakeForm();
-    onSaved(latest, false);
-    onClose();
+    setSaving(true);
+    try {
+      await persist();
+      useSettingsStore.getState().setIntakeLastStep(stepIndex);
+      const queries = await getQueries();
+      const latest = await queries.getPatientIntakeForm();
+      onSaved(latest, false);
+      onClose();
+    } catch (err) {
+      console.error("Failed to save intake form before closing:", err);
+      showToast(t.errors.generic, "error");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => void handleClose()}
+    >
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="flex-1 bg-canvas">
         {/* Header: skip/cancel · title */}
         <View className="flex-row items-center border-b border-line px-3 py-2.5">
@@ -184,7 +212,10 @@ export function IntakeFormSheet({
           />
         </View>
 
-        <View className="flex-row items-center justify-between border-t border-line px-4 py-3">
+        <View
+          className="flex-row items-center justify-between border-t border-line px-4 pt-3"
+          style={{ paddingBottom: Math.max(insets.bottom, 12) }}
+        >
           {isFirst ? (
             <View />
           ) : (
@@ -202,6 +233,7 @@ export function IntakeFormSheet({
             </Button>
           )}
         </View>
+        {visible && <ToastContainer />}
       </KeyboardAvoidingView>
     </Modal>
   );

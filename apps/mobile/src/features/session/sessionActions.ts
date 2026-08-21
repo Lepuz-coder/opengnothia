@@ -100,9 +100,17 @@ function completedMessages(): ChatMessage[] {
 export async function startSessionInDb(moodBefore: number): Promise<void> {
   const store = useSessionStore.getState();
   store.startSession(moodBefore);
-  const { sessionId, startedAt } = useSessionStore.getState();
-  const queries = await getQueries();
-  await queries.createSession({ id: sessionId!, started_at: startedAt!, mood_before: moodBefore });
+  try {
+    const { sessionId, startedAt } = useSessionStore.getState();
+    const queries = await getQueries();
+    await queries.createSession({ id: sessionId!, started_at: startedAt!, mood_before: moodBefore });
+  } catch (error) {
+    // startSession makes the fullscreen modal visible immediately. If the DB
+    // row cannot be created, restore the idle state instead of leaving an
+    // active in-memory session with nothing durable behind it.
+    useSessionStore.getState().reset();
+    throw error;
+  }
 }
 
 interface StreamTurnParams {
@@ -247,9 +255,9 @@ function kickOffBackgroundNotes(messages: ChatMessage[]): void {
  * discarded (desktop rule); a real one flips to the end screen and starts the
  * background notes immediately.
  */
-export async function finishSession(): Promise<"deleted" | "post"> {
+export async function finishSession(): Promise<"busy" | "deleted" | "post"> {
   const store = useSessionStore.getState();
-  if (store.isStreaming) return "post";
+  if (store.isStreaming) return "busy";
 
   const messages = completedMessages();
   const userMessageCount = messages.filter((m) => m.role === "user").length;
@@ -274,6 +282,7 @@ export async function generateSummary(onAIError: (error: unknown) => void): Prom
   store().startSummaryStream();
 
   const summaryStream = createBufferedTextStream((chunk) => store().appendSummaryNarrative(chunk));
+  let streamFailed = false;
 
   try {
     const queries = await getQueries();
@@ -296,15 +305,16 @@ export async function generateSummary(onAIError: (error: unknown) => void): Prom
         void trackUsage("summary", usage);
       },
       onError: (error) => {
+        streamFailed = true;
         summaryStream.cancel();
-        store().finishSummaryStream();
+        store().failSummaryStream();
         onAIError(error);
       },
     });
   } catch (err) {
     summaryStream.cancel();
-    store().finishSummaryStream();
-    onAIError(err);
+    store().failSummaryStream();
+    if (!streamFailed) onAIError(err);
   }
 }
 

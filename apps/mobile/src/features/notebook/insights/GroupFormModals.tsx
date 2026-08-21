@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Check, FolderPlus, X } from "lucide-react-native";
 import { useTranslation } from "@opengnothia/shared/i18n";
 import { cn } from "@opengnothia/shared/lib/cn";
 import { COLOR_PRESETS, EMOJI_PRESETS } from "@opengnothia/shared/constants/insightPresets";
 import type { InsightGroup } from "@opengnothia/shared/types";
 import { getQueries } from "@/db";
+import { showToast } from "@/stores/useToastStore";
 import { useThemeColors } from "@/theme/useAppTheme";
-import { Button, Card, Input } from "@/ui";
+import { Button, Card, Input, ToastContainer } from "@/ui";
 
 const DEFAULT_EMOJI = "💡";
 const DEFAULT_COLOR = "#3ABAB4";
@@ -24,9 +26,11 @@ const EMPTY_FORM: GroupFormValues = { name: "", emoji: DEFAULT_EMOJI, descriptio
 /** Emoji presets + custom field and colour swatches, shared by create & edit. */
 function GroupFormFields({
   values,
+  disabled = false,
   onChange,
 }: {
   values: GroupFormValues;
+  disabled?: boolean;
   onChange: (patch: Partial<GroupFormValues>) => void;
 }) {
   const { t } = useTranslation();
@@ -37,6 +41,7 @@ function GroupFormFields({
       <Input
         label={t.insights.groupName}
         value={values.name}
+        editable={!disabled}
         onChangeText={(name) => onChange({ name })}
         placeholder={t.insights.groupNamePlaceholder}
       />
@@ -49,6 +54,7 @@ function GroupFormFields({
               key={emoji}
               accessibilityRole="button"
               accessibilityState={{ selected: values.emoji === emoji }}
+              disabled={disabled}
               onPress={() => onChange({ emoji })}
               className={cn(
                 "h-10 w-10 items-center justify-center rounded-lg",
@@ -62,6 +68,7 @@ function GroupFormFields({
         <View className="mt-1 flex-row items-center gap-2">
           <TextInput
             value={values.emoji}
+            editable={!disabled}
             onChangeText={(val) => {
               // Keep at most one emoji; slice(-2) preserves a surrogate pair.
               if (val) onChange({ emoji: val.slice(-2) });
@@ -76,6 +83,7 @@ function GroupFormFields({
       <Input
         label={t.insights.descriptionOptional}
         value={values.description}
+        editable={!disabled}
         onChangeText={(description) => onChange({ description })}
         placeholder={t.insights.descriptionPlaceholder}
         multiline
@@ -90,6 +98,7 @@ function GroupFormFields({
               key={color}
               accessibilityRole="button"
               accessibilityState={{ selected: values.color === color }}
+              disabled={disabled}
               onPress={() => onChange({ color })}
               className="h-9 w-9 items-center justify-center rounded-full"
               style={{ backgroundColor: color }}
@@ -122,12 +131,16 @@ function FormSheet({
   children: React.ReactNode;
 }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const handleClose = () => {
+    if (!saving) onClose();
+  };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="flex-1 bg-canvas">
         <View className="flex-row items-center justify-between border-b border-line px-3 py-2.5">
-          <Button variant="ghost" size="sm" onPress={onClose} disabled={saving}>
+          <Button variant="ghost" size="sm" onPress={handleClose} disabled={saving}>
             {t.common.cancel}
           </Button>
           <Text className="mx-2 flex-1 text-center text-base font-semibold text-ink" numberOfLines={1}>
@@ -137,9 +150,16 @@ function FormSheet({
             {t.common.save}
           </Button>
         </View>
-        <ScrollView className="flex-1" contentContainerClassName="gap-4 px-4 py-4" keyboardShouldPersistTaps="handled">
+        <ScrollView
+          className="flex-1"
+          contentContainerClassName="gap-4 px-4 pt-4"
+          contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+        >
           {children}
         </ScrollView>
+        {visible && <ToastContainer />}
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -150,7 +170,7 @@ interface NewInsightModalProps {
   groups: InsightGroup[];
   onClose: () => void;
   /** Fired after the insert lands so the parent can reload lists (or, in-session, track the id). */
-  onSaved: (groupId: string, insightId: string) => void;
+  onSaved: (groupId: string, insightId: string) => void | Promise<void>;
   /** Fired after an inline group create so the parent can refresh `groups`. */
   onGroupCreated: () => Promise<void>;
 }
@@ -169,6 +189,7 @@ export function NewInsightModal({ visible, groups, onClose, onSaved, onGroupCrea
   const [form, setForm] = useState<GroupFormValues>(EMPTY_FORM);
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [saving, setSaving] = useState(false);
+  const busy = creatingGroup || saving;
 
   useEffect(() => {
     if (visible) {
@@ -182,35 +203,57 @@ export function NewInsightModal({ visible, groups, onClose, onSaved, onGroupCrea
   }, [visible]);
 
   const handleCreateGroup = async () => {
-    if (!form.name.trim()) return;
+    if (!form.name.trim() || busy) return;
     setCreatingGroup(true);
+    let id: string;
     try {
       const queries = await getQueries();
-      const id = await queries.createInsightGroup({
+      id = await queries.createInsightGroup({
         name: form.name.trim(),
         emoji: form.emoji,
         description: form.description.trim() || undefined,
         color: form.color,
       });
-      await onGroupCreated();
-      setSelectedGroupId(id);
-      setShowNewGroupForm(false);
-      setForm(EMPTY_FORM);
+    } catch (err) {
+      console.error("Failed to create insight group:", err);
+      showToast(t.errors.generic, "error");
+      return;
     } finally {
       setCreatingGroup(false);
+    }
+
+    setSelectedGroupId(id);
+    setShowNewGroupForm(false);
+    setForm(EMPTY_FORM);
+    try {
+      await onGroupCreated();
+    } catch (err) {
+      console.error("Failed to refresh insight groups after create:", err);
+      showToast(t.errors.generic, "error");
     }
   };
 
   const handleSave = async () => {
-    if (!content.trim() || !selectedGroupId) return;
+    if (!content.trim() || !selectedGroupId || busy) return;
     setSaving(true);
+    let insightId: string;
     try {
       const queries = await getQueries();
-      const insightId = await queries.createInsight({ group_id: selectedGroupId, content: content.trim() });
-      onSaved(selectedGroupId, insightId);
-      onClose();
+      insightId = await queries.createInsight({ group_id: selectedGroupId, content: content.trim() });
+    } catch (err) {
+      console.error("Failed to save insight:", err);
+      showToast(t.errors.generic, "error");
+      return;
     } finally {
       setSaving(false);
+    }
+
+    onClose();
+    try {
+      await onSaved(selectedGroupId, insightId);
+    } catch (err) {
+      console.error("Failed to refresh insights after save:", err);
+      showToast(t.errors.generic, "error");
     }
   };
 
@@ -218,8 +261,8 @@ export function NewInsightModal({ visible, groups, onClose, onSaved, onGroupCrea
     <FormSheet
       visible={visible}
       title={t.insights.newInsight}
-      saveDisabled={!content.trim() || !selectedGroupId}
-      saving={saving}
+      saveDisabled={busy || !content.trim() || !selectedGroupId}
+      saving={busy}
       onClose={onClose}
       onSave={handleSave}
     >
@@ -231,6 +274,7 @@ export function NewInsightModal({ visible, groups, onClose, onSaved, onGroupCrea
               variant="ghost"
               size="sm"
               icon={<FolderPlus size={16} color={colors.inkMute} />}
+              disabled={busy}
               onPress={() => setShowNewGroupForm(true)}
             >
               {t.insights.createNewGroup}
@@ -245,6 +289,7 @@ export function NewInsightModal({ visible, groups, onClose, onSaved, onGroupCrea
                 key={group.id}
                 accessibilityRole="radio"
                 accessibilityState={{ selected: group.id === selectedGroupId }}
+                disabled={busy}
                 onPress={() => setSelectedGroupId(group.id)}
                 className={cn(
                   "flex-row items-center justify-between px-4 py-3 active:bg-raised",
@@ -268,6 +313,8 @@ export function NewInsightModal({ visible, groups, onClose, onSaved, onGroupCrea
             <Text className="text-sm font-semibold text-ink">{t.insights.createNewGroupTitle}</Text>
             <Pressable
               accessibilityRole="button"
+              accessibilityState={{ disabled: busy }}
+              disabled={busy}
               onPress={() => {
                 setShowNewGroupForm(false);
                 setForm(EMPTY_FORM);
@@ -277,8 +324,12 @@ export function NewInsightModal({ visible, groups, onClose, onSaved, onGroupCrea
               <X size={18} color={colors.inkMute} />
             </Pressable>
           </View>
-          <GroupFormFields values={form} onChange={(patch) => setForm((f) => ({ ...f, ...patch }))} />
-          <Button onPress={handleCreateGroup} disabled={!form.name.trim()} loading={creatingGroup}>
+          <GroupFormFields
+            values={form}
+            disabled={busy}
+            onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
+          />
+          <Button onPress={handleCreateGroup} disabled={busy || !form.name.trim()} loading={creatingGroup}>
             {t.insights.createGroup}
           </Button>
         </Card>
@@ -288,6 +339,7 @@ export function NewInsightModal({ visible, groups, onClose, onSaved, onGroupCrea
         <Text className="text-sm font-medium text-ink-soft">{t.insights.insightLabel}</Text>
         <TextInput
           multiline
+          editable={!busy}
           value={content}
           onChangeText={setContent}
           placeholder={t.insights.notePlaceholder}
@@ -304,7 +356,7 @@ interface EditGroupModalProps {
   visible: boolean;
   group: InsightGroup | null;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: () => void | Promise<void>;
 }
 
 export function EditGroupModal({ visible, group, onClose, onSaved }: EditGroupModalProps) {
@@ -324,20 +376,31 @@ export function EditGroupModal({ visible, group, onClose, onSaved }: EditGroupMo
   }, [visible, group]);
 
   const handleSave = async () => {
-    if (!group || !form.name.trim()) return;
+    if (!group || !form.name.trim() || saving) return;
     setSaving(true);
     try {
       const queries = await getQueries();
       await queries.updateInsightGroup(group.id, {
         name: form.name.trim(),
         emoji: form.emoji,
-        description: form.description.trim() || undefined,
+        // Empty string deliberately clears an existing optional description.
+        description: form.description.trim(),
         color: form.color,
       });
-      onSaved();
-      onClose();
+    } catch (err) {
+      console.error("Failed to update insight group:", err);
+      showToast(t.errors.generic, "error");
+      return;
     } finally {
       setSaving(false);
+    }
+
+    onClose();
+    try {
+      await onSaved();
+    } catch (err) {
+      console.error("Failed to refresh insight group after update:", err);
+      showToast(t.errors.generic, "error");
     }
   };
 
@@ -350,7 +413,11 @@ export function EditGroupModal({ visible, group, onClose, onSaved }: EditGroupMo
       onClose={onClose}
       onSave={handleSave}
     >
-      <GroupFormFields values={form} onChange={(patch) => setForm((f) => ({ ...f, ...patch }))} />
+      <GroupFormFields
+        values={form}
+        disabled={saving}
+        onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
+      />
     </FormSheet>
   );
 }

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, Text, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "@opengnothia/shared/i18n";
 import { useThemeColors } from "@/theme/useAppTheme";
-import { Button } from "@/ui";
+import { Button, ToastContainer } from "@/ui";
 
 interface EntryComposerProps {
   visible: boolean;
@@ -33,6 +34,7 @@ export function EntryComposer({
 }: EntryComposerProps) {
   const { t } = useTranslation();
   const { colors } = useThemeColors();
+  const insets = useSafeAreaInsets();
   const [content, setContent] = useState(initialContent);
 
   // The sheet is reused across days and entries; re-arm the draft each time
@@ -42,16 +44,19 @@ export function EntryComposer({
   }, [visible, initialContent]);
 
   const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
+  const handleClose = () => {
+    if (!saving) onClose();
+  };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         className="flex-1 bg-canvas"
       >
         {/* Top bar: cancel · date · save */}
         <View className="flex-row items-center justify-between border-b border-line px-3 py-2.5">
-          <Button variant="ghost" size="sm" onPress={onClose} disabled={saving}>
+          <Button variant="ghost" size="sm" onPress={handleClose} disabled={saving}>
             {t.common.cancel}
           </Button>
           <Text className="mx-2 flex-1 text-center text-sm capitalize text-ink-mute" numberOfLines={1}>
@@ -73,11 +78,15 @@ export function EntryComposer({
           className="flex-1 px-5 py-4 text-base leading-relaxed text-ink"
         />
 
-        <View className="border-t border-line px-4 py-2">
+        <View
+          className="border-t border-line px-4 pt-2"
+          style={{ paddingBottom: Math.max(insets.bottom, 8) }}
+        >
           <Text className="text-right text-xs text-ink-mute">
             {wordCount} {t.common.words}
           </Text>
         </View>
+        {visible && <ToastContainer />}
       </KeyboardAvoidingView>
     </Modal>
   );

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Purchases, {
@@ -13,7 +13,7 @@ import { cn } from "@opengnothia/shared/lib/cn";
 import { showToast } from "@/stores/useToastStore";
 import { useSubscriptionStore } from "@/stores/useSubscriptionStore";
 import { useThemeColors } from "@/theme/useAppTheme";
-import { Badge, Button } from "@/ui";
+import { Badge, Button, ToastContainer } from "@/ui";
 
 interface PaywallContentProps {
   /**
@@ -43,6 +43,21 @@ export function PaywallContent({ variant, onDone }: PaywallContentProps) {
   const [offering, setOffering] = useState<PurchasesOffering | null | undefined>(undefined);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [busy, setBusy] = useState<"purchase" | "restore" | null>(null);
+  const mountedRef = useRef(true);
+  const completedRef = useRef(false);
+
+  useEffect(() => () => {
+    mountedRef.current = false;
+  }, []);
+
+  // Native sheet gestures can dismiss the route while StoreKit/restore is
+  // still resolving. Only the first exit may navigate, and never after this
+  // surface has unmounted, otherwise a late completion can pop the next page.
+  const finish = useCallback((proceedAsPro: boolean) => {
+    if (!mountedRef.current || completedRef.current) return;
+    completedRef.current = true;
+    onDone(proceedAsPro);
+  }, [onDone]);
 
   const loadOfferings = useCallback(async () => {
     setOffering(undefined);
@@ -88,7 +103,7 @@ export function PaywallContent({ variant, onDone }: PaywallContentProps) {
     try {
       await Purchases.purchasePackage(selectedPkg);
       showToast(t.paywall.purchaseSuccess, "success");
-      onDone(true);
+      finish(true);
     } catch (err) {
       // User backing out of the store sheet is not an error state.
       if ((err as PurchasesError).code !== PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR) {
@@ -106,7 +121,7 @@ export function PaywallContent({ variant, onDone }: PaywallContentProps) {
       await restore();
       if (useSubscriptionStore.getState().isPro) {
         showToast(t.paywall.restoreSuccess, "success");
-        onDone(true);
+        finish(true);
       } else {
         showToast(t.paywall.restoreNone, "info");
       }
@@ -129,13 +144,15 @@ export function PaywallContent({ variant, onDone }: PaywallContentProps) {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t.common.close}
-              onPress={() => onDone(isPro)}
-              className="rounded-full bg-raised p-2 active:bg-line"
+              accessibilityState={{ disabled: busy !== null }}
+              disabled={busy !== null}
+              onPress={() => finish(isPro)}
+              className={`rounded-full bg-raised p-2 active:bg-line${busy !== null ? " opacity-50" : ""}`}
             >
               <X size={20} color={colors.inkMute} />
             </Pressable>
           ) : (
-            <Button variant="ghost" size="sm" onPress={() => onDone(isPro)}>
+            <Button variant="ghost" size="sm" disabled={busy !== null} onPress={() => finish(isPro)}>
               {t.onboarding.skipForNow}
             </Button>
           )}
@@ -155,7 +172,7 @@ export function PaywallContent({ variant, onDone }: PaywallContentProps) {
               <Check size={20} color={colors.tint} />
               <Text className="text-base font-medium text-ink">{t.paywall.alreadyPro}</Text>
             </View>
-            <Button variant="secondary" onPress={() => onDone(true)}>
+            <Button variant="secondary" disabled={busy !== null} onPress={() => finish(true)}>
               {variant === "modal" ? t.common.close : t.common.continue}
             </Button>
           </View>
@@ -231,6 +248,7 @@ export function PaywallContent({ variant, onDone }: PaywallContentProps) {
           </>
         )}
       </ScrollView>
+      {variant === "modal" && <ToastContainer />}
     </View>
   );
 }

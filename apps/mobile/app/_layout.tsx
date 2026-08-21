@@ -13,10 +13,14 @@ import { StatusBar } from "expo-status-bar";
 import { Stack } from "expo-router";
 import { useTranslation } from "@opengnothia/shared/i18n";
 import { useDatabase } from "@/db/useDatabase";
-import { useSettingsStore } from "@/stores/useSettingsStore";
+import { AppLockScreen } from "@/features/app-lock/AppLockScreen";
+import { useAppLock } from "@/features/app-lock/useAppLock";
+import { PaywallOverlay } from "@/features/paywall/PaywallOverlay";
+import { usePaywallOverlayStore } from "@/features/paywall/usePaywallOverlayStore";
+import { useSettingsHydrationStore, useSettingsStore } from "@/stores/useSettingsStore";
 import { useSubscriptionStore } from "@/stores/useSubscriptionStore";
 import { useThemeColors, useThemeSync } from "@/theme/useAppTheme";
-import { Button, ToastContainer } from "@/ui";
+import { Button, DataLoadError, ToastContainer } from "@/ui";
 
 // The anchor covers the onboarded case; on a fresh install the guards below
 // drop (tabs) entirely and the router falls through to (onboarding) (Step 59).
@@ -24,11 +28,31 @@ export const unstable_settings = { anchor: "(tabs)" };
 
 export default function RootLayout() {
   useThemeSync();
+  const { t } = useTranslation();
   const { resolved, colors } = useThemeColors();
-  const hasHydrated = useSettingsStore((s) => s.hasHydrated);
+  const hasHydrated = useSettingsHydrationStore((s) => s.hasHydrated);
+  const settingsHydrationError = useSettingsHydrationStore((s) => s.hydrationError);
+  const lockEnabled = useSettingsStore((s) => s.lockEnabled);
   const onboarded = useSettingsStore((s) => s.onboarded);
+  const paywallOverlayVisible = usePaywallOverlayStore((s) => s.visible);
   const { isReady, error, retry } = useDatabase();
   const configurePurchases = useSubscriptionStore((s) => s.configure);
+  const appLock = useAppLock({
+    enabled: lockEnabled,
+    // A failed settings read is not a completed security boundary. Keeping
+    // this false until a successful retry guarantees a recovered persisted
+    // lock is treated exactly like a cold launch and prompts before content.
+    settingsHydrated: hasHydrated && !settingsHydrationError,
+    promptMessage: t.settings.appLockPrompt,
+    cancelLabel: t.common.cancel,
+  });
+  const showLockScreen =
+    hasHydrated && lockEnabled && (appLock.isLocked || appLock.isObscured);
+
+  const retrySettingsHydration = () => {
+    useSettingsHydrationStore.setState({ hasHydrated: false, hydrationError: false });
+    void useSettingsStore.persist.rehydrate();
+  };
 
   // RC configure must precede any Purchases call (paywall offerings, appUserID
   // for AI requests) — earliest safe point, independent of the DB gate below.
@@ -41,6 +65,8 @@ export default function RootLayout() {
       <StatusBar style={resolved === "dark" ? "light" : "dark"} />
       {error !== null ? (
         <DatabaseErrorScreen message={error} onRetry={retry} />
+      ) : settingsHydrationError ? (
+        <DataLoadError onRetry={retrySettingsHydration} />
       ) : !isReady || !hasHydrated ? (
         <View className="flex-1 items-center justify-center bg-canvas">
           <ActivityIndicator color={colors.tint} />
@@ -74,7 +100,18 @@ export default function RootLayout() {
           <Stack.Screen name="school-quiz" options={{ presentation: "modal", headerShown: false }} />
         </Stack>
       )}
-      <ToastContainer />
+      {!showLockScreen && !paywallOverlayVisible && <ToastContainer />}
+      {/* A late Worker response can arrive after the app is locked. Defer the
+          paywall mount so it can never be added above the privacy boundary;
+          its transient store keeps it pending until unlock. */}
+      {!showLockScreen && <PaywallOverlay />}
+      {showLockScreen && (
+        <AppLockScreen
+          authenticating={appLock.isAuthenticating}
+          error={appLock.error}
+          onUnlock={() => void appLock.unlock()}
+        />
+      )}
     </GestureHandlerRootView>
   );
 }

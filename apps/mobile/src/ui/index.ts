@@ -2,6 +2,7 @@ export { Badge } from "./Badge";
 export { Button } from "./Button";
 export { Card } from "./Card";
 export { ConfirmSheet } from "./ConfirmSheet";
+export { DataLoadError } from "./DataLoadError";
 export { Input } from "./Input";
 export { LockBadge } from "./LockBadge";
 export { ScreenPlaceholder } from "./ScreenPlaceholder";

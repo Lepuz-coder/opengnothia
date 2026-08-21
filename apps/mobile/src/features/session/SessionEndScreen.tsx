@@ -5,6 +5,7 @@ import { useTranslation } from "@opengnothia/shared/i18n";
 import type { Insight, InsightGroup } from "@opengnothia/shared/types";
 import { getQueries } from "@/db";
 import { useSessionStore } from "@/stores/useSessionStore";
+import { showToast } from "@/stores/useToastStore";
 import { useThemeColors } from "@/theme/useAppTheme";
 import { Button, Card } from "@/ui";
 import { EntryComposer } from "@/features/notebook/EntryComposer";
@@ -35,15 +36,24 @@ export function SessionEndScreen({ onAIError }: SessionEndScreenProps) {
 
   const [moodSheetOpen, setMoodSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingSaving, setEditingSaving] = useState(false);
+  const [deletingInsightId, setDeletingInsightId] = useState<string | null>(null);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [groups, setGroups] = useState<InsightGroup[]>([]);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  const [insightsLoadError, setInsightsLoadError] = useState(false);
   const [editingInsight, setEditingInsight] = useState<Insight | null>(null);
 
   const loadInsights = useCallback(async () => {
     if (sessionInsightIds.length === 0) {
       setInsights([]);
+      setGroups([]);
+      setInsightsLoadError(false);
+      setInsightsLoading(false);
       return;
     }
+    setInsightsLoading(true);
+    setInsightsLoadError(false);
     try {
       const queries = await getQueries();
       const [list, groupList] = await Promise.all([
@@ -54,37 +64,58 @@ export function SessionEndScreen({ onAIError }: SessionEndScreenProps) {
       list.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
       setInsights(list);
       setGroups(groupList);
-    } catch {
-      setInsights([]);
+    } catch (err) {
+      console.error("Failed to load session insights:", err);
+      setInsightsLoadError(true);
+    } finally {
+      setInsightsLoading(false);
     }
   }, [sessionInsightIds]);
 
   useEffect(() => {
-    loadInsights();
+    void loadInsights();
   }, [loadInsights]);
 
   const handleDeleteInsight = async (id: string) => {
+    if (deletingInsightId !== null) return;
+    setDeletingInsightId(id);
     try {
       const queries = await getQueries();
       await queries.deleteInsight(id);
       removeSessionInsightId(id);
+      setInsights((current) => current.filter((insight) => insight.id !== id));
     } catch {
-      // row stays; the list simply doesn't shrink
+      showToast(t.errors.generic, "error");
+    } finally {
+      setDeletingInsightId(null);
     }
   };
 
   const handleSaveEdit = async (content: string) => {
-    if (!editingInsight) return;
-    const queries = await getQueries();
-    await queries.updateInsightContent(editingInsight.id, content);
-    setEditingInsight(null);
-    await loadInsights();
+    if (!editingInsight || editingSaving) return;
+    const target = editingInsight;
+    setEditingSaving(true);
+    try {
+      const queries = await getQueries();
+      await queries.updateInsightContent(target.id, content);
+      setInsights((current) => current.map((insight) => (
+        insight.id === target.id ? { ...insight, content } : insight
+      )));
+      setEditingInsight(null);
+    } catch {
+      showToast(t.errors.generic, "error");
+    } finally {
+      setEditingSaving(false);
+    }
   };
 
   const handleSaveAndClose = async () => {
+    if (saving) return;
     setSaving(true);
     try {
       await saveAndCloseSession();
+    } catch {
+      showToast(t.errors.generic, "error");
     } finally {
       setSaving(false);
     }
@@ -136,7 +167,24 @@ export function SessionEndScreen({ onAIError }: SessionEndScreenProps) {
         </Card>
 
         {/* Insights captured during the session */}
-        {insights.length > 0 && (
+        {sessionInsightIds.length > 0 && (insightsLoading || insightsLoadError) && (
+          <Card>
+            <View accessibilityRole={insightsLoadError ? "alert" : undefined} className="items-center gap-3 py-4">
+              {insightsLoading ? (
+                <ActivityIndicator color={colors.tint} />
+              ) : (
+                <>
+                  <Text className="text-center text-sm text-ink-soft">{t.errors.generic}</Text>
+                  <Button variant="secondary" size="sm" onPress={() => void loadInsights()}>
+                    {t.errors.retryButton}
+                  </Button>
+                </>
+              )}
+            </View>
+          </Card>
+        )}
+
+        {!insightsLoading && !insightsLoadError && insights.length > 0 && (
           <Card>
             <View className="mb-3 flex-row items-center gap-2">
               <Lightbulb size={16} color={colors.tint} />
@@ -167,9 +215,14 @@ export function SessionEndScreen({ onAIError }: SessionEndScreenProps) {
                         accessibilityRole="button"
                         accessibilityLabel={t.common.delete}
                         onPress={() => handleDeleteInsight(insight.id)}
+                        disabled={deletingInsightId !== null}
                         className="rounded-lg p-1 active:bg-raised"
                       >
-                        <Trash2 size={14} color="#EF4444" />
+                        {deletingInsightId === insight.id ? (
+                          <ActivityIndicator size="small" color="#EF4444" />
+                        ) : (
+                          <Trash2 size={14} color="#EF4444" />
+                        )}
                       </Pressable>
                     </View>
                   ))}
@@ -222,8 +275,10 @@ export function SessionEndScreen({ onAIError }: SessionEndScreenProps) {
         label={editingInsight ? (groups.find((g) => g.id === editingInsight.group_id)?.name ?? t.insights.insightLabel) : ""}
         placeholder={t.insights.notePlaceholder}
         initialContent={editingInsight?.content ?? ""}
-        saving={false}
-        onClose={() => setEditingInsight(null)}
+        saving={editingSaving}
+        onClose={() => {
+          if (!editingSaving) setEditingInsight(null);
+        }}
         onSave={handleSaveEdit}
       />
     </>

@@ -8,8 +8,9 @@ import { useAIErrorHandler } from "@/ai/useAIErrorHandler";
 import { getQueries } from "@/db";
 import { useProGate } from "@/hooks/useProGate";
 import { formatDayLabel, formatTimestamp, formatYMD, getCalendarDays } from "@/lib/date";
+import { showToast } from "@/stores/useToastStore";
 import { useThemeColors } from "@/theme/useAppTheme";
-import { Button, Card, ConfirmSheet, LockBadge } from "@/ui";
+import { Button, Card, ConfirmSheet, DataLoadError, LockBadge } from "@/ui";
 import { AnalysisSheet } from "@/features/analyses/AnalysisSheet";
 import { kickOffAnalysisNotes, streamAnalysisContent } from "@/features/analyses/analysisActions";
 import { CalendarMonth } from "./CalendarMonth";
@@ -38,6 +39,7 @@ export function DreamsSegment() {
   const [dreams, setDreams] = useState<Dream[]>([]);
   const [selected, setSelected] = useState<Dream | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const now = new Date();
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
@@ -48,6 +50,7 @@ export function DreamsSegment() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [analysisOpen, setAnalysisOpen] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
@@ -63,15 +66,23 @@ export function DreamsSegment() {
   const markedDates = useMemo(() => new Set(dreamsByDate.keys()), [dreamsByDate]);
 
   const loadDreams = useCallback(async () => {
-    const days = getCalendarDays(currentYear, currentMonth);
-    const queries = await getQueries();
-    const data = await queries.getDreamsByDateRange(formatYMD(days[0]), formatYMD(days[days.length - 1]));
-    setDreams(data);
-    setLoading(false);
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const days = getCalendarDays(currentYear, currentMonth);
+      const queries = await getQueries();
+      const data = await queries.getDreamsByDateRange(formatYMD(days[0]), formatYMD(days[days.length - 1]));
+      setDreams(data);
+    } catch (err) {
+      console.error("Failed to load dreams:", err);
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, [currentYear, currentMonth]);
 
   useEffect(() => {
-    loadDreams();
+    void loadDreams();
   }, [loadDreams]);
 
   const handlePrevMonth = () => {
@@ -115,36 +126,45 @@ export function DreamsSegment() {
   };
 
   const handleSave = async (content: string) => {
-    if (!content) return;
+    if (!content || saving) return;
     setSaving(true);
     try {
       const queries = await getQueries();
       if (editingId) {
         await queries.updateDreamContent(editingId, content);
-        const updated = await queries.getDreamById(editingId);
-        if (updated) setSelected(updated);
+        setSelected((dream) => (dream?.id === editingId ? { ...dream, content } : dream));
       } else {
         const id = await queries.saveDream(content, composerDate);
-        const dream = await queries.getDreamById(id);
-        if (dream) setSelected(dream);
+        setSelected({ id, date: composerDate, content, analysis: null, created_at: new Date().toISOString() });
       }
       setComposerOpen(false);
       setEditingId(null);
       setView("detail");
       await loadDreams();
+    } catch (err) {
+      console.error("Failed to save dream:", err);
+      showToast(t.errors.generic, "error");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!selected) return;
-    const queries = await getQueries();
-    await queries.deleteDream(selected.id);
-    setDeleteOpen(false);
-    setSelected(null);
-    setView("calendar");
-    await loadDreams();
+    if (!selected || deleting) return;
+    setDeleting(true);
+    try {
+      const queries = await getQueries();
+      await queries.deleteDream(selected.id);
+      setDeleteOpen(false);
+      setSelected(null);
+      setView("calendar");
+      await loadDreams();
+    } catch (err) {
+      console.error("Failed to delete dream:", err);
+      showToast(t.errors.generic, "error");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   // Step 50: desktop DreamsPage's handleAnalyze over the mobile AI plumbing.
@@ -170,9 +190,10 @@ export function DreamsSegment() {
       if (full !== null && full.trim().length > 0) {
         await queries.updateDreamAnalysis(dream.id, full);
         setSelected((prev) => (prev && prev.id === dream.id ? { ...prev, analysis: full } : prev));
+        setDreams((current) => current.map((item) => (
+          item.id === dream.id ? { ...item, analysis: full } : item
+        )));
         kickOffAnalysisNotes(dreamPatientNotesMessage(dream.content, full));
-        // Refresh the calendar cache so re-opening this day carries the analysis.
-        await loadDreams();
       }
     } catch (err) {
       handleAIError(err);
@@ -209,6 +230,10 @@ export function DreamsSegment() {
         <ActivityIndicator color={colors.tint} />
       </View>
     );
+  }
+
+  if (loadError) {
+    return <DataLoadError onRetry={() => void loadDreams()} />;
   }
 
   // ─── Detail ───
@@ -283,6 +308,7 @@ export function DreamsSegment() {
           title={t.dreams.deleteDream}
           message={t.dreams.deleteDreamConfirm}
           confirmLabel={t.dreams.yesDelete}
+          confirming={deleting}
           onConfirm={handleDelete}
           onClose={() => setDeleteOpen(false)}
         />

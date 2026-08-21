@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { ArrowLeft, Lightbulb, Pencil, Pin, PinOff, Plus, Search, Trash2 } from "lucide-react-native";
 import { getDateLocale, useTranslation } from "@opengnothia/shared/i18n";
 import { cn } from "@opengnothia/shared/lib/cn";
 import type { Insight, InsightGroup } from "@opengnothia/shared/types";
 import { getQueries } from "@/db";
 import { formatRelativeTime, formatTimestamp } from "@/lib/date";
+import { showToast } from "@/stores/useToastStore";
 import { useThemeColors } from "@/theme/useAppTheme";
-import { Badge, Button, Card, ConfirmSheet, Input } from "@/ui";
+import { Badge, Button, Card, ConfirmSheet, DataLoadError, Input } from "@/ui";
 import { EntryComposer } from "../EntryComposer";
 import { EditGroupModal, NewInsightModal } from "./GroupFormModals";
 
@@ -38,6 +39,7 @@ export function InsightsSegment() {
   const [selectedGroup, setSelectedGroup] = useState<InsightGroup | null>(null);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   const [newInsightOpen, setNewInsightOpen] = useState(false);
@@ -45,11 +47,21 @@ export function InsightsSegment() {
   const [noteTarget, setNoteTarget] = useState<NoteTarget | null>(null);
   const [noteSaving, setNoteSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [pinningId, setPinningId] = useState<string | null>(null);
 
   const loadGroups = useCallback(async () => {
-    const queries = await getQueries();
-    setGroups(await queries.getInsightGroups());
-    setLoading(false);
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const queries = await getQueries();
+      setGroups(await queries.getInsightGroups());
+    } catch (err) {
+      console.error("Failed to load insight groups:", err);
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   const loadInsights = useCallback(async (groupId: string) => {
@@ -72,7 +84,7 @@ export function InsightsSegment() {
   );
 
   useEffect(() => {
-    loadGroups();
+    void loadGroups();
   }, [loadGroups]);
 
   const filteredGroups = useMemo(() => {
@@ -86,9 +98,14 @@ export function InsightsSegment() {
   const totalInsights = useMemo(() => groups.reduce((sum, g) => sum + g.insight_count, 0), [groups]);
 
   const openGroup = async (group: InsightGroup) => {
-    setSelectedGroup(group);
-    await loadInsights(group.id);
-    setView("detail");
+    try {
+      await loadInsights(group.id);
+      setSelectedGroup(group);
+      setView("detail");
+    } catch (err) {
+      console.error("Failed to load insight group:", err);
+      showToast(t.errors.generic, "error");
+    }
   };
 
   const backToGroups = () => {
@@ -105,49 +122,107 @@ export function InsightsSegment() {
     noteTarget?.kind === "edit" ? t.common.edit : noteTarget?.kind === "quick" ? t.insights.quickAdd : t.insights.newNote;
 
   const handleNoteSave = async (content: string) => {
-    if (!noteTarget || !content) return;
+    if (!noteTarget || !content || noteSaving) return;
+    const target = noteTarget;
+    const groupId = target.kind === "quick" ? target.groupId : selectedGroup?.id;
+    if (!groupId) return;
+
     setNoteSaving(true);
     try {
       const queries = await getQueries();
-      if (noteTarget.kind === "quick") {
-        await queries.createInsight({ group_id: noteTarget.groupId, content });
-        await refreshGroups();
-      } else if (noteTarget.kind === "new") {
-        if (!selectedGroup) return;
-        await queries.createInsight({ group_id: selectedGroup.id, content });
-        await loadInsights(selectedGroup.id);
-        await refreshGroups(selectedGroup.id);
+      if (target.kind === "quick" || target.kind === "new") {
+        await queries.createInsight({ group_id: groupId, content });
       } else {
-        await queries.updateInsightContent(noteTarget.insight.id, content);
-        if (selectedGroup) await loadInsights(selectedGroup.id);
+        await queries.updateInsightContent(target.insight.id, content);
       }
       setNoteTarget(null);
+    } catch (err) {
+      console.error("Failed to save insight note:", err);
+      showToast(t.errors.generic, "error");
+      return;
     } finally {
       setNoteSaving(false);
+    }
+
+    try {
+      if (target.kind === "quick") {
+        await refreshGroups();
+      } else if (target.kind === "new") {
+        await loadInsights(groupId);
+        await refreshGroups(groupId);
+      } else {
+        await loadInsights(groupId);
+      }
+    } catch (err) {
+      console.error("Failed to refresh insight notes after save:", err);
+      showToast(t.errors.generic, "error");
     }
   };
 
   const handleTogglePin = async (insight: Insight) => {
-    const queries = await getQueries();
-    await queries.toggleInsightPin(insight.id, !insight.is_pinned);
-    if (selectedGroup) await loadInsights(selectedGroup.id);
+    if (pinningId === insight.id) return;
+    setPinningId(insight.id);
+    try {
+      const queries = await getQueries();
+      await queries.toggleInsightPin(insight.id, !insight.is_pinned);
+    } catch (err) {
+      console.error("Failed to toggle insight pin:", err);
+      showToast(t.errors.generic, "error");
+      return;
+    } finally {
+      setPinningId(null);
+    }
+
+    if (selectedGroup) {
+      try {
+        await loadInsights(selectedGroup.id);
+      } catch (err) {
+        console.error("Failed to refresh insights after pinning:", err);
+        showToast(t.errors.generic, "error");
+      }
+    }
   };
 
   const handleDelete = async () => {
-    if (!deleteTarget) return;
-    const queries = await getQueries();
-    if (deleteTarget.kind === "insight") {
-      await queries.deleteInsight(deleteTarget.id);
+    if (!deleteTarget || deleting) return;
+    const target = deleteTarget;
+    const group = selectedGroup;
+    if (target.kind === "group" && !group) return;
+
+    setDeleting(true);
+    try {
+      const queries = await getQueries();
+      if (target.kind === "insight") {
+        await queries.deleteInsight(target.id);
+      } else {
+        await queries.deleteInsightGroup(group!.id);
+      }
       setDeleteTarget(null);
-      if (selectedGroup) {
-        await loadInsights(selectedGroup.id);
-        await refreshGroups(selectedGroup.id);
+    } catch (err) {
+      console.error("Failed to delete insight data:", err);
+      showToast(t.errors.generic, "error");
+      return;
+    } finally {
+      setDeleting(false);
+    }
+
+    if (target.kind === "insight") {
+      setInsights((current) => current.filter((insight) => insight.id !== target.id));
+      if (group) {
+        try {
+          await refreshGroups(group.id);
+          await loadInsights(group.id);
+        } catch (err) {
+          console.error("Failed to refresh insights after delete:", err);
+          showToast(t.errors.generic, "error");
+        }
       }
     } else {
-      if (!selectedGroup) return;
-      await queries.deleteInsightGroup(selectedGroup.id);
-      setDeleteTarget(null);
-      backToGroups();
+      setGroups((current) => current.filter((item) => item.id !== group!.id));
+      setView("groups");
+      setSelectedGroup(null);
+      setInsights([]);
+      await loadGroups();
     }
   };
 
@@ -166,6 +241,10 @@ export function InsightsSegment() {
         <ActivityIndicator color={colors.tint} />
       </View>
     );
+  }
+
+  if (loadError) {
+    return <DataLoadError onRetry={() => void loadGroups()} />;
   }
 
   // ─── Group detail ───
@@ -248,6 +327,8 @@ export function InsightsSegment() {
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel={insight.is_pinned ? t.insights.unpin : t.insights.pin}
+                      accessibilityState={{ disabled: pinningId === insight.id }}
+                      disabled={pinningId === insight.id}
                       onPress={() => handleTogglePin(insight)}
                       className="rounded-lg p-2 active:bg-raised"
                     >
@@ -299,6 +380,7 @@ export function InsightsSegment() {
               : t.insights.deleteNoteConfirm
           }
           confirmLabel={deleteTarget?.kind === "group" ? t.insights.deleteGroup : t.common.delete}
+          confirming={deleting}
           onConfirm={handleDelete}
           onClose={() => setDeleteTarget(null)}
         />
@@ -316,7 +398,13 @@ export function InsightsSegment() {
   // ─── Groups list (default) ───
   return (
     <>
-      <ScrollView className="flex-1" contentContainerClassName="gap-3 px-4 py-4" keyboardShouldPersistTaps="handled">
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="gap-3 px-4 py-4"
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+        automaticallyAdjustKeyboardInsets
+      >
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center gap-2">
             {groups.length > 0 && (

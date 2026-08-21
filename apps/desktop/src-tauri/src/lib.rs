@@ -394,6 +394,12 @@ pub fn run() {
             sql: include_str!("../../../../packages/shared/migrations/017_add_patient_intake_form.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 18,
+            description: "cascade insight group deletes atomically",
+            sql: include_str!("../../../../packages/shared/migrations/018_cascade_insight_group_delete.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

@@ -385,12 +385,23 @@ export function createQueries(db: DatabasePort) {
   }): Promise<JournalEntry> {
     const id = crypto.randomUUID();
     const date = entry.date ?? new Date().toISOString().split("T")[0];
+    const createdAt = new Date().toISOString();
     await db.execute(
-      "INSERT INTO journal_entries (id, date, content, mood, tags) VALUES (?, ?, ?, ?, ?)",
-      [id, date, entry.content, entry.mood, JSON.stringify(entry.tags)]
+      "INSERT INTO journal_entries (id, date, content, mood, tags, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+      [id, date, entry.content, entry.mood, JSON.stringify(entry.tags), createdAt]
     );
-    const rows = await db.select<JournalEntry>("SELECT * FROM journal_entries WHERE id = ?", [id]);
-    return parseJournalEntry(rows[0]);
+    // Return the row we inserted instead of issuing a second SELECT. If that
+    // read failed after a successful INSERT, callers would keep the editor
+    // open and a retry could create a duplicate entry.
+    return {
+      id,
+      date,
+      content: entry.content,
+      mood: entry.mood,
+      tags: entry.tags,
+      ai_analysis: null,
+      created_at: createdAt,
+    };
   }
 
   async function getJournalEntries(limit = 50): Promise<JournalEntry[]> {
@@ -516,7 +527,11 @@ export function createQueries(db: DatabasePort) {
        FROM insight_groups ig
        LEFT JOIN insights i ON i.group_id = ig.id
        GROUP BY ig.id
-       ORDER BY ig.updated_at DESC`
+       ORDER BY CASE
+                  WHEN MAX(i.created_at) IS NULL OR ig.updated_at >= MAX(i.created_at)
+                    THEN ig.updated_at
+                  ELSE MAX(i.created_at)
+                END DESC`
     );
   }
 
@@ -550,7 +565,8 @@ export function createQueries(db: DatabasePort) {
   }
 
   async function deleteInsightGroup(id: string): Promise<void> {
-    await db.execute("DELETE FROM insights WHERE group_id = ?", [id]);
+    // Migration 018 handles children in a trigger within this same statement,
+    // including connections where PRAGMA foreign_keys is disabled.
     await db.execute("DELETE FROM insight_groups WHERE id = ?", [id]);
   }
 
@@ -582,10 +598,9 @@ export function createQueries(db: DatabasePort) {
       "INSERT INTO insights (id, group_id, content) VALUES (?, ?, ?)",
       [id, data.group_id, data.content]
     );
-    await db.execute(
-      "UPDATE insight_groups SET updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-      [data.group_id]
-    );
+    // Group ordering derives from MAX(insights.created_at), so the insert is
+    // one atomic statement. A separate metadata UPDATE could fail after the
+    // INSERT and make an editor retry create a duplicate note.
     return id;
   }
 

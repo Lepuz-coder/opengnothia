@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Modal, ScrollView, Text, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FileText, Sparkles, Trash2 } from "lucide-react-native";
 import { getDateLocale, useTranslation } from "@opengnothia/shared/i18n";
 import { SESSION_SUMMARY_SYSTEM_PROMPT, buildSummaryPrompt } from "@opengnothia/shared/ai/promptBuilder";
@@ -10,8 +11,9 @@ import { streamChat } from "@/ai/client";
 import { useAIErrorHandler } from "@/ai/useAIErrorHandler";
 import { getQueries } from "@/db";
 import { useProGate } from "@/hooks/useProGate";
+import { showToast } from "@/stores/useToastStore";
 import { useThemeColors } from "@/theme/useAppTheme";
-import { Button, ConfirmSheet, LockBadge, ToastContainer } from "@/ui";
+import { Button, ConfirmSheet, DataLoadError, LockBadge, ToastContainer } from "@/ui";
 import { ChatMessages } from "@/features/session/ChatMessages";
 import { Markdown } from "@/features/session/Markdown";
 
@@ -26,6 +28,7 @@ export default function PastSessionDetailScreen() {
   const { t, language } = useTranslation();
   const locale = getDateLocale(language);
   const { colors } = useThemeColors();
+  const insets = useSafeAreaInsets();
   const { isPro, gate } = useProGate();
   // The summary generator streams inside a pageSheet — errors must not try to
   // push the paywall route under it.
@@ -33,6 +36,7 @@ export default function PastSessionDetailScreen() {
 
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -40,17 +44,29 @@ export default function PastSessionDetailScreen() {
   const [streamContent, setStreamContent] = useState("");
   const cancelledRef = useRef(false);
 
-  useEffect(() => {
-    if (!id) return;
+  const loadSession = useCallback(async () => {
+    if (!id) {
+      setSession(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    getQueries()
-      .then((queries) => queries.getSessionById(id))
-      .then((s) => {
-        setSession(s);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    setLoadError(false);
+    setSession(null);
+    try {
+      const queries = await getQueries();
+      setSession(await queries.getSessionById(id));
+    } catch (err) {
+      console.error("Failed to load session:", err);
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
+
+  useEffect(() => {
+    void loadSession();
+  }, [loadSession]);
 
   useEffect(
     () => () => {
@@ -72,13 +88,19 @@ export default function PastSessionDetailScreen() {
   };
 
   const handleDelete = async () => {
-    if (!session) return;
+    if (!session || deleting) return;
     setDeleting(true);
-    const queries = await getQueries();
-    await queries.deleteSession(session.id);
-    setDeleting(false);
-    setDeleteConfirmOpen(false);
-    router.back();
+    try {
+      const queries = await getQueries();
+      await queries.deleteSession(session.id);
+      setDeleteConfirmOpen(false);
+      router.back();
+    } catch (err) {
+      console.error("Failed to delete session:", err);
+      showToast(t.errors.generic, "error");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const handleGenerateSummary = useCallback(async () => {
@@ -86,6 +108,7 @@ export default function PastSessionDetailScreen() {
     cancelledRef.current = false;
     setGenerating(true);
     setStreamContent("");
+    let streamFailed = false;
 
     try {
       const queries = await getQueries();
@@ -121,19 +144,26 @@ export default function PastSessionDetailScreen() {
           });
         },
         onError: (error) => {
+          streamFailed = true;
           buffered.cancel();
-          if (!cancelledRef.current) handleAIError(error);
+          if (!cancelledRef.current) {
+            setStreamContent("");
+            handleAIError(error);
+          }
         },
       });
 
-      if (fullContent.trim().length > 0) {
+      if (!streamFailed && fullContent.trim().length > 0) {
         await queries.updateSessionNarrative(session.id, fullContent);
         if (!cancelledRef.current) {
           setSession((prev) => (prev ? { ...prev, summary_narrative: fullContent } : prev));
         }
       }
     } catch (err) {
-      if (!cancelledRef.current) handleAIError(err);
+      if (!cancelledRef.current && !streamFailed) {
+        setStreamContent("");
+        handleAIError(err);
+      }
     } finally {
       if (!cancelledRef.current) setGenerating(false);
     }
@@ -145,6 +175,10 @@ export default function PastSessionDetailScreen() {
         <ActivityIndicator color={colors.tint} />
       </View>
     );
+  }
+
+  if (loadError) {
+    return <DataLoadError onRetry={() => void loadSession()} />;
   }
 
   if (!session) {
@@ -211,7 +245,11 @@ export default function PastSessionDetailScreen() {
               {t.common.close}
             </Button>
           </View>
-          <ScrollView className="flex-1" contentContainerClassName="px-5 py-4">
+          <ScrollView
+            className="flex-1"
+            contentContainerClassName="px-5 pt-4"
+            contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
+          >
             {session.summary_narrative ? (
               <Markdown>{session.summary_narrative}</Markdown>
             ) : generating ? (
@@ -246,6 +284,7 @@ export default function PastSessionDetailScreen() {
         title={t.session.deleteSession}
         message={t.session.deleteSessionConfirm}
         confirmLabel={deleting ? t.session.deleting : t.common.delete}
+        confirming={deleting}
         onConfirm={handleDelete}
         onClose={() => setDeleteConfirmOpen(false)}
       />

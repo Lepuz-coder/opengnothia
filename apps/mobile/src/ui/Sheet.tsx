@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { X } from "lucide-react-native";
 import { cn } from "@opengnothia/shared/lib/cn";
 import { useThemeColors } from "@/theme/useAppTheme";
+import { ToastContainer } from "./Toast";
 
 interface SheetProps {
   isOpen: boolean;
@@ -51,6 +52,7 @@ export function Sheet({ isOpen, onClose, title, dismissible = true, className, c
           )}
           {children}
         </View>
+        {isOpen && <ToastContainer />}
       </KeyboardAvoidingView>
     </Modal>
   );

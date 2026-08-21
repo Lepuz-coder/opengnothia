@@ -20,7 +20,15 @@ import { SessionTopBar } from "./SessionTopBar";
 import { finishSession, sendUserMessage, setVoiceSink } from "./sessionActions";
 
 /** The AI proposed closing (SESSION_END_MARKER): confirm or keep talking. */
-function EndPromptCard({ onClose, onContinue }: { onClose: () => void; onContinue: () => void }) {
+function EndPromptCard({
+  finishing,
+  onClose,
+  onContinue,
+}: {
+  finishing: boolean;
+  onClose: () => void;
+  onContinue: () => void;
+}) {
   const { t } = useTranslation();
   const { colors } = useThemeColors();
 
@@ -36,10 +44,10 @@ function EndPromptCard({ onClose, onContinue }: { onClose: () => void; onContinu
         </View>
       </View>
       <View className="flex-row gap-2.5">
-        <Button variant="secondary" className="flex-1" onPress={onContinue}>
+        <Button variant="secondary" className="flex-1" onPress={onContinue} disabled={finishing}>
           {t.session.continueSession}
         </Button>
-        <Button className="flex-1" onPress={onClose}>
+        <Button className="flex-1" onPress={onClose} loading={finishing}>
           {t.session.closeSession}
         </Button>
       </View>
@@ -78,6 +86,7 @@ export function SessionModal() {
   modeRef.current = mode;
 
   const [endConfirmOpen, setEndConfirmOpen] = useState(false);
+  const [finishing, setFinishing] = useState(false);
   const [insightModalOpen, setInsightModalOpen] = useState(false);
   const [insightGroups, setInsightGroups] = useState<InsightGroup[]>([]);
 
@@ -133,25 +142,39 @@ export function SessionModal() {
     }
   }, [pendingEndPrompt, mode]);
 
-  const loadGroups = async () => {
+  const loadGroups = async (): Promise<boolean> => {
     try {
       const queries = await getQueries();
       setInsightGroups(await queries.getInsightGroups());
-    } catch {
-      setInsightGroups([]);
+      return true;
+    } catch (err) {
+      console.error("Failed to load in-session insight groups:", err);
+      showToast(t.errors.generic, "error");
+      return false;
     }
   };
 
   const openInsightModal = async () => {
-    await loadGroups();
-    setInsightModalOpen(true);
+    if (await loadGroups()) setInsightModalOpen(true);
   };
 
-  const handleFinish = () => {
-    setEndConfirmOpen(false);
-    setPendingEndPrompt(false);
-    if (mode === "voice") exitVoiceMode();
-    void finishSession();
+  const handleFinish = async () => {
+    if (finishing || isStreaming) return;
+    setFinishing(true);
+    try {
+      const result = await finishSession();
+      if (result === "busy") return;
+      setEndConfirmOpen(false);
+      setPendingEndPrompt(false);
+      if (mode === "voice") exitVoiceMode();
+    } catch (err) {
+      console.error("Failed to finish session:", err);
+      // A short session is deleted before the store resets. Keep every modal
+      // and voice state intact so a failed DB delete can be retried safely.
+      showToast(t.errors.generic, "error");
+    } finally {
+      setFinishing(false);
+    }
   };
 
   const handleContinueAfterMarker = () => {
@@ -165,7 +188,7 @@ export function SessionModal() {
       animationType="slide"
       onRequestClose={() => {
         // Android back / iOS gesture: route through the explicit end flow.
-        if (status === "active") setEndConfirmOpen(true);
+        if (status === "active" && !isStreaming) setEndConfirmOpen(true);
       }}
       statusBarTranslucent
     >
@@ -181,7 +204,11 @@ export function SessionModal() {
               <>
                 <ChatMessages messages={messages} />
                 <View style={{ paddingBottom: insets.bottom }}>
-                  <EndPromptCard onClose={handleFinish} onContinue={handleContinueAfterMarker} />
+                  <EndPromptCard
+                    finishing={finishing}
+                    onClose={() => void handleFinish()}
+                    onContinue={handleContinueAfterMarker}
+                  />
                 </View>
               </>
             ) : mode === "voice" ? (
@@ -222,7 +249,8 @@ export function SessionModal() {
           title={t.session.endSession}
           message={t.session.endSessionConfirm}
           confirmLabel={t.session.yesEnd}
-          onConfirm={handleFinish}
+          confirming={finishing}
+          onConfirm={() => void handleFinish()}
           onClose={() => setEndConfirmOpen(false)}
         />
 
@@ -236,7 +264,9 @@ export function SessionModal() {
             addSessionInsightId(insightId);
             showToast(t.session.addedToInsightsToast, "success");
           }}
-          onGroupCreated={loadGroups}
+          onGroupCreated={async () => {
+            await loadGroups();
+          }}
         />
 
         {/* The root ToastContainer sits below this RN Modal — mount a second

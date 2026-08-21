@@ -78,9 +78,14 @@ export function MoodPickerSheet({ isOpen, initialMood, onSelect, onClose, title 
 
   const handlePick = (mood: number) => {
     setSelected(mood);
-    onSelect(mood);
     if (closeTimer.current !== null) clearTimeout(closeTimer.current);
-    closeTimer.current = setTimeout(onClose, 450);
+    // Commit only the last value after the visual confirmation window. Rapid
+    // taps therefore cannot start competing DB writes or roll a newer choice
+    // back when an older request fails late.
+    closeTimer.current = setTimeout(() => {
+      onSelect(mood);
+      onClose();
+    }, 450);
   };
 
   return (

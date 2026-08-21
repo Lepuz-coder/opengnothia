@@ -38,4 +38,6 @@ export const MIGRATIONS: MigrationDef[] = [
   { version: 16, sql: "CREATE TABLE IF NOT EXISTS course_notes (\n  course_id TEXT PRIMARY KEY,\n  notes TEXT NOT NULL DEFAULT '',\n  created_at TEXT DEFAULT CURRENT_TIMESTAMP,\n  updated_at TEXT DEFAULT CURRENT_TIMESTAMP\n);\n" },
   // 017_add_patient_intake_form.sql
   { version: 17, sql: "CREATE TABLE IF NOT EXISTS patient_intake_form (\n  id INTEGER PRIMARY KEY DEFAULT 1,\n  reason_for_seeking TEXT,\n  current_concerns TEXT,\n  previous_therapy TEXT,\n  current_medications TEXT,\n  family_relationships TEXT,\n  significant_life_events TEXT,\n  sleep_patterns TEXT,\n  physical_health TEXT,\n  strengths_support TEXT,\n  therapy_expectations TEXT,\n  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,\n  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP\n);\n" },
+  // 018_cascade_insight_group_delete.sql
+  { version: 18, sql: "-- Some SQLite adapters do not enable foreign-key enforcement on every pooled\n-- connection. Keep group deletion atomic even there: this trigger runs inside\n-- the same statement that deletes the parent row.\nCREATE TRIGGER IF NOT EXISTS delete_insights_with_group\nBEFORE DELETE ON insight_groups\nFOR EACH ROW\nBEGIN\n  DELETE FROM insights WHERE group_id = OLD.id;\nEND;\n" },
 ];

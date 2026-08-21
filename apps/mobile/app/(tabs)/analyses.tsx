@@ -15,7 +15,7 @@ import { getQueries } from "@/db";
 import { useProGate } from "@/hooks/useProGate";
 import { toIsoUtc } from "@/lib/date";
 import { useThemeColors } from "@/theme/useAppTheme";
-import { Button, Card } from "@/ui";
+import { Button, Card, DataLoadError } from "@/ui";
 import { AnalysisSheet } from "@/features/analyses/AnalysisSheet";
 import { streamAnalysisContent } from "@/features/analyses/analysisActions";
 import { MilestoneCard } from "@/features/analyses/MilestoneCard";
@@ -39,6 +39,7 @@ export default function AnalysesScreen() {
   const handleAIError = useAIErrorHandler({ modalHosted: true });
 
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [sessionCount, setSessionCount] = useState(0);
   const [journalCount, setJournalCount] = useState(0);
   const [dreamCount, setDreamCount] = useState(0);
@@ -49,24 +50,32 @@ export default function AnalysesScreen() {
   const [streamContent, setStreamContent] = useState("");
 
   const load = useCallback(async () => {
-    const queries = await getQueries();
-    const [sessions, journal, dreams] = await Promise.all([
-      queries.getCompletedSessionCount(),
-      queries.getJournalEntryCount(),
-      queries.getDreamCount(),
-    ]);
-    const cached = new Map<number, string>();
-    for (const m of MILESTONES) {
-      if (sessions >= m) {
-        const existing = await queries.getMilestoneAnalysis(m);
-        if (existing) cached.set(m, existing.content);
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const queries = await getQueries();
+      const [sessions, journal, dreams] = await Promise.all([
+        queries.getCompletedSessionCount(),
+        queries.getJournalEntryCount(),
+        queries.getDreamCount(),
+      ]);
+      const cached = new Map<number, string>();
+      for (const m of MILESTONES) {
+        if (sessions >= m) {
+          const existing = await queries.getMilestoneAnalysis(m);
+          if (existing) cached.set(m, existing.content);
+        }
       }
+      setSessionCount(sessions);
+      setJournalCount(journal);
+      setDreamCount(dreams);
+      setCachedAnalyses(cached);
+    } catch (err) {
+      console.error("Failed to load analyses:", err);
+      setLoadError(true);
+    } finally {
+      setLoading(false);
     }
-    setSessionCount(sessions);
-    setJournalCount(journal);
-    setDreamCount(dreams);
-    setCachedAnalyses(cached);
-    setLoading(false);
   }, []);
 
   // Counts move while this tab stays mounted (sessions completed, entries
@@ -165,6 +174,10 @@ export default function AnalysesScreen() {
         <ActivityIndicator color={colors.tint} />
       </View>
     );
+  }
+
+  if (loadError) {
+    return <DataLoadError onRetry={() => void load()} />;
   }
 
   const currentDef = MILESTONE_DEFS.find((m) => m.sessions === currentMilestone);

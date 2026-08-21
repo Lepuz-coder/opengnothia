@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { BookOpen, ChevronLeft, ChevronRight, Flame, Heart, Meh, Moon, Pencil } from "lucide-react-native";
 import { getDateLocale, useTranslation } from "@opengnothia/shared/i18n";
@@ -8,8 +8,9 @@ import { cn } from "@opengnothia/shared/lib/cn";
 import { getQueries } from "@/db";
 import { formatMonthYear, formatYMD, getCalendarDays } from "@/lib/date";
 import { useSessionStore } from "@/stores/useSessionStore";
+import { showToast } from "@/stores/useToastStore";
 import { useThemeColors } from "@/theme/useAppTheme";
-import { Card } from "@/ui";
+import { Card, DataLoadError } from "@/ui";
 import { JourneyCard } from "@/features/dashboard/JourneyCard";
 import { MoodChart } from "@/features/dashboard/MoodChart";
 import { getMoodBandLabel, MoodIcon, MoodPickerSheet } from "@/features/dashboard/MoodPicker";
@@ -52,6 +53,8 @@ export default function HomeScreen() {
   const [todayMood, setTodayMood] = useState<number | null>(null);
   const [moodSheetOpen, setMoodSheetOpen] = useState(false);
   const [moodEntries, setMoodEntries] = useState<MoodEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [todaySession, setTodaySession] = useState<Session | null>(null);
   const sessionStoreStatus = useSessionStore((s) => s.status);
   const [todayJournal, setTodayJournal] = useState<JournalEntry | null>(null);
@@ -96,23 +99,45 @@ export default function HomeScreen() {
     setDreamCount(dreams2);
   }, []);
 
+  const loadHomeData = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      await Promise.all([loadDashboard(), loadMoodEntries()]);
+    } catch (err) {
+      console.error("Failed to load dashboard:", err);
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [loadDashboard, loadMoodEntries]);
+
   // Ritual/journey state changes in other tabs (a journal written, a session
   // completed), so everything reloads on focus, not just on mount.
   useFocusEffect(
     useCallback(() => {
-      loadDashboard();
-      loadMoodEntries();
-    }, [loadDashboard, loadMoodEntries])
+      void loadHomeData();
+    }, [loadHomeData])
   );
 
   const handleMoodSelect = async (mood: number) => {
+    const previousMood = todayMood;
     setTodayMood(mood);
     try {
       const queries = await getQueries();
       await queries.saveMoodEntry(mood);
-      await loadMoodEntries();
     } catch (err) {
       console.error("Failed to save mood:", err);
+      setTodayMood(previousMood);
+      showToast(t.errors.generic, "error");
+      return;
+    }
+
+    try {
+      await loadMoodEntries();
+    } catch (err) {
+      console.error("Failed to refresh mood history:", err);
+      showToast(t.errors.generic, "error");
     }
   };
 
@@ -166,16 +191,22 @@ export default function HomeScreen() {
   );
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
-  // Desktop hides the history card whenever the visible range is empty — which
-  // strands you, since the month nav lives inside the card. Keep it visible
-  // while browsing past months; hide it only in the initial no-data-yet state.
-  const viewingCurrentMonth = currentYear === now.getFullYear() && currentMonth === now.getMonth();
-  const showMoodHistory = moodEntries.length > 0 || !viewingCurrentMonth;
-
   const firstName = profile?.name?.split(" ")[0] ?? null;
   const headerGreeting = firstName ? `${t.dashboard.greeting}, ${firstName}` : t.dashboard.greeting;
   const rawDateLabel = now.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" });
   const dateLabel = rawDateLabel.charAt(0).toLocaleUpperCase(locale) + rawDateLabel.slice(1);
+
+  if (loading) {
+    return (
+      <View className="flex-1 items-center justify-center bg-canvas">
+        <ActivityIndicator color={colors.tint} />
+      </View>
+    );
+  }
+
+  if (loadError) {
+    return <DataLoadError onRetry={() => void loadHomeData()} />;
+  }
 
   return (
     <>
@@ -268,43 +299,41 @@ export default function HomeScreen() {
         />
 
         {/* Mood history — chart only; the notebook tab already owns calendars (mobile adaptation) */}
-        {showMoodHistory && (
-          <Card>
-            <View className="flex-row items-center justify-between">
-              <View className="flex-1 flex-row items-center gap-2">
-                <Heart size={16} color={colors.tint} />
-                <Text className="text-sm font-semibold text-ink-soft">{t.dashboard.moodHistoryTitle}</Text>
-              </View>
-              <View className="flex-row items-center gap-0.5">
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={handlePrevMonth}
-                  className="rounded-lg p-1.5 active:bg-raised"
-                >
-                  <ChevronLeft size={16} color={colors.inkMute} />
-                </Pressable>
-                <Pressable accessibilityRole="button" onPress={handleGoToToday} className="px-1.5 py-1">
-                  <Text className="text-xs font-semibold capitalize text-ink-soft">
-                    {formatMonthYear(currentYear, currentMonth, locale)}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={handleNextMonth}
-                  disabled={isNextDisabled}
-                  className={cn("rounded-lg p-1.5", isNextDisabled ? "opacity-30" : "active:bg-raised")}
-                >
-                  <ChevronRight size={16} color={colors.inkMute} />
-                </Pressable>
-              </View>
+        <Card>
+          <View className="flex-row items-center justify-between">
+            <View className="flex-1 flex-row items-center gap-2">
+              <Heart size={16} color={colors.tint} />
+              <Text className="text-sm font-semibold text-ink-soft">{t.dashboard.moodHistoryTitle}</Text>
             </View>
-            <MoodChart
-              entries={currentMonthEntries}
-              daysInMonth={daysInMonth}
-              noDataText={t.dashboard.noDataThisMonth}
-            />
-          </Card>
-        )}
+            <View className="flex-row items-center gap-0.5">
+              <Pressable
+                accessibilityRole="button"
+                onPress={handlePrevMonth}
+                className="rounded-lg p-1.5 active:bg-raised"
+              >
+                <ChevronLeft size={16} color={colors.inkMute} />
+              </Pressable>
+              <Pressable accessibilityRole="button" onPress={handleGoToToday} className="px-1.5 py-1">
+                <Text className="text-xs font-semibold capitalize text-ink-soft">
+                  {formatMonthYear(currentYear, currentMonth, locale)}
+                </Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={handleNextMonth}
+                disabled={isNextDisabled}
+                className={cn("rounded-lg p-1.5", isNextDisabled ? "opacity-30" : "active:bg-raised")}
+              >
+                <ChevronRight size={16} color={colors.inkMute} />
+              </Pressable>
+            </View>
+          </View>
+          <MoodChart
+            entries={currentMonthEntries}
+            daysInMonth={daysInMonth}
+            noDataText={t.dashboard.noDataThisMonth}
+          />
+        </Card>
 
         {/* Journey (M1: replaces desktop's stats tiles) */}
         <JourneyCard sessionCount={sessionCount} />

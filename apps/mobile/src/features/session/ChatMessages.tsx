@@ -1,5 +1,5 @@
 import { memo, useCallback, useRef, useState } from "react";
-import { ScrollView, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
+import { Platform, ScrollView, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 import { getDateLocale, useTranslation } from "@opengnothia/shared/i18n";
 import type { ChatMessage } from "@opengnothia/shared/types";
 import { Markdown } from "./Markdown";
@@ -88,6 +88,7 @@ export function ChatMessages({ messages }: { messages: ChatMessage[] }) {
       scrollEventThrottle={64}
       onContentSizeChange={handleContentSizeChange}
       keyboardShouldPersistTaps="handled"
+      keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
     >
       {messages.length === 0 && (
         <View className="flex-1 items-center justify-center py-24">

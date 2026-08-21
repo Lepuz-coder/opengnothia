@@ -12,7 +12,7 @@ import { showToast } from "@/stores/useToastStore";
 import { useSessionStore } from "@/stores/useSessionStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useThemeColors } from "@/theme/useAppTheme";
-import { Button, Card, LockBadge } from "@/ui";
+import { Button, Card, DataLoadError, LockBadge } from "@/ui";
 import { MoodPickerSheet } from "@/features/dashboard/MoodPicker";
 import { IntakeCard } from "@/features/session/IntakeCard";
 import { IntakeFormSheet } from "@/features/session/IntakeFormSheet";
@@ -41,41 +41,58 @@ export default function SessionScreen() {
 
   const [sessions, setSessions] = useState<PastSessionRow[]>([]);
   const [intakeForm, setIntakeForm] = useState<PatientIntakeForm | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [moodSheetOpen, setMoodSheetOpen] = useState(false);
   const [intakeSheetOpen, setIntakeSheetOpen] = useState(false);
   const [intakeAllowSkip, setIntakeAllowSkip] = useState(false);
   const [intakeFirstPrompt, setIntakeFirstPrompt] = useState(false);
   const pendingStartRef = useRef(false);
   const pendingMoodRef = useRef<number | null>(null);
+  const previousStatusRef = useRef(status);
 
   const loadData = useCallback(async () => {
-    const queries = await getQueries();
-    const [completed, intake] = await Promise.all([
-      queries.getCompletedSessions(),
-      queries.getPatientIntakeForm(),
-    ]);
-    setSessions(completed);
-    setIntakeForm(intake);
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const queries = await getQueries();
+      const [completed, intake] = await Promise.all([
+        queries.getCompletedSessions(),
+        queries.getPatientIntakeForm(),
+      ]);
+      setSessions(completed);
+      setIntakeForm(intake);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      loadData();
+      void loadData();
     }, [loadData])
   );
 
   // A finished (or discarded) session returns the store to idle while this
   // screen stays mounted — refresh the history without a tab switch.
   useEffect(() => {
-    if (status === "idle") loadData();
+    const previousStatus = previousStatusRef.current;
+    previousStatusRef.current = status;
+    if (previousStatus !== "idle" && status === "idle") void loadData();
   }, [status, loadData]);
 
   const beginSession = useCallback(
     async (moodBefore: number) => {
-      await startSessionInDb(moodBefore);
-      void streamGreeting(handleAIError);
+      try {
+        await startSessionInDb(moodBefore);
+        void streamGreeting(handleAIError);
+      } catch {
+        showToast(t.errors.generic, "error");
+      }
     },
-    [handleAIError]
+    [handleAIError, t]
   );
 
   const beginStartFlow = useCallback(async () => {
@@ -83,20 +100,24 @@ export default function SessionScreen() {
       showToast(t.session.noteTakingStartBlocked, "info");
       return;
     }
-    // Desktop's first-session nudge (Step 41 / M11): an empty intake prompts
-    // once, skippable, and the start flow resumes after save or skip.
-    const queries = await getQueries();
-    const latestIntake = await queries.getPatientIntakeForm();
-    const { hasSeenIntakePrompt, setHasSeenIntakePrompt } = useSettingsStore.getState();
-    if (!intakeFormHasContent(latestIntake) && !hasSeenIntakePrompt) {
-      setHasSeenIntakePrompt(true);
-      pendingStartRef.current = true;
-      setIntakeFirstPrompt(true);
-      setIntakeAllowSkip(true);
-      setIntakeSheetOpen(true);
-      return;
+    try {
+      // Desktop's first-session nudge (Step 41 / M11): an empty intake prompts
+      // once, skippable, and the start flow resumes after save or skip.
+      const queries = await getQueries();
+      const latestIntake = await queries.getPatientIntakeForm();
+      const { hasSeenIntakePrompt, setHasSeenIntakePrompt } = useSettingsStore.getState();
+      if (!intakeFormHasContent(latestIntake) && !hasSeenIntakePrompt) {
+        setHasSeenIntakePrompt(true);
+        pendingStartRef.current = true;
+        setIntakeFirstPrompt(true);
+        setIntakeAllowSkip(true);
+        setIntakeSheetOpen(true);
+        return;
+      }
+      setMoodSheetOpen(true);
+    } catch {
+      showToast(t.errors.generic, "error");
     }
-    setMoodSheetOpen(true);
   }, [t]);
 
   const handleStartPress = () => gate(() => void beginStartFlow());
@@ -119,41 +140,49 @@ export default function SessionScreen() {
 
   return (
     <>
-      <ScrollView className="flex-1" contentContainerClassName="gap-4 px-4 py-4">
-        {notesPreparing && (
-          <Card className="border-primary-500/30 bg-primary-500/10">
-            <View className="flex-row items-center gap-3">
-              <ActivityIndicator size="small" color={colors.tint} />
-              <View className="flex-1">
-                <Text className="text-sm font-semibold text-ink">{t.session.noteTakingModalTitle}</Text>
-                <Text className="mt-0.5 text-xs leading-relaxed text-ink-mute">
-                  {t.session.noteTakingModalDescription}
-                </Text>
+      {loading ? (
+        <View className="flex-1 items-center justify-center bg-canvas">
+          <ActivityIndicator size="large" color={colors.tint} />
+        </View>
+      ) : loadError ? (
+        <DataLoadError onRetry={() => void loadData()} />
+      ) : (
+        <ScrollView className="flex-1" contentContainerClassName="gap-4 px-4 py-4">
+          {notesPreparing && (
+            <Card className="border-primary-500/30 bg-primary-500/10">
+              <View className="flex-row items-center gap-3">
+                <ActivityIndicator size="small" color={colors.tint} />
+                <View className="flex-1">
+                  <Text className="text-sm font-semibold text-ink">{t.session.noteTakingModalTitle}</Text>
+                  <Text className="mt-0.5 text-xs leading-relaxed text-ink-mute">
+                    {t.session.noteTakingModalDescription}
+                  </Text>
+                </View>
               </View>
+            </Card>
+          )}
+
+          <Card>
+            <Text className="text-sm leading-relaxed text-ink-mute">{t.session.description}</Text>
+            <View className="mt-4 flex-row items-center gap-2.5">
+              <Button
+                size="lg"
+                className="flex-1"
+                icon={<Play size={18} color="#fff" />}
+                disabled={notesPreparing}
+                onPress={handleStartPress}
+              >
+                {t.session.startSession}
+              </Button>
+              <LockBadge />
             </View>
           </Card>
-        )}
 
-        <Card>
-          <Text className="text-sm leading-relaxed text-ink-mute">{t.session.description}</Text>
-          <View className="mt-4 flex-row items-center gap-2.5">
-            <Button
-              size="lg"
-              className="flex-1"
-              icon={<Play size={18} color="#fff" />}
-              disabled={notesPreparing}
-              onPress={handleStartPress}
-            >
-              {t.session.startSession}
-            </Button>
-            <LockBadge />
-          </View>
-        </Card>
+          <IntakeCard intakeForm={intakeForm} onPress={openIntakeForEdit} />
 
-        <IntakeCard intakeForm={intakeForm} onPress={openIntakeForEdit} />
-
-        <PastSessionList sessions={sessions} onPress={(s) => router.push(`/session/${s.id}`)} />
-      </ScrollView>
+          <PastSessionList sessions={sessions} onPress={(s) => router.push(`/session/${s.id}`)} />
+        </ScrollView>
+      )}
 
       {/* Step 41: pre-session mood — selecting starts the session. */}
       <MoodPickerSheet

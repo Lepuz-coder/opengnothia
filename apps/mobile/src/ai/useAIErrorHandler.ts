@@ -4,15 +4,15 @@ import Purchases from "react-native-purchases";
 import { AIError } from "@opengnothia/shared/ai/AIError";
 import { extractProxyErrorCode, getErrorDisplayInfo } from "@opengnothia/shared/ai/errorMessages";
 import { useTranslation } from "@opengnothia/shared/i18n";
+import { usePaywallOverlayStore } from "@/features/paywall/usePaywallOverlayStore";
+import { useSubscriptionStore } from "@/stores/useSubscriptionStore";
 import { showToast } from "@/stores/useToastStore";
 
 interface AIErrorHandlerOptions {
   /**
    * Set when the calling surface lives inside an RN Modal (the fullscreen
-   * session, a pageSheet). A route pushed from there would present BELOW the
-   * modal and be invisible, so 403 becomes a toast instead — the paywall
-   * still appears at the next gated entry point. Pair with a <ToastContainer>
-   * mounted inside the modal's own tree, since the root one is covered too.
+   * session, a pageSheet). A route pushed from there would present below the
+   * modal and be invisible, so 403 uses the root window overlay instead.
    */
   modalHosted?: boolean;
 }
@@ -31,18 +31,32 @@ export function useAIErrorHandler(options?: AIErrorHandlerOptions) {
   return useCallback(
     (error: unknown) => {
       if (extractProxyErrorCode(error) === "subscription_required") {
-        // The Worker is authoritative: if it rejects while local state still
-        // says pro, the cached CustomerInfo is stale — refetch so the paywall
-        // shows packages, not "already pro".
+        // The Worker is authoritative: pessimistically clear a stale local
+        // entitlement before presenting packages, then invalidate RevenueCat
+        // so its next explicit read cannot reuse the rejected cache entry.
+        useSubscriptionStore.getState().markSubscriptionRequired();
         void Purchases.invalidateCustomerInfoCache().catch(() => undefined);
         if (modalHosted) {
-          showToast(t.errors.proxySubscriptionMessage, "error");
+          usePaywallOverlayStore.getState().show();
         } else {
           router.push("/paywall");
         }
         return;
       }
       const statusCode = error instanceof AIError ? error.statusCode : undefined;
+      if (statusCode === undefined) {
+        // Mobile has no API-key/balance settings. A status-less failure is
+        // normally offline transport (or startup before RevenueCat produced
+        // an identity), so desktop's BYOK-oriented unknown message would send
+        // the user to a settings screen that does not exist here.
+        const identityPending =
+          error instanceof AIError && error.message.includes("Subscription identity");
+        showToast(
+          identityPending ? t.errors.proxyIdentityMessage : t.errors.status502Message,
+          "error"
+        );
+        return;
+      }
       const info = getErrorDisplayInfo(t, statusCode, "openai", error);
       showToast(info.message, "error");
     },

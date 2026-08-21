@@ -13,8 +13,9 @@ import { getQueries } from "@/db";
 import { useProGate } from "@/hooks/useProGate";
 import { formatDayLabel, formatTimestamp, formatYMD, getCalendarDays } from "@/lib/date";
 import { useSettingsStore } from "@/stores/useSettingsStore";
+import { showToast } from "@/stores/useToastStore";
 import { useThemeColors } from "@/theme/useAppTheme";
-import { Badge, Button, Card, ConfirmSheet, LockBadge } from "@/ui";
+import { Badge, Button, Card, ConfirmSheet, DataLoadError, LockBadge } from "@/ui";
 import { AnalysisSheet } from "@/features/analyses/AnalysisSheet";
 import { kickOffAnalysisNotes, streamAnalysisContent } from "@/features/analyses/analysisActions";
 import { CalendarMonth } from "./CalendarMonth";
@@ -42,6 +43,7 @@ export function JournalSegment() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [selected, setSelected] = useState<JournalEntry | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const now = new Date();
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
@@ -52,6 +54,7 @@ export function JournalSegment() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [analysisOpen, setAnalysisOpen] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
@@ -67,15 +70,23 @@ export function JournalSegment() {
   const markedDates = useMemo(() => new Set(entriesByDate.keys()), [entriesByDate]);
 
   const loadEntries = useCallback(async () => {
-    const days = getCalendarDays(currentYear, currentMonth);
-    const queries = await getQueries();
-    const data = await queries.getJournalEntriesByDateRange(formatYMD(days[0]), formatYMD(days[days.length - 1]));
-    setEntries(data);
-    setLoading(false);
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const days = getCalendarDays(currentYear, currentMonth);
+      const queries = await getQueries();
+      const data = await queries.getJournalEntriesByDateRange(formatYMD(days[0]), formatYMD(days[days.length - 1]));
+      setEntries(data);
+    } catch (err) {
+      console.error("Failed to load journal entries:", err);
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, [currentYear, currentMonth]);
 
   useEffect(() => {
-    loadEntries();
+    void loadEntries();
   }, [loadEntries]);
 
   const handlePrevMonth = () => {
@@ -119,14 +130,13 @@ export function JournalSegment() {
   };
 
   const handleSave = async (content: string) => {
-    if (!content) return;
+    if (!content || saving) return;
     setSaving(true);
     try {
       const queries = await getQueries();
       if (editingId) {
         await queries.updateJournalEntryContent(editingId, content);
-        const updated = await queries.getJournalEntryById(editingId);
-        if (updated) setSelected(updated);
+        setSelected((entry) => (entry?.id === editingId ? { ...entry, content } : entry));
       } else {
         const entry = await queries.createJournalEntry({ content, mood: null, tags: [], date: composerDate });
         setSelected(entry);
@@ -135,19 +145,30 @@ export function JournalSegment() {
       setEditingId(null);
       setView("detail");
       await loadEntries();
+    } catch (err) {
+      console.error("Failed to save journal entry:", err);
+      showToast(t.errors.generic, "error");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!selected) return;
-    const queries = await getQueries();
-    await queries.deleteJournalEntry(selected.id);
-    setDeleteOpen(false);
-    setSelected(null);
-    setView("calendar");
-    await loadEntries();
+    if (!selected || deleting) return;
+    setDeleting(true);
+    try {
+      const queries = await getQueries();
+      await queries.deleteJournalEntry(selected.id);
+      setDeleteOpen(false);
+      setSelected(null);
+      setView("calendar");
+      await loadEntries();
+    } catch (err) {
+      console.error("Failed to delete journal entry:", err);
+      showToast(t.errors.generic, "error");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   // Step 49: desktop JournalPage's handleAnalyze over the mobile AI plumbing.
@@ -182,9 +203,10 @@ export function JournalSegment() {
       if (full !== null && full.trim().length > 0) {
         await queries.updateJournalAnalysis(entry.id, full);
         setSelected((prev) => (prev && prev.id === entry.id ? { ...prev, ai_analysis: full } : prev));
+        setEntries((current) => current.map((item) => (
+          item.id === entry.id ? { ...item, ai_analysis: full } : item
+        )));
         kickOffAnalysisNotes(journalPatientNotesMessage(entry.content, full));
-        // Refresh the calendar cache so re-opening this day carries the analysis.
-        await loadEntries();
       }
     } catch (err) {
       handleAIError(err);
@@ -221,6 +243,10 @@ export function JournalSegment() {
         <ActivityIndicator color={colors.tint} />
       </View>
     );
+  }
+
+  if (loadError) {
+    return <DataLoadError onRetry={() => void loadEntries()} />;
   }
 
   // ─── Detail ───
@@ -303,6 +329,7 @@ export function JournalSegment() {
           title={t.journal.deleteEntry}
           message={t.journal.deleteEntryConfirm}
           confirmLabel={t.journal.yesDelete}
+          confirming={deleting}
           onConfirm={handleDelete}
           onClose={() => setDeleteOpen(false)}
         />

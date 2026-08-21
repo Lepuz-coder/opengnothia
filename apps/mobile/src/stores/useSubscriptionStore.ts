@@ -29,6 +29,8 @@ interface SubscriptionState {
   managementURL: string | null;
   configure: () => void;
   restore: () => Promise<CustomerInfo>;
+  /** Worker 403 is authoritative even when RevenueCat's local cache is stale. */
+  markSubscriptionRequired: () => void;
 }
 
 // Survives re-renders but not reloads; double-configure across dev HMR is
@@ -86,6 +88,13 @@ export const useSubscriptionStore = create<SubscriptionState>()((set) => {
       applyCustomerInfo(info);
       return info;
     },
+
+    markSubscriptionRequired: () => set({
+      isReady: true,
+      isPro: false,
+      expirationDate: null,
+      managementURL: null,
+    }),
   };
 });
 

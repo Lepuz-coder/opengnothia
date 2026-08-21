@@ -33,7 +33,13 @@
       "expo-sqlite",
       "expo-audio",
       "expo-router",
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow OpenGnothia to use Face ID to unlock the app."
+        }
+      ]
     ]
   }
 }

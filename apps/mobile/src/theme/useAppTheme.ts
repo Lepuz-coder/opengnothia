@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { colorScheme, useColorScheme } from "nativewind";
 import type { Theme } from "@opengnothia/shared/types";
-import { useSettingsStore } from "@/stores/useSettingsStore";
+import { useSettingsHydrationStore, useSettingsStore } from "@/stores/useSettingsStore";
 import { THEME_COLORS, type ThemeColors } from "./colors";
 
 /**
@@ -14,7 +14,7 @@ import { THEME_COLORS, type ThemeColors } from "./colors";
  */
 export function useThemeSync(): void {
   const theme = useSettingsStore((s) => s.theme);
-  const hasHydrated = useSettingsStore((s) => s.hasHydrated);
+  const hasHydrated = useSettingsHydrationStore((s) => s.hasHydrated);
 
   useEffect(() => {
     // Waiting for hydration avoids a light→dark flash on launch.

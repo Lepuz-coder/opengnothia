@@ -1,6 +1,7 @@
 import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AlertCircle, Check, Info, X } from "lucide-react-native";
+import { useTranslation } from "@opengnothia/shared/i18n";
 import { useToastStore, type Toast as ToastData } from "@/stores/useToastStore";
 import { useThemeColors } from "@/theme/useAppTheme";
 
@@ -25,15 +26,25 @@ export function ToastContainer() {
 }
 
 function ToastItem({ toast }: { toast: ToastData }) {
+  const { t } = useTranslation();
   const dismiss = useToastStore((s) => s.dismiss);
   const { colors } = useThemeColors();
   const Icon = ICONS[toast.type];
 
   return (
-    <View className="flex-row items-start gap-2.5 rounded-xl border border-line bg-card px-3.5 py-2.5 shadow-lg">
+    <View
+      accessibilityRole="alert"
+      accessibilityLiveRegion="polite"
+      className="flex-row items-start gap-2.5 rounded-xl border border-line bg-card px-3.5 py-2.5 shadow-lg"
+    >
       <Icon size={16} color={ICON_COLORS[toast.type]} />
       <Text className="flex-1 text-sm leading-snug text-ink">{toast.message}</Text>
-      <Pressable accessibilityRole="button" onPress={() => dismiss(toast.id)} className="rounded p-0.5 active:bg-raised">
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t.common.close}
+        onPress={() => dismiss(toast.id)}
+        className="rounded p-0.5 active:bg-raised"
+      >
         <X size={14} color={colors.inkMute} />
       </Pressable>
     </View>

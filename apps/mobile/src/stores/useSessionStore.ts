@@ -52,6 +52,7 @@ interface SessionState {
   startSummaryStream: () => void;
   appendSummaryNarrative: (chunk: string) => void;
   finishSummaryStream: () => void;
+  failSummaryStream: () => void;
   addSessionInsightId: (id: string) => void;
   removeSessionInsightId: (id: string) => void;
   startNoteTaking: () => number;
@@ -157,6 +158,9 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     set((s) => ({ summaryNarrative: s.summaryNarrative + chunk })),
 
   finishSummaryStream: () => set({ isSummaryStreaming: false }),
+
+  // A partial AI stream is not a valid summary and must remain retryable.
+  failSummaryStream: () => set({ summaryNarrative: "", isSummaryStreaming: false }),
 
   addSessionInsightId: (id) =>
     set((s) => ({ sessionInsightIds: [...s.sessionInsightIds, id] })),

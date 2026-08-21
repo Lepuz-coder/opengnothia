@@ -142,6 +142,8 @@ export interface Translations {
     sessionTitle: string;
     description: string;
     startSession: string;
+    startHeroLabel: string;
+    startHeroTitle: string;
     startSessionModal: string;
     endSession: string;
     endSessionConfirm: string;

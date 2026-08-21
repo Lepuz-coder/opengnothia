@@ -118,6 +118,8 @@ export const pt: Translations = {
     sessionTitle: "Sessão",
     description: "Veja sessões anteriores ou inicie uma nova",
     startSession: "Iniciar Sessão",
+    startHeroLabel: "SESSÃO DE TERAPIA COM IA",
+    startHeroTitle: "Pronto para uma nova sessão?",
     startSessionModal: "Iniciar uma Sessão",
     endSession: "Encerrar Sessão",
     endSessionConfirm: "Tem certeza de que deseja encerrar a sessão?",

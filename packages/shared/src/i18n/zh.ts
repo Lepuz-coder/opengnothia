@@ -118,6 +118,8 @@ export const zh: Translations = {
     sessionTitle: "会话",
     description: "查看过去的会话或开始新会话",
     startSession: "开始会话",
+    startHeroLabel: "AI 治疗会话",
+    startHeroTitle: "准备好开始新的会话了吗？",
     startSessionModal: "开始一次会话",
     endSession: "结束会话",
     endSessionConfirm: "确定要结束这次会话吗？",

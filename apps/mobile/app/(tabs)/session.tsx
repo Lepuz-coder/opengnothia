@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { Play } from "lucide-react-native";
+import { MessageSquare, Play } from "lucide-react-native";
 import { useTranslation } from "@opengnothia/shared/i18n";
 import { intakeFormHasContent } from "@opengnothia/shared/db/queries";
 import type { PatientIntakeForm } from "@opengnothia/shared/types";
@@ -162,8 +162,24 @@ export default function SessionScreen() {
             </Card>
           )}
 
-          <Card>
-            <Text className="text-sm leading-relaxed text-ink-mute">{t.session.description}</Text>
+          {/* The IntakeCard promo shell in primary teal — the two cards read
+              as a matching pair on this screen. */}
+          <Card className="overflow-hidden rounded-3xl border-primary-500/20 p-5">
+            <View className="absolute -right-16 -top-24 h-64 w-64 rounded-full bg-primary-500/5" />
+            <View className="absolute -right-6 -top-14 h-40 w-40 rounded-full bg-primary-500/10" />
+
+            <View className="flex-row items-center gap-4">
+              <View className="h-14 w-14 items-center justify-center rounded-2xl border border-primary-500/30 bg-primary-500/20">
+                <MessageSquare size={26} color={colors.tint} />
+              </View>
+              <View className="flex-1">
+                <Text className="text-[11px] font-semibold uppercase tracking-widest text-primary-600 dark:text-primary-400">
+                  {t.session.startHeroLabel}
+                </Text>
+                <Text className="mt-1 text-lg font-bold leading-snug text-ink">{t.session.startHeroTitle}</Text>
+              </View>
+            </View>
+
             <View className="mt-4 flex-row items-center gap-2.5">
               <Button
                 size="lg"

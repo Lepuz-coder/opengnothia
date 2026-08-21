@@ -118,6 +118,8 @@ export const de: Translations = {
     sessionTitle: "Sitzung",
     description: "Vergangene Sitzungen ansehen oder eine neue starten",
     startSession: "Sitzung starten",
+    startHeroLabel: "KI-THERAPIESITZUNG",
+    startHeroTitle: "Bereit für eine neue Sitzung?",
     startSessionModal: "Eine Sitzung starten",
     endSession: "Sitzung beenden",
     endSessionConfirm: "Bist du sicher, dass du die Sitzung beenden möchtest?",

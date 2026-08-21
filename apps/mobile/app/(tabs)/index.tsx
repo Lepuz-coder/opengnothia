@@ -3,7 +3,8 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-nati
 import { useFocusEffect, useRouter } from "expo-router";
 import { BookOpen, ChevronLeft, ChevronRight, Flame, Heart, Meh, Moon, Pencil } from "lucide-react-native";
 import { getDateLocale, useTranslation } from "@opengnothia/shared/i18n";
-import type { Dream, JournalEntry, MoodEntry, Session, UserProfile } from "@opengnothia/shared/types";
+import { countFilledIntakeFields, INTAKE_FORM_TOTAL_FIELDS } from "@opengnothia/shared/db/queries";
+import type { Dream, JournalEntry, MoodEntry, PatientIntakeForm, Session, UserProfile } from "@opengnothia/shared/types";
 import { cn } from "@opengnothia/shared/lib/cn";
 import { getQueries } from "@/db";
 import { formatMonthYear, formatYMD, getCalendarDays } from "@/lib/date";
@@ -16,6 +17,8 @@ import { MoodChart } from "@/features/dashboard/MoodChart";
 import { getMoodBandLabel, MoodIcon, MoodPickerSheet } from "@/features/dashboard/MoodPicker";
 import { RitualCard } from "@/features/dashboard/RitualCard";
 import { TodaySessionHero } from "@/features/dashboard/TodaySessionHero";
+import { IntakeCard } from "@/features/session/IntakeCard";
+import { IntakeFormSheet } from "@/features/session/IntakeFormSheet";
 
 /**
  * Desktop's streak helper, verbatim: today (or yesterday, so an unlogged
@@ -60,6 +63,8 @@ export default function HomeScreen() {
   const [todayJournal, setTodayJournal] = useState<JournalEntry | null>(null);
   const [todayDream, setTodayDream] = useState<Dream | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [intakeForm, setIntakeForm] = useState<PatientIntakeForm | null>(null);
+  const [intakeSheetOpen, setIntakeSheetOpen] = useState(false);
   const [sessionCount, setSessionCount] = useState(0);
   const [journalCount, setJournalCount] = useState(0);
   const [dreamCount, setDreamCount] = useState(0);
@@ -79,12 +84,13 @@ export default function HomeScreen() {
   const loadDashboard = useCallback(async () => {
     const queries = await getQueries();
     const today = formatYMD(new Date());
-    const [moodEntry, session, journal, dreams, userProfile, sessions, journals, dreams2] = await Promise.all([
+    const [moodEntry, session, journal, dreams, userProfile, intake, sessions, journals, dreams2] = await Promise.all([
       queries.getTodayMoodEntry(),
       queries.getTodaySession(),
       queries.getJournalEntryByDate(today),
       queries.getDreamsByDateRange(today, today),
       queries.getUserProfile(),
+      queries.getPatientIntakeForm(),
       queries.getCompletedSessionCount(),
       queries.getJournalEntryCount(),
       queries.getDreamCount(),
@@ -94,6 +100,7 @@ export default function HomeScreen() {
     setTodayJournal(journal);
     setTodayDream(dreams[0] ?? null);
     setProfile(userProfile);
+    setIntakeForm(intake);
     setSessionCount(sessions);
     setJournalCount(journals);
     setDreamCount(dreams2);
@@ -229,6 +236,12 @@ export default function HomeScreen() {
 
         <TodaySessionHero todaySession={heroSession} profile={profile} />
 
+        {/* Intake nudge below the hero — only while incomplete; the completed
+            summary lives on the session tab. */}
+        {countFilledIntakeFields(intakeForm) < INTAKE_FORM_TOTAL_FIELDS && (
+          <IntakeCard intakeForm={intakeForm} onPress={() => setIntakeSheetOpen(true)} />
+        )}
+
         {/* Mood */}
         {todayMood === null ? (
           <Pressable accessibilityRole="button" onPress={() => setMoodSheetOpen(true)} className="active:opacity-80">
@@ -344,6 +357,17 @@ export default function HomeScreen() {
         initialMood={todayMood}
         onSelect={handleMoodSelect}
         onClose={() => setMoodSheetOpen(false)}
+      />
+
+      <IntakeFormSheet
+        visible={intakeSheetOpen}
+        initialData={intakeForm}
+        allowSkip={false}
+        isFirstSessionPrompt={false}
+        onClose={() => setIntakeSheetOpen(false)}
+        onSaved={(updated) => {
+          if (updated) setIntakeForm(updated);
+        }}
       />
     </>
   );

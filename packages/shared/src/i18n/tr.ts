@@ -118,6 +118,8 @@ export const tr: Translations = {
     sessionTitle: "Seans",
     description: "Geçmiş seanslarını görüntüle veya yeni bir seans başlat",
     startSession: "Seans Başlat",
+    startHeroLabel: "AI TERAPİ SEANSI",
+    startHeroTitle: "Yeni bir seansa hazır mısın?",
     startSessionModal: "Seansa Başla",
     endSession: "Seansı Bitir",
     endSessionConfirm: "Seansı bitirmek istediğinden emin misin?",

@@ -118,6 +118,8 @@ export const ja: Translations = {
     sessionTitle: "セッション",
     description: "過去のセッションを見るか、新しいセッションを始めましょう",
     startSession: "セッションを始める",
+    startHeroLabel: "AIセラピーセッション",
+    startHeroTitle: "新しいセッションを始めませんか？",
     startSessionModal: "セッションを始める",
     endSession: "セッションを終了",
     endSessionConfirm: "セッションを終了してもよろしいですか？",

@@ -1,49 +1,173 @@
-import { memo, useCallback, useRef, useState } from "react";
-import { Platform, ScrollView, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
+import {
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from "react-native";
+import Animated, {
+  Easing,
+  FadeInDown,
+  ReduceMotion,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
+import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import { getDateLocale, useTranslation } from "@opengnothia/shared/i18n";
 import type { ChatMessage } from "@opengnothia/shared/types";
-import { Markdown } from "./Markdown";
+import { GLASS, USER_BUBBLE_GRADIENT } from "@/theme/sessionAmbience";
+import { useThemeColors } from "@/theme/useAppTheme";
+import { MiniOrb } from "@/ui";
+import { Markdown, PROSE_PARAGRAPH_GAP, PROSE_TEXT } from "./Markdown";
 
 const NEAR_BOTTOM_PX = 80;
 
-function TypingDots() {
+/** Desktop's `msg-enter`: 0.35s ease-out, opacity 0→1 over an 8px rise. */
+const MESSAGE_ENTRANCE = FadeInDown.duration(350)
+  .easing(Easing.out(Easing.ease))
+  .withInitialValues({ transform: [{ translateY: 8 }] })
+  .reduceMotion(ReduceMotion.System);
+
+/** One of desktop's three bouncing gradient dots (ChatContainer.tsx:138-142). */
+function TypingDot({ delay, glow }: { delay: number; glow: string }) {
+  const bounce = useSharedValue(0);
+
+  useEffect(() => {
+    bounce.value = withDelay(
+      delay,
+      withRepeat(
+        withTiming(1, { duration: 500, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true,
+        undefined,
+        ReduceMotion.System,
+      ),
+    );
+  }, [bounce, delay]);
+
+  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ translateY: -4 * bounce.value }] }));
+
+  return (
+    <Animated.View style={[{ height: 8, width: 8, borderRadius: 4, boxShadow: glow }, animatedStyle]}>
+      <Svg width={8} height={8} viewBox="0 0 100 100">
+        <Defs>
+          <LinearGradient id="typingDotTeal" x1="0" y1="0" x2="1" y2="1">
+            <Stop offset="0" stopColor="#4BC3BE" />
+            <Stop offset="1" stopColor="#2D8F8B" />
+          </LinearGradient>
+        </Defs>
+        <Rect width="100" height="100" rx="50" fill="url(#typingDotTeal)" />
+      </Svg>
+    </Animated.View>
+  );
+}
+
+/**
+ * The streaming half of the AI message. It must land pixel-identical to the
+ * markdown pass that replaces it once the message settles, so it borrows the
+ * renderer's metrics and mirrors its paragraph spacing — splitting on blank
+ * lines is far cheaper than a markdown parse on every 48ms flush.
+ */
+function StreamingProse({ content }: { content: string }) {
+  const paragraphs = content.split(/\n{2,}/);
+
+  return (
+    <>
+      {paragraphs.map((paragraph, index) => (
+        <Text
+          key={index}
+          className="text-ink"
+          style={[PROSE_TEXT, index < paragraphs.length - 1 ? { marginBottom: PROSE_PARAGRAPH_GAP } : null]}
+        >
+          {paragraph}
+        </Text>
+      ))}
+    </>
+  );
+}
+
+function TypingDots({ glow }: { glow: string }) {
   return (
     <View className="flex-row gap-1.5 py-2">
-      <View className="h-2 w-2 rounded-full bg-primary-400" />
-      <View className="h-2 w-2 rounded-full bg-primary-400 opacity-70" />
-      <View className="h-2 w-2 rounded-full bg-primary-400 opacity-40" />
+      <TypingDot delay={0} glow={glow} />
+      <TypingDot delay={150} glow={glow} />
+      <TypingDot delay={300} glow={glow} />
     </View>
   );
 }
 
 // Memoized so the 48ms streaming flushes re-render only the growing message —
 // settled messages keep their object identity and skip the markdown re-parse.
-const MessageBubble = memo(function MessageBubble({ message, locale }: { message: ChatMessage; locale: string }) {
+const MessageBubble = memo(function MessageBubble({
+  message,
+  locale,
+  animate,
+}: {
+  message: ChatMessage;
+  locale: string;
+  animate: boolean;
+}) {
+  const { resolved } = useThemeColors();
   const isUser = message.role === "user";
+  const glass = GLASS[resolved];
+  const entering = animate ? MESSAGE_ENTRANCE : undefined;
 
   if (isUser) {
+    const fill = USER_BUBBLE_GRADIENT[resolved];
     return (
-      <View className="w-full items-end">
-        <View className="max-w-[80%] rounded-2xl rounded-br-md border border-primary-500/20 bg-primary-500/10 px-4 py-3">
-          <Text className="text-base leading-relaxed text-ink">{message.content}</Text>
+      <Animated.View className="w-full items-end" entering={entering}>
+        {/* boxShadow lives on the outer view: `overflow: hidden` sets
+            masksToBounds on iOS, which would clip the shadow away. Same split
+            as LockBadge. */}
+        <View
+          className="max-w-[80%] rounded-2xl rounded-br-md"
+          style={{ boxShadow: glass.bubbleShadow }}
+        >
+          <View className="overflow-hidden rounded-2xl rounded-br-md border border-primary-500/20 px-4 py-3">
+            {/* Desktop's `bg-gradient-to-br from-primary-500/[0.13] to-surface-800/90`. */}
+            <Svg style={StyleSheet.absoluteFill} viewBox="0 0 100 100" preserveAspectRatio="none">
+              <Defs>
+                <LinearGradient id={`userBubble-${resolved}`} x1="0" y1="0" x2="1" y2="1">
+                  <Stop offset="0" stopColor={fill.from} stopOpacity={fill.fromOpacity} />
+                  <Stop offset="1" stopColor={fill.to} stopOpacity={fill.toOpacity} />
+                </LinearGradient>
+              </Defs>
+              <Rect width="100" height="100" fill={`url(#userBubble-${resolved})`} />
+            </Svg>
+            <Text className="text-ink" style={PROSE_TEXT}>
+              {message.content}
+            </Text>
+          </View>
         </View>
         <Text className="mt-1 text-[10px] text-ink-mute">
           {new Date(message.timestamp).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
         </Text>
-      </View>
+      </Animated.View>
     );
   }
 
   return (
-    <View className="w-full">
-      {/* Desktop's mini-orb identity marker, flattened to a tinted dot. */}
-      <View className="mb-1.5 h-3 w-3 rounded-full bg-primary-500/60" />
+    <Animated.View
+      className="w-full"
+      entering={entering}
+      // Desktop's min-h-[3.5rem] while streaming, so the reply doesn't jump.
+      style={message.isStreaming ? { minHeight: 56 } : undefined}
+    >
+      <View className="mb-1.5">
+        <MiniOrb size={16} />
+      </View>
       {message.isStreaming && !message.content ? (
-        <TypingDots />
+        <TypingDots glow={glass.dotGlow} />
       ) : message.isStreaming ? (
-        // Plain text while streaming (session replies are prose by prompt
-        // design); the markdown pass runs once the message settles.
-        <Text className="text-base leading-relaxed text-ink">{message.content}</Text>
+        // Plain text while streaming; the markdown pass runs once the message
+        // settles, and StreamingProse matches it so the swap is invisible.
+        <StreamingProse content={message.content} />
       ) : (
         <>
           <Markdown>{message.content}</Markdown>
@@ -52,7 +176,7 @@ const MessageBubble = memo(function MessageBubble({ message, locale }: { message
           </Text>
         </>
       )}
-    </View>
+    </Animated.View>
   );
 });
 
@@ -66,6 +190,14 @@ export function ChatMessages({ messages }: { messages: ChatMessage[] }) {
   const locale = getDateLocale(language);
   const scrollRef = useRef<ScrollView>(null);
   const [followBottom, setFollowBottom] = useState(true);
+
+  // Only messages that arrive after mount animate in. Without this the
+  // read-only transcript (app/session/[id].tsx) would fade its whole history
+  // in at once on open.
+  const presentAtMountRef = useRef<Set<string> | null>(null);
+  if (presentAtMountRef.current === null) {
+    presentAtMountRef.current = new Set(messages.map((m) => m.id));
+  }
 
   const handleScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
@@ -92,12 +224,19 @@ export function ChatMessages({ messages }: { messages: ChatMessage[] }) {
     >
       {messages.length === 0 && (
         <View className="flex-1 items-center justify-center py-24">
-          <View className="mb-3 h-12 w-12 rounded-full bg-primary-500/30" />
+          <View className="mb-3">
+            <MiniOrb size={48} />
+          </View>
           <Text className="text-sm text-ink-mute">{t.chat.preparing}</Text>
         </View>
       )}
       {messages.map((msg) => (
-        <MessageBubble key={msg.id} message={msg} locale={locale} />
+        <MessageBubble
+          key={msg.id}
+          message={msg}
+          locale={locale}
+          animate={!presentAtMountRef.current?.has(msg.id)}
+        />
       ))}
     </ScrollView>
   );

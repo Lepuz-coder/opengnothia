@@ -7,6 +7,7 @@
 export interface ThemeColors {
   canvas: string;
   card: string;
+  raised: string;
   line: string;
   ink: string;
   inkMute: string;
@@ -18,6 +19,7 @@ export const THEME_COLORS: Record<"light" | "dark", ThemeColors> = {
   light: {
     canvas: "#E8EDF5", // surface-50
     card: "#FFFFFF",
+    raised: "#C9D3E5", // surface-100
     line: "#C9D3E5", // surface-100
     ink: "#0F1729", // surface-950
     inkMute: "#5A7199", // surface-500
@@ -27,6 +29,7 @@ export const THEME_COLORS: Record<"light" | "dark", ThemeColors> = {
   dark: {
     canvas: "#0F1729", // surface-950
     card: "#1A2744", // surface-800
+    raised: "#243556", // surface-700
     line: "#243556", // surface-700
     ink: "#E8EDF5", // surface-50
     inkMute: "#5A7199", // surface-500

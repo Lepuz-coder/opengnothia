@@ -5,6 +5,7 @@ export { ConfirmSheet } from "./ConfirmSheet";
 export { DataLoadError } from "./DataLoadError";
 export { Input } from "./Input";
 export { LockBadge } from "./LockBadge";
+export { MiniOrb } from "./MiniOrb";
 export { ScreenPlaceholder } from "./ScreenPlaceholder";
 export { SegmentedTabs, type SegmentedTab } from "./SegmentedTabs";
 export { Sheet } from "./Sheet";

@@ -1,15 +1,13 @@
 import { useEffect, useState } from "react";
-import { Pressable, Text, View } from "react-native";
-import Svg, { Circle } from "react-native-svg";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { BlurView } from "expo-blur";
 import { Clock, Lightbulb, Square } from "lucide-react-native";
 import { useTranslation } from "@opengnothia/shared/i18n";
-import { formatTokenCount } from "@opengnothia/shared/lib/formatTokens";
 import { getTherapySchool } from "@opengnothia/shared/constants/therapySchools";
 import { useSessionStore } from "@/stores/useSessionStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
+import { GLASS } from "@/theme/sessionAmbience";
 import { useThemeColors } from "@/theme/useAppTheme";
-import { Sheet } from "@/ui";
-import { PROXY_CONTEXT_WINDOW } from "./sessionActions";
 
 /** Desktop SessionTimer verbatim: elapsed is recomputed from the wall clock every tick. */
 function SessionTimer({ startedAt }: { startedAt: string }) {
@@ -38,73 +36,47 @@ function SessionTimer({ startedAt }: { startedAt: string }) {
   );
 }
 
-const RING_RADIUS = 7;
-const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
-
-function ringColor(pct: number): string {
-  if (pct >= 80) return "#EF4444";
-  if (pct >= 50) return "#EAB308";
-  return "#22C55E";
-}
-
 interface SessionTopBarProps {
   onEndPress: () => void;
   onInsightsPress: () => void;
 }
 
 /**
- * Step 42's compact top bar: timer, school badge, context usage ring (tap for
- * token detail), the in-session insights entry point and the end button.
- * Desktop spreads these over a header plus a bottom controls bar; one row is
- * all a phone has room for.
+ * Step 42's compact top bar: timer, school badge, the in-session insights entry
+ * point and the end button. Desktop spreads these over a header plus a bottom
+ * controls bar; one row is all a phone has room for.
+ *
+ * Desktop's context-usage donut has no counterpart here — the phone bar stays
+ * down to what a session actually needs in reach.
  */
 export function SessionTopBar({ onEndPress, onInsightsPress }: SessionTopBarProps) {
   const { t } = useTranslation();
-  const { colors } = useThemeColors();
+  const { colors, resolved } = useThemeColors();
   const startedAt = useSessionStore((s) => s.startedAt);
-  const currentTokens = useSessionStore((s) => s.currentInputTokens);
   const insightCount = useSessionStore((s) => s.sessionInsightIds.length);
   const isStreaming = useSessionStore((s) => s.isStreaming);
   const schoolId = useSettingsStore((s) => s.schoolId);
-  const [contextSheetOpen, setContextSheetOpen] = useState(false);
 
   const school = schoolId ? getTherapySchool(schoolId) : undefined;
-  const pct = Math.min((currentTokens / PROXY_CONTEXT_WINDOW) * 100, 100);
-  const dash = (pct / 100) * RING_CIRCUMFERENCE;
-  const color = ringColor(pct);
 
   return (
-    <>
-      <View className="flex-row items-center gap-3 border-b border-line bg-card px-4 py-2.5">
+    <View style={{ borderBottomWidth: 1, borderBottomColor: GLASS[resolved].hairline }}>
+      <BlurView
+        intensity={60}
+        tint={resolved === "dark" ? "dark" : "light"}
+        style={StyleSheet.absoluteFill}
+      />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: GLASS[resolved].chromeTint }]} />
+      <View className="flex-row items-center gap-3 px-4 py-2.5">
         {startedAt !== null && <SessionTimer startedAt={startedAt} />}
         {school !== undefined && (
-          <View className="rounded-full border border-primary-500/25 bg-primary-500/10 px-2 py-0.5">
-            <Text className="text-[11px] font-semibold text-primary-600 dark:text-primary-400">
+          <View className="rounded-full border border-primary-500/25 bg-primary-500/10 px-2 py-0.5 dark:border-primary-500/30 dark:bg-primary-900/40">
+            <Text className="text-[11px] font-semibold text-primary-700 dark:text-primary-300">
               {school.shortName}
             </Text>
           </View>
         )}
         <View className="flex-1" />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t.session.contextWindow}
-          onPress={() => setContextSheetOpen(true)}
-          className="rounded-lg p-1.5 active:bg-raised"
-        >
-          <Svg viewBox="0 0 18 18" width={20} height={20} style={{ transform: [{ rotate: "-90deg" }] }}>
-            <Circle cx={9} cy={9} r={RING_RADIUS} fill="none" stroke={colors.line} strokeWidth={2} />
-            <Circle
-              cx={9}
-              cy={9}
-              r={RING_RADIUS}
-              fill="none"
-              stroke={color}
-              strokeWidth={2}
-              strokeDasharray={`${dash} ${RING_CIRCUMFERENCE}`}
-              strokeLinecap="round"
-            />
-          </Svg>
-        </Pressable>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t.session.myInsights}
@@ -130,20 +102,6 @@ export function SessionTopBar({ onEndPress, onInsightsPress }: SessionTopBarProp
           <Square size={18} color="#EF4444" fill="#EF4444" />
         </Pressable>
       </View>
-
-      <Sheet isOpen={contextSheetOpen} onClose={() => setContextSheetOpen(false)} title={t.session.contextWindow}>
-        <View className="mb-2 flex-row items-baseline justify-between">
-          <Text className="text-sm text-ink-soft" style={{ fontVariant: ["tabular-nums"] }}>
-            {formatTokenCount(currentTokens)} / {formatTokenCount(PROXY_CONTEXT_WINDOW)}
-          </Text>
-          <Text className="text-sm font-semibold text-ink" style={{ fontVariant: ["tabular-nums"] }}>
-            {Math.round(pct)}%
-          </Text>
-        </View>
-        <View className="mb-2 h-2 overflow-hidden rounded-full bg-raised">
-          <View className="h-full rounded-full" style={{ width: `${Math.max(pct, 1)}%`, backgroundColor: color }} />
-        </View>
-      </Sheet>
-    </>
+    </View>
   );
 }

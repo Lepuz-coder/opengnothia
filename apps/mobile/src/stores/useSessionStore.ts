@@ -15,8 +15,6 @@ interface SessionState {
   status: SessionStatus;
   sessionId: string | null;
   startedAt: string | null;
-  moodBefore: number | null;
-  moodAfter: number | null;
   messages: ChatMessage[];
   /** True from send until the stream finishes (drives the typing dots). */
   isLoading: boolean;
@@ -38,7 +36,7 @@ interface SessionState {
    */
   noteTakingStartedAt: number | null;
 
-  startSession: (moodBefore: number) => void;
+  startSession: () => void;
   addMessage: (message: ChatMessage) => void;
   startStreaming: () => string;
   appendStreamContent: (chunk: string) => void;
@@ -48,7 +46,6 @@ interface SessionState {
   setCurrentInputTokens: (tokens: number) => void;
   setPendingEndPrompt: (pending: boolean) => void;
   endSession: () => void;
-  setMoodAfter: (mood: number) => void;
   startSummaryStream: () => void;
   appendSummaryNarrative: (chunk: string) => void;
   finishSummaryStream: () => void;
@@ -64,8 +61,6 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   status: "idle",
   sessionId: null,
   startedAt: null,
-  moodBefore: null,
-  moodAfter: null,
   messages: [],
   isLoading: false,
   isStreaming: false,
@@ -78,13 +73,11 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   sessionInsightIds: [],
   noteTakingStartedAt: null,
 
-  startSession: (moodBefore) =>
+  startSession: () =>
     set({
       status: "active",
       sessionId: crypto.randomUUID(),
       startedAt: new Date().toISOString(),
-      moodBefore,
-      moodAfter: null,
       messages: [],
       isLoading: false,
       isStreaming: false,
@@ -150,7 +143,6 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
   endSession: () => set({ status: "post", pendingEndPrompt: false }),
 
-  setMoodAfter: (moodAfter) => set({ moodAfter }),
 
   startSummaryStream: () => set({ summaryNarrative: "", isSummaryStreaming: true }),
 
@@ -187,8 +179,6 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       status: "idle",
       sessionId: null,
       startedAt: null,
-      moodBefore: null,
-      moodAfter: null,
       messages: [],
       isLoading: false,
       isStreaming: false,

@@ -13,7 +13,6 @@ import { useSessionStore } from "@/stores/useSessionStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useThemeColors } from "@/theme/useAppTheme";
 import { Button, Card, DataLoadError, LockBadge } from "@/ui";
-import { MoodPickerSheet } from "@/features/dashboard/MoodPicker";
 import { IntakeCard } from "@/features/session/IntakeCard";
 import { IntakeFormSheet } from "@/features/session/IntakeFormSheet";
 import { PastSessionList, type PastSessionRow } from "@/features/session/PastSessionList";
@@ -43,12 +42,10 @@ export default function SessionScreen() {
   const [intakeForm, setIntakeForm] = useState<PatientIntakeForm | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [moodSheetOpen, setMoodSheetOpen] = useState(false);
   const [intakeSheetOpen, setIntakeSheetOpen] = useState(false);
   const [intakeAllowSkip, setIntakeAllowSkip] = useState(false);
   const [intakeFirstPrompt, setIntakeFirstPrompt] = useState(false);
   const pendingStartRef = useRef(false);
-  const pendingMoodRef = useRef<number | null>(null);
   const previousStatusRef = useRef(status);
 
   const loadData = useCallback(async () => {
@@ -83,17 +80,14 @@ export default function SessionScreen() {
     if (previousStatus !== "idle" && status === "idle") void loadData();
   }, [status, loadData]);
 
-  const beginSession = useCallback(
-    async (moodBefore: number) => {
-      try {
-        await startSessionInDb(moodBefore);
-        void streamGreeting(handleAIError);
-      } catch {
-        showToast(t.errors.generic, "error");
-      }
-    },
-    [handleAIError, t]
-  );
+  const beginSession = useCallback(async () => {
+    try {
+      await startSessionInDb();
+      void streamGreeting(handleAIError);
+    } catch {
+      showToast(t.errors.generic, "error");
+    }
+  }, [handleAIError, t]);
 
   const beginStartFlow = useCallback(async () => {
     if (useSessionStore.getState().noteTakingStartedAt !== null) {
@@ -114,7 +108,7 @@ export default function SessionScreen() {
         setIntakeSheetOpen(true);
         return;
       }
-      setMoodSheetOpen(true);
+      void beginSession();
     } catch {
       showToast(t.errors.generic, "error");
     }
@@ -200,26 +194,6 @@ export default function SessionScreen() {
         </ScrollView>
       )}
 
-      {/* Step 41: pre-session mood — selecting starts the session. */}
-      <MoodPickerSheet
-        isOpen={moodSheetOpen}
-        title={t.session.moodBeforeQuestion}
-        initialMood={null}
-        onSelect={(mood) => {
-          pendingMoodRef.current = mood;
-        }}
-        onClose={() => {
-          setMoodSheetOpen(false);
-          const mood = pendingMoodRef.current;
-          pendingMoodRef.current = null;
-          if (mood !== null) {
-            // Let the sheet's dismissal finish before the fullscreen session
-            // modal presents — two sibling modals must not overlap.
-            setTimeout(() => void beginSession(mood), 150);
-          }
-        }}
-      />
-
       <IntakeFormSheet
         visible={intakeSheetOpen}
         initialData={intakeForm}
@@ -231,7 +205,9 @@ export default function SessionScreen() {
           if (pendingStartRef.current) {
             pendingStartRef.current = false;
             setIntakeFirstPrompt(false);
-            setTimeout(() => setMoodSheetOpen(true), 350);
+            // Still delayed: the intake sheet must finish dismissing before the
+            // fullscreen session modal presents — two modals must not overlap.
+            setTimeout(() => void beginSession(), 350);
           }
         }}
       />

@@ -9,7 +9,6 @@ import { showToast } from "@/stores/useToastStore";
 import { useThemeColors } from "@/theme/useAppTheme";
 import { Button, Card } from "@/ui";
 import { EntryComposer } from "@/features/notebook/EntryComposer";
-import { getMoodBandLabel, MoodIcon, MoodPickerSheet } from "@/features/dashboard/MoodPicker";
 import { Markdown } from "./Markdown";
 import { generateSummary, saveAndCloseSession } from "./sessionActions";
 
@@ -19,22 +18,18 @@ interface SessionEndScreenProps {
 
 /**
  * Step 44's ending flow, desktop's SessionEndSummary reinterpreted: summary is
- * generated on demand (same manual trigger as desktop), the insights captured
+ * generated on demand (same manual trigger as desktop) and the insights captured
  * during the session are editable here (the desktop side panel's edit/delete,
- * relocated), and — unlike desktop, which hardcodes 5 — the post-session mood
- * is actually asked before saving.
+ * relocated).
  */
 export function SessionEndScreen({ onAIError }: SessionEndScreenProps) {
   const { t } = useTranslation();
   const { colors } = useThemeColors();
   const summaryNarrative = useSessionStore((s) => s.summaryNarrative);
   const isSummaryStreaming = useSessionStore((s) => s.isSummaryStreaming);
-  const moodAfter = useSessionStore((s) => s.moodAfter);
-  const setMoodAfter = useSessionStore((s) => s.setMoodAfter);
   const sessionInsightIds = useSessionStore((s) => s.sessionInsightIds);
   const removeSessionInsightId = useSessionStore((s) => s.removeSessionInsightId);
 
-  const [moodSheetOpen, setMoodSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingSaving, setEditingSaving] = useState(false);
   const [deletingInsightId, setDeletingInsightId] = useState<string | null>(null);
@@ -131,7 +126,7 @@ export function SessionEndScreen({ onAIError }: SessionEndScreenProps) {
     return Array.from(byGroup.values());
   })();
 
-  const saveDisabled = saving || isSummaryStreaming || moodAfter === null;
+  const saveDisabled = saving || isSummaryStreaming;
 
   return (
     <>
@@ -232,43 +227,10 @@ export function SessionEndScreen({ onAIError }: SessionEndScreenProps) {
           </Card>
         )}
 
-        {/* Post-session mood (Step 44) */}
-        <Pressable accessibilityRole="button" onPress={() => setMoodSheetOpen(true)} className="active:opacity-80">
-          <Card>
-            <View className="flex-row items-center gap-4">
-              <View className="h-12 w-12 items-center justify-center rounded-2xl border border-primary-500/20 bg-primary-500/10">
-                {moodAfter !== null ? (
-                  <MoodIcon mood={moodAfter} size={28} />
-                ) : (
-                  <Sparkles size={22} color={colors.inkMute} />
-                )}
-              </View>
-              <View className="flex-1">
-                <Text className="text-sm font-semibold text-ink">{t.session.moodAfterQuestion}</Text>
-                {moodAfter !== null && (
-                  <View className="flex-row items-baseline gap-1.5">
-                    <Text className="text-xl font-bold text-ink">{moodAfter}</Text>
-                    <Text className="text-sm text-ink-mute">/ 10 · {getMoodBandLabel(moodAfter, t)}</Text>
-                  </View>
-                )}
-              </View>
-              <ChevronRight size={18} color={colors.inkMute} />
-            </View>
-          </Card>
-        </Pressable>
-
         <Button size="lg" onPress={handleSaveAndClose} disabled={saveDisabled} loading={saving}>
           {isSummaryStreaming ? t.session.preparingSummary : t.session.saveAndClose}
         </Button>
       </ScrollView>
-
-      <MoodPickerSheet
-        isOpen={moodSheetOpen}
-        title={t.session.moodAfterQuestion}
-        initialMood={moodAfter}
-        onSelect={setMoodAfter}
-        onClose={() => setMoodSheetOpen(false)}
-      />
 
       <EntryComposer
         visible={editingInsight !== null}

@@ -133,8 +133,6 @@ export const ja: Translations = {
     goToSettings: "設定へ移動",
     checkingConnection: "接続を確認中...",
     startSessionButton: "セッションを始める",
-    moodBeforeQuestion: "セッションを始める前に、今の気分はどうですか？",
-    moodAfterQuestion: "セッションを終えて、今の気分はどうですか？",
     psychologist: "心理士",
     sessionCompleted: "セッション完了",
     sessionSummary: "セッションのまとめ",

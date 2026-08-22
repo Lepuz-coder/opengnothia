@@ -104,7 +104,7 @@ export function createQueries(db: DatabasePort) {
   async function createSession(session: {
     id: string;
     started_at: string;
-    mood_before: number;
+    mood_before: number | null;
   }): Promise<void> {
     await db.execute(
       "INSERT INTO sessions (id, started_at, mood_before, messages, status) VALUES (?, ?, ?, '[]', 'active')",
@@ -118,7 +118,7 @@ export function createQueries(db: DatabasePort) {
 
   async function completeSession(
     id: string,
-    data: { mood_after: number; summary: SessionSummary | null; summary_narrative?: string }
+    data: { mood_after: number | null; summary: SessionSummary | null; summary_narrative?: string }
   ): Promise<void> {
     await db.execute(
       "UPDATE sessions SET ended_at = ?, mood_after = ?, summary = ?, summary_narrative = ?, status = 'completed' WHERE id = ?",

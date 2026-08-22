@@ -158,8 +158,6 @@ export interface Translations {
     checkingConnection: string;
     startSessionButton: string;
     // Mobile-only (Faz 5): pre/post-session mood prompts — desktop hardcodes 5.
-    moodBeforeQuestion: string;
-    moodAfterQuestion: string;
     psychologist: string;
     sessionCompleted: string;
     sessionSummary: string;

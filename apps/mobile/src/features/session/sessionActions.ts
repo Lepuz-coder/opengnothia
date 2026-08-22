@@ -97,13 +97,13 @@ function completedMessages(): ChatMessage[] {
 }
 
 /** Store bootstrap + DB row; the greeting is a separate call so its failure never orphans the row. */
-export async function startSessionInDb(moodBefore: number): Promise<void> {
+export async function startSessionInDb(): Promise<void> {
   const store = useSessionStore.getState();
-  store.startSession(moodBefore);
+  store.startSession();
   try {
     const { sessionId, startedAt } = useSessionStore.getState();
     const queries = await getQueries();
-    await queries.createSession({ id: sessionId!, started_at: startedAt!, mood_before: moodBefore });
+    await queries.createSession({ id: sessionId!, started_at: startedAt!, mood_before: null });
   } catch (error) {
     // startSession makes the fullscreen modal visible immediately. If the DB
     // row cannot be created, restore the idle state instead of leaving an
@@ -324,7 +324,7 @@ export async function saveAndCloseSession(): Promise<void> {
   if (state.sessionId) {
     const queries = await getQueries();
     await queries.completeSession(state.sessionId, {
-      mood_after: state.moodAfter ?? state.moodBefore ?? 5,
+      mood_after: null,
       summary: state.summaryNarrative
         ? { themes: [], defenses: [], insights: [], homework: [] }
         : null,

@@ -25,6 +25,17 @@ const PACKS: Record<BellPackId, Record<BellRole, number>> = {
 
 const SILENCE = require("../../../assets/sounds/silence.wav");
 
+/**
+ * What the setup screen plays when someone taps a bell pack.
+ *
+ * The opening bell rather than the interval one: it is the pack's signature —
+ * the fullest strike, and the sound the sitting actually starts on. (For the
+ * gong pack the two are the same file anyway.)
+ */
+export function bellPreviewSource(pack: BellPackId): number {
+  return PACKS[pack].start;
+}
+
 function removeQuietly(player: AudioPlayer | null) {
   try {
     player?.remove();
@@ -88,14 +99,20 @@ export class BellSession {
     if (this.released) return;
     const player = this.bells[role];
     if (!player) return;
-    try {
-      // A bell can be re-rung before its tail has decayed (short intervals, or
-      // end following close on an interval); rewinding is what replays it.
-      player.seekTo(0);
-      player.play();
-    } catch (err) {
-      console.error("Meditation bell playback failed:", err);
-    }
+    // A player that already rang is parked at the end of its sample, so it has
+    // to be rewound before it will sound again. seekTo is async and play() is
+    // not: calling them in sequence resumes from the end instead, the player
+    // stops itself within a frame, and the bell is silent. One player serves
+    // every interval bell of a sitting, so this is every interval bell after
+    // the first.
+    void player
+      .seekTo(0)
+      .then(() => {
+        if (!this.released) player.play();
+      })
+      .catch((err) => {
+        console.error("Meditation bell playback failed:", err);
+      });
   }
 
   /** Stop everything, release the players, hand the audio session back. */

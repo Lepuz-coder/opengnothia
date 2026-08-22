@@ -34,12 +34,13 @@ export default function MeditateScreen() {
   const [breathingActive, setBreathingActive] = useState(false);
   const [meditationActive, setMeditationActive] = useState(false);
 
+
   const techniques = getBreathingTechniques(language);
   const technique = techniques.find((item) => item.id === selectedTechniqueId) ?? techniques[0];
 
   const meditationDuration = useSettingsStore((s) => s.meditationDuration);
   const meditationPrep = useSettingsStore((s) => s.meditationPrep);
-  const meditationInterval = useSettingsStore((s) => s.meditationInterval);
+  const meditationBells = useSettingsStore((s) => s.meditationBells);
   const meditationBell = useSettingsStore((s) => s.meditationBell);
 
   return (
@@ -78,7 +79,7 @@ export default function MeditateScreen() {
         <MeditationSession
           totalSeconds={meditationDuration}
           prepSeconds={meditationPrep}
-          intervalSeconds={meditationInterval}
+          bellsAt={meditationBells}
           bell={meditationBell}
           onStop={() => setMeditationActive(false)}
         />

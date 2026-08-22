@@ -8,6 +8,7 @@ export { Input } from "./Input";
 export { LockBadge } from "./LockBadge";
 export { MiniOrb } from "./MiniOrb";
 export { ScreenPlaceholder } from "./ScreenPlaceholder";
+export { Slider } from "./Slider";
 export { SegmentedTabs, type SegmentedTab } from "./SegmentedTabs";
 export { Sheet } from "./Sheet";
 export { ToastContainer } from "./Toast";

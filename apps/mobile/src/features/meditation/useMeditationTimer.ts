@@ -27,7 +27,13 @@ export interface MeditationTimerState {
 interface UseMeditationTimerArgs {
   totalSeconds: number;
   prepSeconds: number;
-  intervalSeconds: number;
+  /**
+   * Interval-bell moments, in seconds into the sitting. Read straight off the
+   * settings store so the reference is stable — a fresh array every render would
+   * rebuild the schedule, and the effect below would restart the audio session
+   * mid-sitting.
+   */
+  bellsAt: number[];
   bell: BellPackId;
 }
 
@@ -45,12 +51,12 @@ interface UseMeditationTimerArgs {
 export function useMeditationTimer({
   totalSeconds,
   prepSeconds,
-  intervalSeconds,
+  bellsAt,
   bell,
 }: UseMeditationTimerArgs): MeditationTimerState {
   const cues = useMemo(
-    () => buildBellSchedule(totalSeconds, prepSeconds, intervalSeconds),
-    [totalSeconds, prepSeconds, intervalSeconds]
+    () => buildBellSchedule(totalSeconds, prepSeconds, bellsAt),
+    [totalSeconds, prepSeconds, bellsAt]
   );
   const endsAt = prepSeconds + totalSeconds;
 

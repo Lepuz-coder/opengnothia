@@ -497,10 +497,14 @@ export interface Translations {
     prepareNone: string;
     secondsShort: string;
     intervalBell: string;
-    intervalNone: string;
+    addBell: string;
+    noBells: string;
+    noBellsHint: string;
+    removeBell: string;
     bellSound: string;
     bellBowl: string;
     bellGong: string;
+    bellPreviewHint: string;
     start: string;
     getReady: string;
     nextBell: string;

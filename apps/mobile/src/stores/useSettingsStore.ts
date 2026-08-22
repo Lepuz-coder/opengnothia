@@ -3,7 +3,7 @@ import * as Localization from "expo-localization";
 import { create } from "zustand";
 import { createJSONStorage, persist, type PersistStorage } from "zustand/middleware";
 import type { Language, TherapySchool, Theme } from "@opengnothia/shared/types";
-import type { BellPackId } from "@/features/meditation/constants";
+import { BELL_STEP, MAX_BELLS, normalizeBells, type BellPackId } from "@/features/meditation/constants";
 
 const SUPPORTED_LANGUAGES: Language[] = ["tr", "en", "zh", "es", "pt", "de", "fr", "ja"];
 
@@ -30,7 +30,7 @@ interface SettingsState {
   intakeLastStep: number;
   // Meditation timer setup, remembered between sessions — unlike the breathing
   // tab, whose technique/duration reset on every visit. A meditation practice is
-  // a habit: re-picking 20 minutes and a 5-minute bell every morning is friction.
+  // a habit: re-picking 20 minutes and the same bells every morning is friction.
   // Flat fields rather than one nested object, matching the rest of this store —
   // a nested value would need a merge on rehydrate (persist merges shallowly, so
   // a later-added key would read back undefined) and a memoised selector to keep
@@ -39,8 +39,11 @@ interface SettingsState {
   meditationDuration: number;
   /** Countdown before the session starts, in seconds. 0 = start immediately. */
   meditationPrep: number;
-  /** Seconds between interval bells. 0 = only the start and end bells. */
-  meditationInterval: number;
+  /**
+   * Moments inside the sitting when an interval bell rings, in seconds from the
+   * first bell, ascending. Empty = only the start and end bells.
+   */
+  meditationBells: number[];
   meditationBell: BellPackId;
   setLanguage: (language: Language) => void;
   setTheme: (theme: Theme) => void;
@@ -51,7 +54,7 @@ interface SettingsState {
   setIntakeLastStep: (intakeLastStep: number) => void;
   setMeditationDuration: (meditationDuration: number) => void;
   setMeditationPrep: (meditationPrep: number) => void;
-  setMeditationInterval: (meditationInterval: number) => void;
+  setMeditationBells: (meditationBells: number[]) => void;
   setMeditationBell: (meditationBell: BellPackId) => void;
 }
 
@@ -66,7 +69,7 @@ type PersistedSettingsState = Pick<
   | "intakeLastStep"
   | "meditationDuration"
   | "meditationPrep"
-  | "meditationInterval"
+  | "meditationBells"
   | "meditationBell"
 >;
 
@@ -113,7 +116,7 @@ export const useSettingsStore = create<SettingsState>()(
       intakeLastStep: 0,
       meditationDuration: 600,
       meditationPrep: 10,
-      meditationInterval: 0,
+      meditationBells: [],
       meditationBell: "bowl",
       setLanguage: (language) => set({ language }),
       setTheme: (theme) => set({ theme }),
@@ -137,12 +140,30 @@ export const useSettingsStore = create<SettingsState>()(
       setIntakeLastStep: (intakeLastStep) => set({ intakeLastStep }),
       setMeditationDuration: (meditationDuration) => set({ meditationDuration }),
       setMeditationPrep: (meditationPrep) => set({ meditationPrep }),
-      setMeditationInterval: (meditationInterval) => set({ meditationInterval }),
+      setMeditationBells: (meditationBells) => set({ meditationBells }),
       setMeditationBell: (meditationBell) => set({ meditationBell }),
     }),
     {
       name: "opengnothia-settings",
       storage: settingsStorage,
+      // v1 turned the single repeating gap (`meditationInterval`) into a list of
+      // moments. Expanding the old gap keeps a practice that was already set up
+      // ringing at the same times instead of quietly falling silent.
+      version: 1,
+      migrate: (persisted, version) => {
+        const state = persisted as PersistedSettingsState & { meditationInterval?: number };
+        if (version >= 1) return state;
+
+        const gap = state.meditationInterval ?? 0;
+        const bells: number[] = [];
+        if (gap >= BELL_STEP) {
+          // A one-minute gap over an hour is fifty-nine rows, well past what the
+          // list is bounded to; keep the earliest, which is the stretch of the
+          // sitting the old setting was really about.
+          for (let at = gap; at < state.meditationDuration && bells.length < MAX_BELLS; at += gap) bells.push(at);
+        }
+        return { ...state, meditationBells: normalizeBells(bells, state.meditationDuration) };
+      },
       partialize: ({
         language,
         theme,
@@ -153,7 +174,7 @@ export const useSettingsStore = create<SettingsState>()(
         intakeLastStep,
         meditationDuration,
         meditationPrep,
-        meditationInterval,
+        meditationBells,
         meditationBell,
       }) => ({
         language,
@@ -165,7 +186,7 @@ export const useSettingsStore = create<SettingsState>()(
         intakeLastStep,
         meditationDuration,
         meditationPrep,
-        meditationInterval,
+        meditationBells,
         meditationBell,
       }),
       // Missing storage is a normal first launch. A real read/parse failure is

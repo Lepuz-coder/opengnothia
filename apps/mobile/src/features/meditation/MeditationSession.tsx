@@ -13,7 +13,7 @@ import { useMeditationTimer } from "./useMeditationTimer";
 interface MeditationSessionProps {
   totalSeconds: number;
   prepSeconds: number;
-  intervalSeconds: number;
+  bellsAt: number[];
   bell: BellPackId;
   onStop: () => void;
 }
@@ -29,7 +29,7 @@ interface MeditationSessionProps {
 export function MeditationSession({
   totalSeconds,
   prepSeconds,
-  intervalSeconds,
+  bellsAt,
   bell,
   onStop,
 }: MeditationSessionProps) {
@@ -44,7 +44,7 @@ export function MeditationSession({
   const { phase, prepRemaining, remaining, elapsedInSession, nextBellIn } = useMeditationTimer({
     totalSeconds,
     prepSeconds,
-    intervalSeconds,
+    bellsAt,
     bell,
   });
 

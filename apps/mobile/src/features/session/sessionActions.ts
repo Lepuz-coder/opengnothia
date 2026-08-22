@@ -42,6 +42,13 @@ export const PROXY_CONTEXT_WINDOW = 1_050_000;
 export interface VoiceStreamSink {
   feed: (chunk: string) => void;
   flush: () => void;
+  /**
+   * A turn died before producing speech. The greeting is kicked off from the
+   * session tab with its own error handler, so without this the loop would sit
+   * in waiting_for_ai forever; pauseLoop is idempotent when the modal's
+   * voice-aware handler has already parked it.
+   */
+  fail: () => void;
 }
 
 let voiceSink: VoiceStreamSink | null = null;
@@ -164,6 +171,7 @@ async function streamAssistantTurn({ requestMessages, systemPrompt, callType, on
         s.removeMessage(s.streamingMessageId);
       }
       s.finishStreaming();
+      voiceSink?.fail();
       onAIError(error);
     },
   });
@@ -187,6 +195,7 @@ export async function streamGreeting(onAIError: (error: unknown) => void): Promi
     });
   } catch (err) {
     useSessionStore.getState().finishStreaming();
+    voiceSink?.fail();
     onAIError(err);
   }
 }
@@ -213,6 +222,7 @@ export async function sendUserMessage(content: string, onAIError: (error: unknow
     });
   } catch (err) {
     useSessionStore.getState().finishStreaming();
+    voiceSink?.fail();
     onAIError(err);
   }
 }

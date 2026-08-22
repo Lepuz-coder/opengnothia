@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { ChatMessage } from "@opengnothia/shared/types";
+import type { ChatMessage, SessionMode } from "@opengnothia/shared/types";
 
 /**
  * M13: mobile writes its own session store rather than copying desktop's.
@@ -13,6 +13,8 @@ type SessionStatus = "idle" | "active" | "post";
 
 interface SessionState {
   status: SessionStatus;
+  /** Picked in the start sheet before startSession, desktop's shape (M9). */
+  sessionMode: SessionMode;
   sessionId: string | null;
   startedAt: string | null;
   messages: ChatMessage[];
@@ -54,11 +56,13 @@ interface SessionState {
   removeSessionInsightId: (id: string) => void;
   startNoteTaking: () => number;
   finishNoteTaking: (runStartedAt: number) => void;
+  setSessionMode: (mode: SessionMode) => void;
   reset: () => void;
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
   status: "idle",
+  sessionMode: "chat",
   sessionId: null,
   startedAt: null,
   messages: [],
@@ -73,6 +77,10 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   sessionInsightIds: [],
   noteTakingStartedAt: null,
 
+  setSessionMode: (sessionMode) => set({ sessionMode }),
+
+  // Deliberately leaves sessionMode alone: the start sheet writes it just
+  // before this call, exactly like desktop's performSessionStart.
   startSession: () =>
     set({
       status: "active",
@@ -177,6 +185,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   reset: () =>
     set({
       status: "idle",
+      sessionMode: "chat",
       sessionId: null,
       startedAt: null,
       messages: [],

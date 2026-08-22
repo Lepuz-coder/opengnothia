@@ -71,17 +71,15 @@ function EndPromptCard({
 /** RN's modal slide animation, with a little slack. */
 const NESTED_MODAL_DISMISS_MS = 350;
 
-type SessionMode = "chat" | "voice";
-
 /**
  * The whole in-session surface, presented as a fullscreen Modal over the
  * session tab — the Faz 3 precedent (breathing exercise) for desktop's
  * hide-the-sidebar focus mode: the tab bar is covered, not restyled.
  *
- * Faz 8: this component owns the session mode. Voice mode swaps the chat
- * surface for VoiceConversationView and registers the stream sink so
- * sessionActions can feed the loop; both directions of the switch stay inside
- * the same running session (M9).
+ * The mode is picked in the start sheet and lives in the session store
+ * (desktop's shape). A voice session opens the loop here as soon as the
+ * session turns active; dropping to chat is one-way, as on desktop — the chat
+ * input's mic dictates rather than switching modes.
  */
 export function SessionModal() {
   const { t } = useTranslation();
@@ -90,6 +88,9 @@ export function SessionModal() {
   const handleAIError = useAIErrorHandler({ modalHosted: true });
 
   const status = useSessionStore((s) => s.status);
+  const sessionId = useSessionStore((s) => s.sessionId);
+  const sessionMode = useSessionStore((s) => s.sessionMode);
+  const setSessionMode = useSessionStore((s) => s.setSessionMode);
   const messages = useSessionStore((s) => s.messages);
   const isStreaming = useSessionStore((s) => s.isStreaming);
   const isLoading = useSessionStore((s) => s.isLoading);
@@ -97,9 +98,10 @@ export function SessionModal() {
   const setPendingEndPrompt = useSessionStore((s) => s.setPendingEndPrompt);
   const addSessionInsightId = useSessionStore((s) => s.addSessionInsightId);
 
-  const [mode, setMode] = useState<SessionMode>("chat");
-  const modeRef = useRef<SessionMode>("chat");
-  modeRef.current = mode;
+  const modeRef = useRef(sessionMode);
+  modeRef.current = sessionMode;
+  /** Guards the auto-start effect against re-running inside one session. */
+  const autoStartedRef = useRef<string | null>(null);
 
   const [endConfirmOpen, setEndConfirmOpen] = useState(false);
   const [finishing, setFinishing] = useState(false);
@@ -126,25 +128,44 @@ export function SessionModal() {
   voiceLoopRef.current = voiceLoop;
 
   /**
-   * Both branches run synchronously with the snapshot read: chunks arrive on
-   * async callbacks, so nothing can slip between reading the streamed-so-far
-   * text and registering the sink (no lost or doubled speech).
+   * The snapshot read, the sink registration and startLoop all run
+   * synchronously: chunks arrive on async callbacks, so nothing can slip
+   * between reading the streamed-so-far text and wiring the sink (no lost or
+   * doubled speech).
+   *
+   * The empty-string fallback matters. startLoop treats a string as "a reply
+   * is on its way" and waits; null would open the microphone immediately, and
+   * at session start the effect below can run before the greeting request has
+   * even flipped isStreaming — the user's first words would be recorded over
+   * and thrown away when the greeting arrived.
    */
-  const enterVoiceMode = () => {
+  const enterVoiceMode = useCallback(() => {
     const s = useSessionStore.getState();
     const streamedSoFar = s.isStreaming
       ? (s.messages.find((m) => m.id === s.streamingMessageId)?.content ?? "")
-      : null;
-    setVoiceSink({ feed: voiceLoop.feedStreamChunk, flush: voiceLoop.flushStream });
+      : "";
+    setVoiceSink({
+      feed: voiceLoop.feedStreamChunk,
+      flush: voiceLoop.flushStream,
+      fail: () => voiceLoopRef.current?.pauseLoop(),
+    });
     voiceLoop.startLoop(streamedSoFar);
-    setMode("voice");
-  };
+  }, [voiceLoop.feedStreamChunk, voiceLoop.flushStream, voiceLoop.startLoop]);
+
+  // A voice session opens straight into the loop (desktop's performSessionStart
+  // does the same right after handleGreeting).
+  useEffect(() => {
+    if (status !== "active" || sessionMode !== "voice" || sessionId === null) return;
+    if (autoStartedRef.current === sessionId) return;
+    autoStartedRef.current = sessionId;
+    enterVoiceMode();
+  }, [status, sessionMode, sessionId, enterVoiceMode]);
 
   const exitVoiceMode = useCallback(() => {
     setVoiceSink(null);
     voiceLoopRef.current?.stopLoop();
-    setMode("chat");
-  }, []);
+    setSessionMode("chat");
+  }, [setSessionMode]);
 
   // The modal can unmount mid-session only on teardown paths; never leave a
   // dangling sink pointing at an unmounted loop.
@@ -153,10 +174,10 @@ export function SessionModal() {
   // Desktop parity: the closing marker pauses speech and hands over to the
   // text end-prompt; "continue" resumes into listening.
   useEffect(() => {
-    if (pendingEndPrompt && mode === "voice") {
+    if (pendingEndPrompt && sessionMode === "voice") {
       voiceLoopRef.current?.pauseLoop();
     }
-  }, [pendingEndPrompt, mode]);
+  }, [pendingEndPrompt, sessionMode]);
 
   const loadGroups = async (): Promise<boolean> => {
     try {
@@ -190,7 +211,7 @@ export function SessionModal() {
       const result = await finishSession();
       if (result === "busy") return;
       setPendingEndPrompt(false);
-      if (mode === "voice") exitVoiceMode();
+      if (sessionMode === "voice") exitVoiceMode();
     } catch (err) {
       console.error("Failed to finish session:", err);
       // A short session is deleted before the store resets. Keep every modal
@@ -205,7 +226,7 @@ export function SessionModal() {
 
   const handleContinueAfterMarker = () => {
     setPendingEndPrompt(false);
-    if (mode === "voice") voiceLoop.resumeLoop();
+    if (sessionMode === "voice") voiceLoop.resumeLoop();
   };
 
   return (
@@ -242,7 +263,7 @@ export function SessionModal() {
                     />
                   </View>
                 </>
-              ) : mode === "voice" ? (
+              ) : sessionMode === "voice" ? (
                 <View className="flex-1" style={{ paddingBottom: insets.bottom }}>
                   <VoiceConversationView
                     voiceStatus={voiceLoop.status}
@@ -267,7 +288,7 @@ export function SessionModal() {
                     <ChatInput
                       disabled={isLoading || isStreaming}
                       onSend={(content) => void sendUserMessage(content, handleAIError)}
-                      onVoicePress={enterVoiceMode}
+                      onAIError={handleAIError}
                     />
                   </View>
                 </>

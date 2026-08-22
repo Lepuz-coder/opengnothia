@@ -4,7 +4,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { MessageSquare, Play } from "lucide-react-native";
 import { useTranslation } from "@opengnothia/shared/i18n";
 import { intakeFormHasContent } from "@opengnothia/shared/db/queries";
-import type { PatientIntakeForm } from "@opengnothia/shared/types";
+import type { PatientIntakeForm, SessionMode } from "@opengnothia/shared/types";
 import { useAIErrorHandler } from "@/ai/useAIErrorHandler";
 import { getQueries } from "@/db";
 import { useProGate } from "@/hooks/useProGate";
@@ -17,7 +17,11 @@ import { IntakeCard } from "@/features/session/IntakeCard";
 import { IntakeFormSheet } from "@/features/session/IntakeFormSheet";
 import { PastSessionList, type PastSessionRow } from "@/features/session/PastSessionList";
 import { SessionModal } from "@/features/session/SessionModal";
+import { StartSessionSheet } from "@/features/session/StartSessionSheet";
 import { startSessionInDb, streamGreeting } from "@/features/session/sessionActions";
+
+/** RN's modal slide animation, with slack — two modals must never overlap. */
+const SHEET_DISMISS_MS = 350;
 
 /**
  * The session tab's idle surface (Steps 41+46): start CTA (gated, M3), intake
@@ -37,11 +41,13 @@ export default function SessionScreen() {
 
   const status = useSessionStore((s) => s.status);
   const notesPreparing = useSessionStore((s) => s.noteTakingStartedAt !== null);
+  const preferredSessionMode = useSettingsStore((s) => s.preferredSessionMode);
 
   const [sessions, setSessions] = useState<PastSessionRow[]>([]);
   const [intakeForm, setIntakeForm] = useState<PatientIntakeForm | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [modeSheetOpen, setModeSheetOpen] = useState(false);
   const [intakeSheetOpen, setIntakeSheetOpen] = useState(false);
   const [intakeAllowSkip, setIntakeAllowSkip] = useState(false);
   const [intakeFirstPrompt, setIntakeFirstPrompt] = useState(false);
@@ -90,10 +96,6 @@ export default function SessionScreen() {
   }, [handleAIError, t]);
 
   const beginStartFlow = useCallback(async () => {
-    if (useSessionStore.getState().noteTakingStartedAt !== null) {
-      showToast(t.session.noteTakingStartBlocked, "info");
-      return;
-    }
     try {
       // Desktop's first-session nudge (Step 41 / M11): an empty intake prompts
       // once, skippable, and the start flow resumes after save or skip.
@@ -114,7 +116,31 @@ export default function SessionScreen() {
     }
   }, [t]);
 
-  const handleStartPress = () => gate(() => void beginStartFlow());
+  // Desktop's start modal, minus the school row (M2): the mode is chosen before
+  // anything is written, then persisted as the next session's preselection.
+  const openModeSheet = useCallback(() => {
+    if (useSessionStore.getState().noteTakingStartedAt !== null) {
+      showToast(t.session.noteTakingStartBlocked, "info");
+      return;
+    }
+    setModeSheetOpen(true);
+  }, [t]);
+
+  const handleStartPress = () => gate(openModeSheet);
+
+  const handleModeStart = useCallback(
+    (mode: SessionMode) => {
+      setModeSheetOpen(false);
+      useSettingsStore.getState().setPreferredSessionMode(mode);
+      // Written before startSession so the modal's auto-start effect already
+      // sees the right mode on the commit that turns the status active.
+      useSessionStore.getState().setSessionMode(mode);
+      // This sheet has to finish dismissing before the fullscreen session modal
+      // presents — the same rule the intake sheet follows below.
+      setTimeout(() => void beginStartFlow(), SHEET_DISMISS_MS);
+    },
+    [beginStartFlow],
+  );
 
   // Step 53: the dashboard hero lands here with ?start=<timestamp> (already
   // gated there); each tap carries a fresh value, so the effect retriggers.
@@ -122,8 +148,8 @@ export default function SessionScreen() {
   useEffect(() => {
     if (!start) return;
     if (useSessionStore.getState().status !== "idle") return;
-    void beginStartFlow();
-  }, [start, beginStartFlow]);
+    openModeSheet();
+  }, [start, openModeSheet]);
 
   const openIntakeForEdit = () => {
     pendingStartRef.current = false;
@@ -194,6 +220,13 @@ export default function SessionScreen() {
         </ScrollView>
       )}
 
+      <StartSessionSheet
+        visible={modeSheetOpen}
+        initialMode={preferredSessionMode}
+        onClose={() => setModeSheetOpen(false)}
+        onStart={handleModeStart}
+      />
+
       <IntakeFormSheet
         visible={intakeSheetOpen}
         initialData={intakeForm}
@@ -207,7 +240,7 @@ export default function SessionScreen() {
             setIntakeFirstPrompt(false);
             // Still delayed: the intake sheet must finish dismissing before the
             // fullscreen session modal presents — two modals must not overlap.
-            setTimeout(() => void beginSession(), 350);
+            setTimeout(() => void beginSession(), SHEET_DISMISS_MS);
           }
         }}
       />

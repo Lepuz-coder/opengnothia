@@ -114,7 +114,7 @@ export default function OnboardingInterviewScreen() {
               </View>
             </Card>
           ) : (
-            !startFailed && <ChatInput disabled={isStreaming} onSend={send} />
+            !startFailed && <ChatInput disabled={isStreaming} onSend={send} onAIError={handleAIError} />
           )}
         </View>
       </KeyboardAvoidingView>

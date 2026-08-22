@@ -46,6 +46,10 @@ export interface GlassPalette {
   pillShadow: string;
   /** Focused composer: the same drop shadow plus desktop's teal halo. */
   pillShadowFocused: string;
+  /** Dictation in progress — desktop's `border-red-500/40`. */
+  pillBorderRecording: string;
+  /** Dictation in progress: the drop shadow plus desktop's red halo. */
+  pillShadowRecording: string;
   /** Tint laid over the blur so the glass keeps its colour in both schemes. */
   chromeTint: string;
   /** The AI orb's glow — softer in light, as LockBadge does for its gold chip. */
@@ -65,6 +69,8 @@ export const GLASS: Record<"light" | "dark", GlassPalette> = {
     pillBorderFocused: "rgba(58,186,180,0.40)",
     pillShadow: "0px 8px 32px rgba(0,0,0,0.40)",
     pillShadowFocused: "0px 0px 28px rgba(58,186,180,0.35), 0px 8px 32px rgba(0,0,0,0.50)",
+    pillBorderRecording: "rgba(239,68,68,0.40)",
+    pillShadowRecording: "0px 0px 24px rgba(239,68,68,0.40), 0px 8px 32px rgba(0,0,0,0.40)",
     chromeTint: "rgba(15,23,41,0.30)", // surface-950; BlurView's own dark tint supplies the rest
     orbGlow: "0px 0px 12px rgba(58,186,180,0.35)",
     bubbleShadow: "0px 4px 20px rgba(10,33,32,0.60)", // primary-950
@@ -77,6 +83,8 @@ export const GLASS: Record<"light" | "dark", GlassPalette> = {
     pillBorderFocused: "rgba(45,143,139,0.45)",
     pillShadow: "0px 6px 24px rgba(15,23,41,0.12)",
     pillShadowFocused: "0px 0px 22px rgba(45,143,139,0.28), 0px 6px 24px rgba(15,23,41,0.14)",
+    pillBorderRecording: "rgba(220,38,38,0.45)",
+    pillShadowRecording: "0px 0px 20px rgba(220,38,38,0.28), 0px 6px 24px rgba(15,23,41,0.12)",
     chromeTint: "rgba(232,237,245,0.35)", // surface-50; BlurView's own light tint supplies the rest
     orbGlow: "0px 0px 10px rgba(45,143,139,0.30)",
     bubbleShadow: "0px 4px 16px rgba(45,143,139,0.18)",

@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Localization from "expo-localization";
 import { create } from "zustand";
 import { createJSONStorage, persist, type PersistStorage } from "zustand/middleware";
-import type { Language, TherapySchool, Theme } from "@opengnothia/shared/types";
+import type { Language, SessionMode, TherapySchool, Theme } from "@opengnothia/shared/types";
 import { BELL_STEP, MAX_BELLS, normalizeBells, type BellPackId } from "@/features/meditation/constants";
 
 const SUPPORTED_LANGUAGES: Language[] = ["tr", "en", "zh", "es", "pt", "de", "fr", "ja"];
@@ -28,6 +28,8 @@ interface SettingsState {
   hasSeenIntakePrompt: boolean;
   /** Last intake form step, so a half-filled form reopens where it was left. */
   intakeLastStep: number;
+  /** Preselection in the session start sheet — desktop's preferredSessionMode. */
+  preferredSessionMode: SessionMode;
   // Meditation timer setup, remembered between sessions — unlike the breathing
   // tab, whose technique/duration reset on every visit. A meditation practice is
   // a habit: re-picking 20 minutes and the same bells every morning is friction.
@@ -52,6 +54,7 @@ interface SettingsState {
   setOnboarded: (onboarded: boolean) => void;
   setHasSeenIntakePrompt: (hasSeenIntakePrompt: boolean) => void;
   setIntakeLastStep: (intakeLastStep: number) => void;
+  setPreferredSessionMode: (preferredSessionMode: SessionMode) => void;
   setMeditationDuration: (meditationDuration: number) => void;
   setMeditationPrep: (meditationPrep: number) => void;
   setMeditationBells: (meditationBells: number[]) => void;
@@ -67,6 +70,7 @@ type PersistedSettingsState = Pick<
   | "onboarded"
   | "hasSeenIntakePrompt"
   | "intakeLastStep"
+  | "preferredSessionMode"
   | "meditationDuration"
   | "meditationPrep"
   | "meditationBells"
@@ -114,6 +118,7 @@ export const useSettingsStore = create<SettingsState>()(
       onboarded: false,
       hasSeenIntakePrompt: false,
       intakeLastStep: 0,
+      preferredSessionMode: "chat",
       meditationDuration: 600,
       meditationPrep: 10,
       meditationBells: [],
@@ -138,6 +143,7 @@ export const useSettingsStore = create<SettingsState>()(
       setOnboarded: (onboarded) => set({ onboarded }),
       setHasSeenIntakePrompt: (hasSeenIntakePrompt) => set({ hasSeenIntakePrompt }),
       setIntakeLastStep: (intakeLastStep) => set({ intakeLastStep }),
+      setPreferredSessionMode: (preferredSessionMode) => set({ preferredSessionMode }),
       setMeditationDuration: (meditationDuration) => set({ meditationDuration }),
       setMeditationPrep: (meditationPrep) => set({ meditationPrep }),
       setMeditationBells: (meditationBells) => set({ meditationBells }),
@@ -172,6 +178,7 @@ export const useSettingsStore = create<SettingsState>()(
         onboarded,
         hasSeenIntakePrompt,
         intakeLastStep,
+        preferredSessionMode,
         meditationDuration,
         meditationPrep,
         meditationBells,
@@ -184,6 +191,7 @@ export const useSettingsStore = create<SettingsState>()(
         onboarded,
         hasSeenIntakePrompt,
         intakeLastStep,
+        preferredSessionMode,
         meditationDuration,
         meditationPrep,
         meditationBells,

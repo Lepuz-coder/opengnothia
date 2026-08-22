@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
-import { createAudioPlayer, setAudioModeAsync } from "expo-audio";
+import { createAudioPlayer } from "expo-audio";
 import type { File } from "expo-file-system";
 import { getCurrentLanguage } from "@opengnothia/shared/i18n";
 import { speak, transcribe, type SpeechResult } from "@/ai/client";
-import { getQueries } from "@/db";
-import { useSessionStore } from "@/stores/useSessionStore";
 import { useVoiceRecorder } from "./useVoiceRecorder";
+import { deleteQuietly, resetAudioMode, setRecordingAudioMode, trackVoiceUsage } from "./voiceRuntime";
 
 export type VoiceLoopStatus =
   | "idle"
@@ -45,14 +44,6 @@ function extractSentence(buffer: string): { sentence: string; remaining: string 
   return null;
 }
 
-function deleteQuietly(file: File | null | undefined) {
-  try {
-    if (file && file.exists) file.delete();
-  } catch {
-    // Temp-file cleanup must never surface
-  }
-}
-
 /** Play a temp mp3; resolves on finish, rejects on load failure, stop() interrupts. */
 function playSpeechFile(speech: SpeechResult): { promise: Promise<void>; stop: () => void } {
   const player = createAudioPlayer(speech.file.uri);
@@ -85,26 +76,6 @@ function playSpeechFile(speech: SpeechResult): { promise: Promise<void>; stop: (
   player.play();
 
   return { promise, stop: () => finish() };
-}
-
-async function trackVoiceUsage(callType: "stt" | "tts") {
-  try {
-    const sessionId = useSessionStore.getState().sessionId;
-    const queries = await getQueries();
-    // Cost and model are opaque behind the proxy (M5): zero-value rows keep
-    // the same call trail desktop's voice loop leaves.
-    await queries.saveTokenUsage({
-      session_id: sessionId,
-      provider: "openai",
-      model: "proxy",
-      input_tokens: 0,
-      output_tokens: 0,
-      cost: 0,
-      call_type: callType,
-    });
-  } catch {
-    // The trail is best-effort; the loop must not die on a bookkeeping miss
-  }
 }
 
 /**
@@ -284,20 +255,7 @@ export function useVoiceConversation({ onTranscriptionReady, onAIError }: UseVoi
    * switch, the mic stays claimable, and other audio does not mix in.
    */
   const configureAudioSession = useCallback(async (voiceActive: boolean) => {
-    try {
-      await setAudioModeAsync(
-        voiceActive
-          ? {
-              playsInSilentMode: true,
-              allowsRecording: true,
-              interruptionMode: "doNotMix",
-              shouldRouteThroughEarpiece: false,
-            }
-          : { playsInSilentMode: false, allowsRecording: false, interruptionMode: "mixWithOthers" },
-      );
-    } catch (err) {
-      console.error("Audio session config failed:", err);
-    }
+    await (voiceActive ? setRecordingAudioMode() : resetAudioMode());
   }, []);
 
   /**

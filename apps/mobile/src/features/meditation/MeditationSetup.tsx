@@ -106,8 +106,11 @@ export function MeditationSetup({ onStart }: MeditationSetupProps) {
     setBells([...bells, at].sort((a, b) => a - b));
   };
 
+  // The scroll view carries almost no top padding of its own: the segment strip
+  // above already sets the band the content starts under, and the start button
+  // only clears the tab bar while no gap up here is paid for twice.
   return (
-    <ScrollView className="flex-1" contentContainerClassName="gap-3 px-4 py-3 pb-8">
+    <ScrollView className="flex-1" contentContainerClassName="gap-3 px-4 pb-8 pt-1">
       <Text className="px-1 text-sm text-ink-mute">{t.meditation.description}</Text>
 
       {/* Length and preparation share a card: both are the shape of the sitting

@@ -45,7 +45,10 @@ export default function MeditateScreen() {
 
   return (
     <View className="flex-1 bg-canvas">
-      <View className="px-4 pt-4">
+      {/* The header's settings button hangs low enough to crowd the segment
+          strip; it needs clearing above, and the strip needs to read as its own
+          band rather than as the top of the scrolling content below it. */}
+      <View className="px-4 pb-2 pt-6">
         <SegmentedTabs<Segment>
           tabs={[
             { id: "timer", label: t.meditation.tabTimer },

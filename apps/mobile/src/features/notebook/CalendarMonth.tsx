@@ -17,6 +17,15 @@ interface CalendarMonthProps {
   onGoToToday: () => void;
 }
 
+/** Splits the flat 35/42-day run into calendar weeks. */
+function chunkIntoWeeks(days: Date[]): Date[][] {
+  const weeks: Date[][] = [];
+  for (let i = 0; i < days.length; i += 7) {
+    weeks.push(days.slice(i, i + 7));
+  }
+  return weeks;
+}
+
 /**
  * Month grid shared by the Günlük and Rüyalar segments. Desktop's calendar
  * cells carry a three-line text preview; at ~50pt per cell that is illegible,
@@ -24,6 +33,11 @@ interface CalendarMonthProps {
  * and the preview lives in the detail view a tap away. Interaction contract
  * is desktop's: tap an empty day to write, a filled day to open, future and
  * out-of-month days disabled, forward navigation capped at the current month.
+ *
+ * Each week is its own flex row with `flex-1` cells rather than one wrapping
+ * row of 1/7-width cells: Yoga rounds a percentage width up to the pixel grid,
+ * so seven of them no longer fit on one line and the seventh wrapped, dropping
+ * the Pazar column and shifting every following day a column to the left.
  */
 export function CalendarMonth({
   year,
@@ -39,7 +53,7 @@ export function CalendarMonth({
   const { colors } = useThemeColors();
   const now = new Date();
   const todayStr = formatYMD(now);
-  const days = getCalendarDays(year, month);
+  const weeks = chunkIntoWeeks(getCalendarDays(year, month));
   const isNextDisabled = year === now.getFullYear() && month >= now.getMonth();
 
   return (
@@ -71,57 +85,59 @@ export function CalendarMonth({
       {/* Day headers */}
       <View className="flex-row">
         {dayNames.map((name) => (
-          <View key={name} className="w-[14.2857%] items-center py-1.5">
+          <View key={name} className="flex-1 items-center py-1.5">
             <Text className="text-xs font-medium text-ink-mute">{name}</Text>
           </View>
         ))}
       </View>
 
       {/* Day grid */}
-      <View className="flex-row flex-wrap">
-        {days.map((day) => {
-          const dateStr = formatYMD(day);
-          const isCurrentMonth = day.getMonth() === month;
-          const isToday = dateStr === todayStr;
-          const isFuture = dateStr > todayStr;
-          const isMarked = markedDates.has(dateStr);
-          const disabled = isFuture || !isCurrentMonth;
+      {weeks.map((week) => (
+        <View key={formatYMD(week[0])} className="flex-row">
+          {week.map((day) => {
+            const dateStr = formatYMD(day);
+            const isCurrentMonth = day.getMonth() === month;
+            const isToday = dateStr === todayStr;
+            const isFuture = dateStr > todayStr;
+            const isMarked = markedDates.has(dateStr);
+            const disabled = isFuture || !isCurrentMonth;
 
-          return (
-            <Pressable
-              key={dateStr}
-              accessibilityRole="button"
-              accessibilityState={{ disabled }}
-              disabled={disabled}
-              onPress={() => onDayPress(dateStr)}
-              className="w-[14.2857%] items-center py-1"
-            >
-              <View
-                className={cn(
-                  "h-11 w-11 items-center justify-center rounded-full",
-                  isMarked && "bg-primary-100 dark:bg-primary-900/40",
-                  isToday && "border-2 border-tint",
-                  !isCurrentMonth && "opacity-0",
-                  isFuture && isCurrentMonth && "opacity-30"
-                )}
+            return (
+              <Pressable
+                key={dateStr}
+                accessibilityRole="button"
+                accessibilityState={{ disabled }}
+                disabled={disabled}
+                onPress={() => onDayPress(dateStr)}
+                className="flex-1 items-center py-1"
               >
-                <Text
+                <View
                   className={cn(
-                    "text-base",
-                    isMarked
-                      ? "font-semibold text-primary-700 dark:text-primary-300"
-                      : isToday
-                        ? "font-semibold text-tint"
-                        : "text-ink"
+                    "h-11 w-11 items-center justify-center rounded-full",
+                    isMarked && "bg-primary-100 dark:bg-primary-900/40",
+                    isToday && "border-2 border-tint",
+                    !isCurrentMonth && "opacity-0",
+                    isFuture && isCurrentMonth && "opacity-30"
                   )}
                 >
-                  {day.getDate()}
-                </Text>
-              </View>
-            </Pressable>
-          );
-        })}
-      </View>
+                  <Text
+                    className={cn(
+                      "text-base",
+                      isMarked
+                        ? "font-semibold text-primary-700 dark:text-primary-300"
+                        : isToday
+                          ? "font-semibold text-tint"
+                          : "text-ink"
+                    )}
+                  >
+                    {day.getDate()}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      ))}
     </View>
   );
 }

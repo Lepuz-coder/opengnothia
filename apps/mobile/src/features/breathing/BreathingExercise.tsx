@@ -10,13 +10,13 @@ import Animated, {
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
-import Svg, { Circle, Defs, LinearGradient, Stop } from "react-native-svg";
 import { Check, X } from "lucide-react-native";
 import { useKeepAwake } from "expo-keep-awake";
 import { useTranslation } from "@opengnothia/shared/i18n";
 import type { BreathingTechnique } from "@opengnothia/shared/constants/breathingTechniques";
+import { formatClock } from "@/lib/duration";
 import { useThemeColors } from "@/theme/useAppTheme";
-import { Button } from "@/ui";
+import { Button, GradientCircle } from "@/ui";
 
 interface BreathingExerciseProps {
   technique: BreathingTechnique;
@@ -28,12 +28,6 @@ const CIRCLE = 160;
 // primary-500 — the ring/glow teal desktop hardcodes as rgba(58,186,180,…).
 const TEAL = { r: 58, g: 186, b: 180 };
 const tealAlpha = (a: number) => `rgba(${TEAL.r}, ${TEAL.g}, ${TEAL.b}, ${a})`;
-
-function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
 
 /**
  * Fullscreen exercise runner. Desktop overlays `fixed inset-0` over the page
@@ -204,27 +198,12 @@ export function BreathingExercise({ technique, totalDuration, onStop }: Breathin
               className="absolute inset-x-0 text-center text-sm text-ink-mute"
               style={{ bottom: insets.bottom + 24, fontVariant: ["tabular-nums"] }}
             >
-              {formatTime(remaining)}
+              {formatClock(remaining)}
             </Text>
           </>
         )}
       </View>
     </Modal>
-  );
-}
-
-/** Desktop's from-primary-400 to-primary-700 diagonal gradient disc. */
-function GradientCircle({ size }: { size: number }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 100 100">
-      <Defs>
-        <LinearGradient id="breathGradient" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor="#4BC3BE" />
-          <Stop offset="1" stopColor="#236E6B" />
-        </LinearGradient>
-      </Defs>
-      <Circle cx="50" cy="50" r="50" fill="url(#breathGradient)" />
-    </Svg>
   );
 }
 

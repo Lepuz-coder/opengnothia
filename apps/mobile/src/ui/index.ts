@@ -3,6 +3,7 @@ export { Button } from "./Button";
 export { Card } from "./Card";
 export { ConfirmSheet } from "./ConfirmSheet";
 export { DataLoadError } from "./DataLoadError";
+export { GradientCircle } from "./GradientCircle";
 export { Input } from "./Input";
 export { LockBadge } from "./LockBadge";
 export { MiniOrb } from "./MiniOrb";

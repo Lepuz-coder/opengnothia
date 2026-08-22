@@ -3,6 +3,7 @@ import * as Localization from "expo-localization";
 import { create } from "zustand";
 import { createJSONStorage, persist, type PersistStorage } from "zustand/middleware";
 import type { Language, TherapySchool, Theme } from "@opengnothia/shared/types";
+import type { BellPackId } from "@/features/meditation/constants";
 
 const SUPPORTED_LANGUAGES: Language[] = ["tr", "en", "zh", "es", "pt", "de", "fr", "ja"];
 
@@ -27,6 +28,20 @@ interface SettingsState {
   hasSeenIntakePrompt: boolean;
   /** Last intake form step, so a half-filled form reopens where it was left. */
   intakeLastStep: number;
+  // Meditation timer setup, remembered between sessions — unlike the breathing
+  // tab, whose technique/duration reset on every visit. A meditation practice is
+  // a habit: re-picking 20 minutes and a 5-minute bell every morning is friction.
+  // Flat fields rather than one nested object, matching the rest of this store —
+  // a nested value would need a merge on rehydrate (persist merges shallowly, so
+  // a later-added key would read back undefined) and a memoised selector to keep
+  // zustand v5's snapshot stable.
+  /** Session length in seconds, excluding the preparation countdown. */
+  meditationDuration: number;
+  /** Countdown before the session starts, in seconds. 0 = start immediately. */
+  meditationPrep: number;
+  /** Seconds between interval bells. 0 = only the start and end bells. */
+  meditationInterval: number;
+  meditationBell: BellPackId;
   setLanguage: (language: Language) => void;
   setTheme: (theme: Theme) => void;
   setSchoolId: (schoolId: TherapySchool | null) => void;
@@ -34,6 +49,10 @@ interface SettingsState {
   setOnboarded: (onboarded: boolean) => void;
   setHasSeenIntakePrompt: (hasSeenIntakePrompt: boolean) => void;
   setIntakeLastStep: (intakeLastStep: number) => void;
+  setMeditationDuration: (meditationDuration: number) => void;
+  setMeditationPrep: (meditationPrep: number) => void;
+  setMeditationInterval: (meditationInterval: number) => void;
+  setMeditationBell: (meditationBell: BellPackId) => void;
 }
 
 type PersistedSettingsState = Pick<
@@ -45,6 +64,10 @@ type PersistedSettingsState = Pick<
   | "onboarded"
   | "hasSeenIntakePrompt"
   | "intakeLastStep"
+  | "meditationDuration"
+  | "meditationPrep"
+  | "meditationInterval"
+  | "meditationBell"
 >;
 
 const baseSettingsStorage = createJSONStorage<PersistedSettingsState>(() => AsyncStorage)!;
@@ -88,6 +111,10 @@ export const useSettingsStore = create<SettingsState>()(
       onboarded: false,
       hasSeenIntakePrompt: false,
       intakeLastStep: 0,
+      meditationDuration: 600,
+      meditationPrep: 10,
+      meditationInterval: 0,
+      meditationBell: "bowl",
       setLanguage: (language) => set({ language }),
       setTheme: (theme) => set({ theme }),
       setSchoolId: (schoolId) => set({ schoolId }),
@@ -108,11 +135,15 @@ export const useSettingsStore = create<SettingsState>()(
       setOnboarded: (onboarded) => set({ onboarded }),
       setHasSeenIntakePrompt: (hasSeenIntakePrompt) => set({ hasSeenIntakePrompt }),
       setIntakeLastStep: (intakeLastStep) => set({ intakeLastStep }),
+      setMeditationDuration: (meditationDuration) => set({ meditationDuration }),
+      setMeditationPrep: (meditationPrep) => set({ meditationPrep }),
+      setMeditationInterval: (meditationInterval) => set({ meditationInterval }),
+      setMeditationBell: (meditationBell) => set({ meditationBell }),
     }),
     {
       name: "opengnothia-settings",
       storage: settingsStorage,
-      partialize: ({ language, theme, schoolId, lockEnabled, onboarded, hasSeenIntakePrompt, intakeLastStep }) => ({
+      partialize: ({
         language,
         theme,
         schoolId,
@@ -120,6 +151,22 @@ export const useSettingsStore = create<SettingsState>()(
         onboarded,
         hasSeenIntakePrompt,
         intakeLastStep,
+        meditationDuration,
+        meditationPrep,
+        meditationInterval,
+        meditationBell,
+      }) => ({
+        language,
+        theme,
+        schoolId,
+        lockEnabled,
+        onboarded,
+        hasSeenIntakePrompt,
+        intakeLastStep,
+        meditationDuration,
+        meditationPrep,
+        meditationInterval,
+        meditationBell,
       }),
       // Missing storage is a normal first launch. A real read/parse failure is
       // different: opening with the default lockEnabled=false would fail open.

@@ -1,6 +1,6 @@
 import { Pressable } from "react-native";
 import { Link, Tabs } from "expo-router";
-import { BarChart3, BookOpen, Home, MessageSquare, Settings, Wind } from "lucide-react-native";
+import { BarChart3, BookOpen, Flower2, Home, MessageSquare, Settings } from "lucide-react-native";
 import { useTranslation } from "@opengnothia/shared/i18n";
 import { useThemeColors } from "@/theme/useAppTheme";
 
@@ -47,10 +47,10 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="breathe"
+        name="meditate"
         options={{
-          title: t.nav.breathe,
-          tabBarIcon: ({ color, size }) => <Wind size={size} color={color} />,
+          title: t.nav.meditation,
+          tabBarIcon: ({ color, size }) => <Flower2 size={size} color={color} />,
         }}
       />
       <Tabs.Screen

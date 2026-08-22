@@ -74,7 +74,7 @@ export interface Translations {
     // Short bottom-tab labels — mobile only (M7).
     home: string;
     notebook: string;
-    breathe: string;
+    meditation: string;
   };
   gender: {
     select: string;
@@ -486,6 +486,27 @@ export interface Translations {
     techniqueSimple: string;
     techniqueSimpleDesc: string;
     durationMinute: string;
+  };
+  meditation: {
+    title: string;
+    description: string;
+    tabTimer: string;
+    tabBreathing: string;
+    duration: string;
+    prepare: string;
+    prepareNone: string;
+    secondsShort: string;
+    intervalBell: string;
+    intervalNone: string;
+    bellSound: string;
+    bellBowl: string;
+    bellGong: string;
+    start: string;
+    getReady: string;
+    nextBell: string;
+    finishEarly: string;
+    complete: string;
+    completedMinutes: string;
   };
   expenses: {
     title: string;

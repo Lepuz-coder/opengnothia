@@ -8,6 +8,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "appleTeamId": "WS7S569ATA",
       "supportsTablet": true,
       "bundleIdentifier": "com.opengnothia.app"
     },

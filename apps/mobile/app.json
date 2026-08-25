@@ -9,6 +9,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "appleTeamId": "WS7S569ATA",
+      "buildNumber": "2",
       "supportsTablet": true,
       "bundleIdentifier": "com.opengnothia.app"
     },

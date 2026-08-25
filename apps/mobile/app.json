@@ -41,6 +41,18 @@
         {
           "faceIDPermission": "Allow OpenGnothia to use Face ID to unlock the app."
         }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#E8EDF5",
+          "dark": {
+            "backgroundColor": "#0F1729"
+          }
+        }
       ]
     ]
   }
